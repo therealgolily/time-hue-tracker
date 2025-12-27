@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { format } from 'date-fns';
 import { DayData, TimeEntry, CLIENT_LABELS } from '@/types/timeTracker';
 import { cn } from '@/lib/utils';
-import { Sun, Moon, Trash2, User, Briefcase } from 'lucide-react';
+import { Sun, Moon, Trash2, User, Briefcase, Pencil } from 'lucide-react';
+import { EditEntryDialog } from './EditEntryDialog';
 
 interface TimelineViewProps {
   dayData: DayData;
   onDeleteEntry: (entryId: string) => void;
+  onUpdateEntry: (entryId: string, updates: Omit<TimeEntry, 'id'>) => void;
 }
 
-export const TimelineView = ({ dayData, onDeleteEntry }: TimelineViewProps) => {
+export const TimelineView = ({ dayData, onDeleteEntry, onUpdateEntry }: TimelineViewProps) => {
+  const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const { wakeTime, sleepTime, entries } = dayData;
   
   // Build timeline items
@@ -100,12 +104,20 @@ export const TimelineView = ({ dayData, onDeleteEntry }: TimelineViewProps) => {
                 </div>
                 
                 {item.type === 'entry' && item.data && (
-                  <button
-                    onClick={() => onDeleteEntry(item.data!.id)}
-                    className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditingEntry(item.data!)}
+                      className="p-2 text-muted-foreground hover:text-primary transition-colors rounded-lg hover:bg-primary/10"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDeleteEntry(item.data!.id)}
+                      className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
 
@@ -152,6 +164,13 @@ export const TimelineView = ({ dayData, onDeleteEntry }: TimelineViewProps) => {
           </div>
         ))}
       </div>
+
+      <EditEntryDialog
+        entry={editingEntry}
+        open={!!editingEntry}
+        onOpenChange={(open) => !open && setEditingEntry(null)}
+        onSave={onUpdateEntry}
+      />
     </div>
   );
 };

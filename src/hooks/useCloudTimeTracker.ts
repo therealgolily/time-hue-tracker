@@ -264,6 +264,52 @@ export const useCloudTimeTracker = (userId: string | null) => {
     [userId, getDayData]
   );
 
+  const updateEntry = useCallback(
+    async (date: Date, entryId: string, updates: Omit<TimeEntry, 'id'>) => {
+      if (!userId) return;
+
+      const key = getDateKey(date);
+
+      try {
+        const { error } = await supabase
+          .from('time_entries')
+          .update({
+            start_time: updates.startTime.toISOString(),
+            end_time: updates.endTime.toISOString(),
+            description: updates.description,
+            energy_level: updates.energyLevel,
+            category: updates.category,
+            client: updates.client || null,
+            custom_client: updates.customClient || null,
+          })
+          .eq('id', entryId);
+
+        if (error) throw error;
+
+        const updatedEntry: TimeEntry = {
+          id: entryId,
+          ...updates,
+        };
+
+        setData((prev) => ({
+          ...prev,
+          [key]: {
+            ...getDayData(date),
+            entries: getDayData(date)
+              .entries.map((e) => (e.id === entryId ? updatedEntry : e))
+              .sort((a, b) => a.startTime.getTime() - b.startTime.getTime()),
+          },
+        }));
+        setLastSaved(new Date());
+        toast.success('Entry updated');
+      } catch (error: any) {
+        console.error('Error updating entry:', error);
+        toast.error('Failed to update entry');
+      }
+    },
+    [userId, getDayData]
+  );
+
   return {
     selectedDate,
     setSelectedDate,
@@ -272,6 +318,7 @@ export const useCloudTimeTracker = (userId: string | null) => {
     setSleepTime,
     addEntry,
     deleteEntry,
+    updateEntry,
     lastSaved,
     isLoading,
   };
