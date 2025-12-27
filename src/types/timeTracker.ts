@@ -9,6 +9,7 @@ export type Client =
   | 'memphis' 
   | 'capital-city' 
   | 'window-world' 
+  | 'rosser-results'
   | 'other';
 
 export const CLIENT_LABELS: Record<Client, string> = {
@@ -18,6 +19,7 @@ export const CLIENT_LABELS: Record<Client, string> = {
   'memphis': 'Memphis',
   'capital-city': 'Capital City',
   'window-world': 'Window World',
+  'rosser-results': 'Rosser Results',
   'other': 'Other',
 };
 
