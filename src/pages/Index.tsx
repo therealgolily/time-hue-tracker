@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, startOfWeek, addWeeks, subWeeks, formatDistanceToNow } from 'date-fns';
+import { format, startOfWeek, addWeeks, subWeeks, formatDistanceToNow, isToday } from 'date-fns';
 import { LiveClock } from '@/components/LiveClock';
 import { WeekNavigator } from '@/components/WeekNavigator';
 import { MilestoneButton } from '@/components/MilestoneButton';
@@ -9,10 +9,13 @@ import { TimePickerDialog } from '@/components/TimePickerDialog';
 import { DaySummary } from '@/components/DaySummary';
 import { WeeklyStats } from '@/components/WeeklyStats';
 import { AuthForm } from '@/components/AuthForm';
+import { LiveMode } from '@/components/LiveMode';
+import { LiveEntryForm } from '@/components/LiveEntryForm';
 import { useAuth } from '@/hooks/useAuth';
 import { useCloudTimeTracker } from '@/hooks/useCloudTimeTracker';
-import { Activity, Check, LogOut, Cloud, Loader2 } from 'lucide-react';
+import { Activity, Check, LogOut, Cloud, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { TimeEntry } from '@/types/timeTracker';
 
 const Index = () => {
   const { user, loading: authLoading, signOut } = useAuth();
@@ -34,6 +37,8 @@ const Index = () => {
   );
 
   const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | null>(null);
+  const [liveModeActive, setLiveModeActive] = useState(false);
+  const [liveEntryTimes, setLiveEntryTimes] = useState<{ start: Date; end: Date } | null>(null);
 
   const dayData = getDayData(selectedDate);
 
@@ -47,6 +52,16 @@ const Index = () => {
     } else if (timePickerType === 'sleep') {
       setSleepTime(selectedDate, time);
     }
+  };
+
+  const handleLiveModeComplete = (startTime: Date, endTime: Date) => {
+    setLiveModeActive(false);
+    setLiveEntryTimes({ start: startTime, end: endTime });
+  };
+
+  const handleLiveEntrySubmit = (entry: Omit<TimeEntry, 'id'>) => {
+    addEntry(new Date(), entry);
+    setLiveEntryTimes(null);
   };
 
   // Show loading state
@@ -82,6 +97,29 @@ const Index = () => {
           <AuthForm />
         </main>
       </div>
+    );
+  }
+
+  // Show Live Mode
+  if (liveModeActive) {
+    return (
+      <LiveMode
+        selectedDate={new Date()}
+        onComplete={handleLiveModeComplete}
+        onCancel={() => setLiveModeActive(false)}
+      />
+    );
+  }
+
+  // Show Live Entry Form after timer completes
+  if (liveEntryTimes) {
+    return (
+      <LiveEntryForm
+        startTime={liveEntryTimes.start}
+        endTime={liveEntryTimes.end}
+        onSubmit={handleLiveEntrySubmit}
+        onCancel={() => setLiveEntryTimes(null)}
+      />
     );
   }
 
@@ -132,6 +170,15 @@ const Index = () => {
           </div>
         ) : (
           <>
+            {/* Live Mode Button */}
+            <Button
+              onClick={() => setLiveModeActive(true)}
+              className="w-full h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg"
+            >
+              <Zap className="w-5 h-5 mr-2" />
+              Start Live Mode
+            </Button>
+
             {/* Week Navigator */}
             <WeekNavigator
               selectedDate={selectedDate}
