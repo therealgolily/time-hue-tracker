@@ -7,6 +7,7 @@ import { TimelineView } from '@/components/TimelineView';
 import { AddEntryForm } from '@/components/AddEntryForm';
 import { TimePickerDialog } from '@/components/TimePickerDialog';
 import { DaySummary } from '@/components/DaySummary';
+import { WeeklyStats } from '@/components/WeeklyStats';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { Activity } from 'lucide-react';
 
@@ -112,6 +113,9 @@ const Index = () => {
             onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
           />
         </div>
+
+        {/* Weekly Stats */}
+        <WeeklyStats weekStart={weekStart} getDayData={getDayData} />
 
         {/* Legend */}
         <div className="flex justify-center gap-6 text-sm text-muted-foreground">
