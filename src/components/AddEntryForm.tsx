@@ -1,11 +1,18 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Clock } from 'lucide-react';
+import { Plus, Clock, Briefcase, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EnergySelector } from './EnergySelector';
-import { EnergyLevel } from '@/types/timeTracker';
+import { EnergyLevel, Category, Client, CLIENT_LABELS } from '@/types/timeTracker';
 import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface AddEntryFormProps {
   selectedDate: Date;
@@ -14,6 +21,9 @@ interface AddEntryFormProps {
     endTime: Date;
     description: string;
     energyLevel: EnergyLevel;
+    category: Category;
+    client?: Client;
+    customClient?: string;
   }) => void;
 }
 
@@ -23,11 +33,16 @@ export const AddEntryForm = ({ selectedDate, onAddEntry }: AddEntryFormProps) =>
   const [endTime, setEndTime] = useState('');
   const [description, setDescription] = useState('');
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel>('neutral');
+  const [category, setCategory] = useState<Category>('personal');
+  const [client, setClient] = useState<Client | undefined>(undefined);
+  const [customClient, setCustomClient] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!startTime || !endTime || !description.trim()) return;
+    if (category === 'work' && !client) return;
+    if (category === 'work' && client === 'other' && !customClient.trim()) return;
 
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const start = new Date(`${dateStr}T${startTime}`);
@@ -38,6 +53,9 @@ export const AddEntryForm = ({ selectedDate, onAddEntry }: AddEntryFormProps) =>
       endTime: end,
       description: description.trim(),
       energyLevel,
+      category,
+      client: category === 'work' ? client : undefined,
+      customClient: category === 'work' && client === 'other' ? customClient.trim() : undefined,
     });
 
     // Reset form
@@ -45,6 +63,9 @@ export const AddEntryForm = ({ selectedDate, onAddEntry }: AddEntryFormProps) =>
     setEndTime('');
     setDescription('');
     setEnergyLevel('neutral');
+    setCategory('personal');
+    setClient(undefined);
+    setCustomClient('');
     setIsExpanded(false);
   };
 
@@ -113,6 +134,76 @@ export const AddEntryForm = ({ selectedDate, onAddEntry }: AddEntryFormProps) =>
           required
         />
       </div>
+
+      {/* Category Selection */}
+      <div>
+        <label className="text-sm text-muted-foreground mb-2 block">Category</label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setCategory('personal');
+              setClient(undefined);
+              setCustomClient('');
+            }}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all duration-200',
+              category === 'personal'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+            )}
+          >
+            <User className="w-4 h-4" />
+            <span className="font-medium">Personal</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setCategory('work')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all duration-200',
+              category === 'work'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+            )}
+          >
+            <Briefcase className="w-4 h-4" />
+            <span className="font-medium">Work</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Client Selection (only for work) */}
+      {category === 'work' && (
+        <div className="space-y-3 fade-in">
+          <label className="text-sm text-muted-foreground block">Client</label>
+          <Select
+            value={client}
+            onValueChange={(value) => setClient(value as Client)}
+          >
+            <SelectTrigger className="bg-secondary border-border">
+              <SelectValue placeholder="Select a client..." />
+            </SelectTrigger>
+            <SelectContent className="bg-popover border-border">
+              {(Object.keys(CLIENT_LABELS) as Client[]).map((key) => (
+                <SelectItem key={key} value={key}>
+                  {CLIENT_LABELS[key]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {client === 'other' && (
+            <Input
+              type="text"
+              value={customClient}
+              onChange={(e) => setCustomClient(e.target.value)}
+              placeholder="Enter client name..."
+              className="bg-secondary border-border"
+              required
+            />
+          )}
+        </div>
+      )}
 
       <div>
         <label className="text-sm text-muted-foreground mb-2 block">How did it affect your energy?</label>
