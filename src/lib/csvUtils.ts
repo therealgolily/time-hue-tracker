@@ -14,10 +14,10 @@ export const CSV_HEADERS = [
 
 export const generateCSVTemplate = (): string => {
   const headerRow = CSV_HEADERS.join(',');
-  const exampleRow = '2025-01-15,09:00,10:30,Example task description,positive,work,birmingham,';
+  const exampleRow = '01/15/2025,09:00,10:30,Example task description,positive,work,birmingham,';
   const instructions = [
     '# CSV Template for Time Entries',
-    '# date: YYYY-MM-DD format',
+    '# date: MM/DD/YYYY format',
     '# start_time/end_time: HH:MM format (24-hour)',
     '# energy_level: positive, neutral, or negative',
     '# category: personal or work',
@@ -33,8 +33,12 @@ export const exportEntriesToCSV = (entries: { date: string; entry: TimeEntry }[]
   const headerRow = CSV_HEADERS.join(',');
   
   const dataRows = entries.map(({ date, entry }) => {
+    // Convert YYYY-MM-DD to MM/DD/YYYY
+    const [year, month, day] = date.split('-');
+    const formattedDate = `${month}/${day}/${year}`;
+    
     const values = [
-      date,
+      formattedDate,
       format(entry.startTime, 'HH:mm'),
       format(entry.endTime, 'HH:mm'),
       `"${entry.description.replace(/"/g, '""')}"`,
@@ -85,12 +89,14 @@ export const parseCSV = (csvContent: string): { entries: ParsedEntry[]; errors: 
 
       const [dateStr, startTimeStr, endTimeStr, description, energyLevel, category, client, customClient] = values;
 
-      // Validate date
-      const dateMatch = dateStr?.match(/^\d{4}-\d{2}-\d{2}$/);
+      // Validate date (MM/DD/YYYY format)
+      const dateMatch = dateStr?.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       if (!dateMatch) {
-        errors.push(`Row ${i + 1}: Invalid date format (use YYYY-MM-DD)`);
+        errors.push(`Row ${i + 1}: Invalid date format (use MM/DD/YYYY)`);
         continue;
       }
+      const [, month, day, year] = dateMatch;
+      const isoDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
       // Validate times
       const timeRegex = /^\d{1,2}:\d{2}$/;
@@ -119,11 +125,11 @@ export const parseCSV = (csvContent: string): { entries: ParsedEntry[]; errors: 
       }
 
       // Parse dates
-      const startTime = parse(`${dateStr} ${startTimeStr}`, 'yyyy-MM-dd HH:mm', new Date());
-      const endTime = parse(`${dateStr} ${endTimeStr}`, 'yyyy-MM-dd HH:mm', new Date());
+      const startTime = parse(`${isoDate} ${startTimeStr}`, 'yyyy-MM-dd HH:mm', new Date());
+      const endTime = parse(`${isoDate} ${endTimeStr}`, 'yyyy-MM-dd HH:mm', new Date());
 
       entries.push({
-        date: dateStr,
+        date: isoDate,
         startTime,
         endTime,
         description: description?.trim() || 'No description',
