@@ -310,6 +310,39 @@ export const useCloudTimeTracker = (userId: string | null) => {
     [userId, getDayData]
   );
 
+  const importEntries = useCallback(
+    async (entries: { date: string; entry: Omit<TimeEntry, 'id'> }[]) => {
+      if (!userId) return;
+
+      try {
+        const inserts = entries.map(({ date, entry }) => ({
+          user_id: userId,
+          date,
+          start_time: entry.startTime.toISOString(),
+          end_time: entry.endTime.toISOString(),
+          description: entry.description,
+          energy_level: entry.energyLevel,
+          category: entry.category,
+          client: entry.client || null,
+          custom_client: entry.customClient || null,
+        }));
+
+        const { error } = await supabase.from('time_entries').insert(inserts);
+
+        if (error) throw error;
+
+        // Refetch data to get the new entries with IDs
+        await fetchData();
+        toast.success(`Imported ${entries.length} entries`);
+      } catch (error: any) {
+        console.error('Error importing entries:', error);
+        toast.error('Failed to import entries');
+        throw error;
+      }
+    },
+    [userId, fetchData]
+  );
+
   return {
     selectedDate,
     setSelectedDate,
@@ -319,6 +352,8 @@ export const useCloudTimeTracker = (userId: string | null) => {
     addEntry,
     deleteEntry,
     updateEntry,
+    importEntries,
+    data,
     lastSaved,
     isLoading,
   };
