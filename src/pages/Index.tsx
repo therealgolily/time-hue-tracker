@@ -27,6 +27,8 @@ const Index = () => {
     getDayData,
     setWakeTime,
     setSleepTime,
+    clearWakeTime,
+    clearSleepTime,
     addEntry,
     deleteEntry,
     updateEntry,
@@ -232,6 +234,8 @@ const Index = () => {
                 dayData={dayData}
                 onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
                 onUpdateEntry={(entryId, updates) => updateEntry(selectedDate, entryId, updates)}
+                onDeleteWakeTime={() => clearWakeTime(selectedDate)}
+                onDeleteSleepTime={() => clearSleepTime(selectedDate)}
               />
             </div>
 
