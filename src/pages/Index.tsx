@@ -6,6 +6,7 @@ import { MilestoneButton } from '@/components/MilestoneButton';
 import { TimelineView } from '@/components/TimelineView';
 import { AddEntryForm } from '@/components/AddEntryForm';
 import { TimePickerDialog } from '@/components/TimePickerDialog';
+import { DaySummary } from '@/components/DaySummary';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
 import { Activity } from 'lucide-react';
 
@@ -93,6 +94,9 @@ const Index = () => {
             onSetTime={() => handleSetMilestone('sleep')}
           />
         </div>
+
+        {/* Day Summary */}
+        <DaySummary dayData={dayData} />
 
         {/* Add Entry Form */}
         <AddEntryForm
