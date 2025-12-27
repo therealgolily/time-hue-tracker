@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
-import { DayData, TimeEntry } from '@/types/timeTracker';
+import { DayData, TimeEntry, CLIENT_LABELS } from '@/types/timeTracker';
 import { cn } from '@/lib/utils';
-import { Sun, Moon, Trash2 } from 'lucide-react';
+import { Sun, Moon, Trash2, User, Briefcase } from 'lucide-react';
 
 interface TimelineViewProps {
   dayData: DayData;
@@ -110,7 +110,30 @@ export const TimelineView = ({ dayData, onDeleteEntry }: TimelineViewProps) => {
               </div>
 
               {item.type === 'entry' && item.data && (
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {/* Category badge */}
+                  <span
+                    className={cn(
+                      'text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1',
+                      item.data.category === 'personal' 
+                        ? 'bg-primary/20 text-primary' 
+                        : 'bg-accent text-accent-foreground'
+                    )}
+                  >
+                    {item.data.category === 'personal' ? (
+                      <><User className="w-3 h-3" /> Personal</>
+                    ) : (
+                      <><Briefcase className="w-3 h-3" /> {
+                        item.data.client === 'other' && item.data.customClient
+                          ? item.data.customClient
+                          : item.data.client 
+                            ? CLIENT_LABELS[item.data.client]
+                            : 'Work'
+                      }</>
+                    )}
+                  </span>
+                  
+                  {/* Energy badge */}
                   <span
                     className={cn(
                       'text-xs px-2 py-1 rounded-full font-medium',
