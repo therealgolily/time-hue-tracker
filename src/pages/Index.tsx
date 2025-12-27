@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, startOfWeek, addWeeks, subWeeks, formatDistanceToNow, isToday } from 'date-fns';
 import { LiveClock } from '@/components/LiveClock';
 import { WeekNavigator } from '@/components/WeekNavigator';
@@ -12,13 +12,18 @@ import { AuthForm } from '@/components/AuthForm';
 import { LiveMode } from '@/components/LiveMode';
 import { LiveEntryForm } from '@/components/LiveEntryForm';
 import { CSVImportExport } from '@/components/CSVImportExport';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { useCloudTimeTracker } from '@/hooks/useCloudTimeTracker';
+import { useTheme } from '@/hooks/useTheme';
 import { Activity, Check, LogOut, Cloud, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TimeEntry } from '@/types/timeTracker';
 
 const Index = () => {
+  // Initialize theme
+  useTheme();
+  
   const { user, loading: authLoading, signOut } = useAuth();
 
   const {
@@ -154,8 +159,9 @@ const Index = () => {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <LiveClock />
+              <ThemeToggle />
               <Button
                 variant="ghost"
                 size="icon"
