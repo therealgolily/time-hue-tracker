@@ -11,6 +11,7 @@ import { WeeklyStats } from '@/components/WeeklyStats';
 import { AuthForm } from '@/components/AuthForm';
 import { LiveMode } from '@/components/LiveMode';
 import { LiveEntryForm } from '@/components/LiveEntryForm';
+import { CSVImportExport } from '@/components/CSVImportExport';
 import { useAuth } from '@/hooks/useAuth';
 import { useCloudTimeTracker } from '@/hooks/useCloudTimeTracker';
 import { Activity, Check, LogOut, Cloud, Loader2, Zap } from 'lucide-react';
@@ -29,6 +30,8 @@ const Index = () => {
     addEntry,
     deleteEntry,
     updateEntry,
+    importEntries,
+    data: allData,
     lastSaved,
     isLoading: dataLoading,
   } = useCloudTimeTracker(user?.id || null);
@@ -234,6 +237,16 @@ const Index = () => {
 
             {/* Weekly Stats */}
             <WeeklyStats weekStart={weekStart} getDayData={getDayData} />
+
+            {/* CSV Import/Export */}
+            <div className="glass-card p-4">
+              <h3 className="font-semibold text-foreground mb-3">Import / Export</h3>
+              <CSVImportExport
+                getDayData={getDayData}
+                allData={allData}
+                onImportEntries={importEntries}
+              />
+            </div>
 
             {/* Legend */}
             <div className="flex justify-center gap-6 text-sm text-muted-foreground">
