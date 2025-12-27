@@ -28,6 +28,7 @@ const Index = () => {
     setSleepTime,
     addEntry,
     deleteEntry,
+    updateEntry,
     lastSaved,
     isLoading: dataLoading,
   } = useCloudTimeTracker(user?.id || null);
@@ -227,6 +228,7 @@ const Index = () => {
               <TimelineView
                 dayData={dayData}
                 onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
+                onUpdateEntry={(entryId, updates) => updateEntry(selectedDate, entryId, updates)}
               />
             </div>
 
