@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Clock, Briefcase, User, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -36,9 +37,9 @@ export const EditEntryDialog = ({ entry, open, onOpenChange, onSave }: EditEntry
   const [client, setClient] = useState<Client | undefined>(undefined);
   const [customClient, setCustomClient] = useState('');
 
-  // Reset form when entry changes
-  const handleOpenChange = (isOpen: boolean) => {
-    if (isOpen && entry) {
+  // Initialize form when entry changes or dialog opens
+  useEffect(() => {
+    if (open && entry) {
       setStartTime(format(entry.startTime, 'HH:mm'));
       setEndTime(format(entry.endTime, 'HH:mm'));
       setDescription(entry.description);
@@ -47,8 +48,7 @@ export const EditEntryDialog = ({ entry, open, onOpenChange, onSave }: EditEntry
       setClient(entry.client);
       setCustomClient(entry.customClient || '');
     }
-    onOpenChange(isOpen);
-  };
+  }, [open, entry]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,10 +75,13 @@ export const EditEntryDialog = ({ entry, open, onOpenChange, onSave }: EditEntry
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md bg-card border-border">
         <DialogHeader>
           <DialogTitle className="text-foreground">Edit Entry</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
+            Modify any field below and save your changes.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
