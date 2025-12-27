@@ -9,9 +9,11 @@ interface TimelineViewProps {
   dayData: DayData;
   onDeleteEntry: (entryId: string) => void;
   onUpdateEntry: (entryId: string, updates: Omit<TimeEntry, 'id'>) => void;
+  onDeleteWakeTime: () => void;
+  onDeleteSleepTime: () => void;
 }
 
-export const TimelineView = ({ dayData, onDeleteEntry, onUpdateEntry }: TimelineViewProps) => {
+export const TimelineView = ({ dayData, onDeleteEntry, onUpdateEntry, onDeleteWakeTime, onDeleteSleepTime }: TimelineViewProps) => {
   const [editingEntry, setEditingEntry] = useState<TimeEntry | null>(null);
   const { wakeTime, sleepTime, entries } = dayData;
   
@@ -102,6 +104,24 @@ export const TimelineView = ({ dayData, onDeleteEntry, onUpdateEntry }: Timeline
                     {item.type === 'entry' && item.data?.description}
                   </p>
                 </div>
+                
+                {item.type === 'wake' && (
+                  <button
+                    onClick={onDeleteWakeTime}
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
+
+                {item.type === 'sleep' && (
+                  <button
+                    onClick={onDeleteSleepTime}
+                    className="p-2 text-muted-foreground hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
                 
                 {item.type === 'entry' && item.data && (
                   <div className="flex items-center gap-1">

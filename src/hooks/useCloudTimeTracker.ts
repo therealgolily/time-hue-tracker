@@ -178,6 +178,70 @@ export const useCloudTimeTracker = (userId: string | null) => {
     [userId, data, getDayData]
   );
 
+  const clearWakeTime = useCallback(
+    async (date: Date) => {
+      if (!userId) return;
+
+      const key = getDateKey(date);
+
+      try {
+        const { error } = await supabase
+          .from('day_data')
+          .update({ wake_time: null })
+          .eq('user_id', userId)
+          .eq('date', key);
+
+        if (error) throw error;
+
+        setData((prev) => ({
+          ...prev,
+          [key]: {
+            ...getDayData(date),
+            wakeTime: null,
+          },
+        }));
+        setLastSaved(new Date());
+        toast.success('Wake time removed');
+      } catch (error: any) {
+        console.error('Error clearing wake time:', error);
+        toast.error('Failed to remove wake time');
+      }
+    },
+    [userId, getDayData]
+  );
+
+  const clearSleepTime = useCallback(
+    async (date: Date) => {
+      if (!userId) return;
+
+      const key = getDateKey(date);
+
+      try {
+        const { error } = await supabase
+          .from('day_data')
+          .update({ sleep_time: null })
+          .eq('user_id', userId)
+          .eq('date', key);
+
+        if (error) throw error;
+
+        setData((prev) => ({
+          ...prev,
+          [key]: {
+            ...getDayData(date),
+            sleepTime: null,
+          },
+        }));
+        setLastSaved(new Date());
+        toast.success('Sleep time removed');
+      } catch (error: any) {
+        console.error('Error clearing sleep time:', error);
+        toast.error('Failed to remove sleep time');
+      }
+    },
+    [userId, getDayData]
+  );
+
   const addEntry = useCallback(
     async (date: Date, entry: Omit<TimeEntry, 'id'>) => {
       if (!userId) return;
@@ -349,6 +413,8 @@ export const useCloudTimeTracker = (userId: string | null) => {
     getDayData,
     setWakeTime,
     setSleepTime,
+    clearWakeTime,
+    clearSleepTime,
     addEntry,
     deleteEntry,
     updateEntry,
