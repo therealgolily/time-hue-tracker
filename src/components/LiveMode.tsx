@@ -68,43 +68,41 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
   }, []);
 
   const handleStart = () => {
-    const now = new Date();
-    
-    let end: Date;
-    if (mode === 'duration') {
-      const mins = parseInt(durationMinutes) || 25;
-      end = addMinutes(now, mins);
-    } else {
-      const [hours, mins] = targetTime.split(':').map(Number);
-      end = setMinutes(setHours(selectedDate, hours), mins);
-      if (end <= now) {
-        return;
-      }
-    }
-
     // Get the quote for this session
     const quote = getQuoteAndAdvance();
     setCurrentQuote(quote);
-    setStartTime(now);
-    setEndTime(end);
-    setSecondsRemaining(differenceInSeconds(end, now));
     
     // Start the quote phase
     setDisplayPhase('quote');
     
-    // Fade in the quote
-    setTimeout(() => setQuoteOpacity(1), 50);
+    // Fade in the quote slowly
+    setTimeout(() => setQuoteOpacity(1), 100);
     
-    // After 3 seconds, start fading out quote and fading in timer
+    // After 4 seconds, start fading out quote
     setTimeout(() => {
       setQuoteOpacity(0);
-    }, 3000);
+    }, 4000);
     
-    // Transition to timer after quote fades
+    // Start showing timer while quote is almost gone (overlapping fade)
     setTimeout(() => {
       setDisplayPhase('running');
-      setTimeout(() => setTimerOpacity(1), 50);
-    }, 3800);
+      setTimerOpacity(1);
+      
+      // NOW set the actual start/end times when timer becomes visible
+      const now = new Date();
+      let end: Date;
+      if (mode === 'duration') {
+        const mins = parseInt(durationMinutes) || 25;
+        end = addMinutes(now, mins);
+      } else {
+        const [hours, mins] = targetTime.split(':').map(Number);
+        end = setMinutes(setHours(selectedDate, hours), mins);
+      }
+      
+      setStartTime(now);
+      setEndTime(end);
+      setSecondsRemaining(differenceInSeconds(end, now));
+    }, 5000);
   };
 
   // Countdown timer
@@ -148,7 +146,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     return (
       <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-center p-8">
         <div 
-          className="max-w-2xl text-center transition-opacity duration-700 ease-in-out"
+          className="max-w-2xl text-center transition-opacity duration-1000 ease-in-out"
           style={{ opacity: quoteOpacity }}
         >
           <blockquote className="text-2xl md:text-3xl lg:text-4xl font-light text-white leading-relaxed mb-6 italic">
