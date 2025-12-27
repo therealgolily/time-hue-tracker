@@ -215,12 +215,12 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
         >
           {/* Progress ring */}
           <div className="relative w-64 h-64 mx-auto">
-            <svg className="w-full h-full transform -rotate-90">
+            <svg className="w-full h-full" viewBox="0 0 256 256">
               {/* Background circle */}
               <circle
                 cx="128"
                 cy="128"
-                r="120"
+                r="112"
                 stroke="hsl(var(--secondary))"
                 strokeWidth="8"
                 fill="none"
@@ -229,13 +229,14 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
               <circle
                 cx="128"
                 cy="128"
-                r="120"
+                r="112"
                 stroke="hsl(var(--primary))"
                 strokeWidth="8"
                 fill="none"
                 strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 120}
-                strokeDashoffset={2 * Math.PI * 120 * (1 - progress)}
+                strokeDasharray={2 * Math.PI * 112}
+                strokeDashoffset={2 * Math.PI * 112 * (1 - progress)}
+                transform="rotate(-90 128 128)"
                 className="transition-all duration-100"
               />
             </svg>
