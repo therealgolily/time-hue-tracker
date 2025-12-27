@@ -85,10 +85,10 @@ export const TimelineView = ({ dayData, onDeleteEntry }: TimelineViewProps) => {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <span className="font-mono text-sm text-muted-foreground">
-                    {format(item.time, 'HH:mm')}
+                    {format(item.time, 'h:mm a')}
                     {item.type === 'entry' && item.data && (
                       <span className="text-muted-foreground/50">
-                        {' → '}{format(item.data.endTime, 'HH:mm')}
+                        {' → '}{format(item.data.endTime, 'h:mm a')}
                       </span>
                     )}
                   </span>
