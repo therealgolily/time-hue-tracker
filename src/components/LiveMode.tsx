@@ -4,6 +4,8 @@ import { Play, Clock, Timer, X, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
+import { useQuoteRotation } from '@/hooks/useQuoteRotation';
+import { Quote } from '@/data/motivationalQuotes';
 
 interface LiveModeProps {
   selectedDate: Date;
@@ -12,21 +14,25 @@ interface LiveModeProps {
 }
 
 type TimerMode = 'duration' | 'time';
+type DisplayPhase = 'setup' | 'quote' | 'running' | 'complete';
 
 export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) => {
   const [mode, setMode] = useState<TimerMode>('duration');
   const [durationMinutes, setDurationMinutes] = useState('25');
   const [targetTime, setTargetTime] = useState('');
-  const [isRunning, setIsRunning] = useState(false);
+  const [displayPhase, setDisplayPhase] = useState<DisplayPhase>('setup');
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
+  const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
+  const [quoteOpacity, setQuoteOpacity] = useState(0);
+  const [timerOpacity, setTimerOpacity] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  const { getQuoteAndAdvance } = useQuoteRotation();
 
   // Create audio context for notification
   useEffect(() => {
-    // Create a simple beep sound using Web Audio API
     audioRef.current = new Audio();
     return () => {
       if (audioRef.current) {
@@ -36,7 +42,6 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
   }, []);
 
   const playNotificationSound = useCallback(() => {
-    // Create audio context and play notification beeps
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     
     const playBeep = (startTime: number, frequency: number, duration: number) => {
@@ -56,7 +61,6 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
       oscillator.stop(startTime + duration);
     };
 
-    // Play a series of beeps
     const now = audioContext.currentTime;
     playBeep(now, 880, 0.2);
     playBeep(now + 0.25, 880, 0.2);
@@ -65,8 +69,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
 
   const handleStart = () => {
     const now = new Date();
-    setStartTime(now);
-
+    
     let end: Date;
     if (mode === 'duration') {
       const mins = parseInt(durationMinutes) || 25;
@@ -74,20 +77,39 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     } else {
       const [hours, mins] = targetTime.split(':').map(Number);
       end = setMinutes(setHours(selectedDate, hours), mins);
-      // If the target time has already passed today, it's invalid
       if (end <= now) {
         return;
       }
     }
 
+    // Get the quote for this session
+    const quote = getQuoteAndAdvance();
+    setCurrentQuote(quote);
+    setStartTime(now);
     setEndTime(end);
     setSecondsRemaining(differenceInSeconds(end, now));
-    setIsRunning(true);
+    
+    // Start the quote phase
+    setDisplayPhase('quote');
+    
+    // Fade in the quote
+    setTimeout(() => setQuoteOpacity(1), 50);
+    
+    // After 3 seconds, start fading out quote and fading in timer
+    setTimeout(() => {
+      setQuoteOpacity(0);
+    }, 3000);
+    
+    // Transition to timer after quote fades
+    setTimeout(() => {
+      setDisplayPhase('running');
+      setTimeout(() => setTimerOpacity(1), 50);
+    }, 3800);
   };
 
   // Countdown timer
   useEffect(() => {
-    if (!isRunning || !endTime) return;
+    if (displayPhase !== 'running' || !endTime) return;
 
     const interval = setInterval(() => {
       const now = new Date();
@@ -95,8 +117,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
 
       if (remaining <= 0) {
         setSecondsRemaining(0);
-        setIsRunning(false);
-        setIsComplete(true);
+        setDisplayPhase('complete');
         playNotificationSound();
         clearInterval(interval);
       } else {
@@ -105,7 +126,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isRunning, endTime, playNotificationSound]);
+  }, [displayPhase, endTime, playNotificationSound]);
 
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -122,8 +143,27 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     ? 1 - (secondsRemaining / differenceInSeconds(endTime, startTime))
     : 0;
 
+  // Show quote phase
+  if (displayPhase === 'quote' && currentQuote) {
+    return (
+      <div className="fixed inset-0 z-50 bg-zinc-950 flex flex-col items-center justify-center p-8">
+        <div 
+          className="max-w-2xl text-center transition-opacity duration-700 ease-in-out"
+          style={{ opacity: quoteOpacity }}
+        >
+          <blockquote className="text-2xl md:text-3xl lg:text-4xl font-light text-white leading-relaxed mb-6 italic">
+            "{currentQuote.text}"
+          </blockquote>
+          <cite className="text-lg md:text-xl text-zinc-400 not-italic">
+            — {currentQuote.author}
+          </cite>
+        </div>
+      </div>
+    );
+  }
+
   // Show completion state
-  if (isComplete && startTime) {
+  if (displayPhase === 'complete' && startTime) {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
         <div className="w-full max-w-md space-y-8 text-center">
@@ -156,7 +196,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
   }
 
   // Show running countdown
-  if (isRunning) {
+  if (displayPhase === 'running') {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
         <button
@@ -166,7 +206,10 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
           <X className="w-6 h-6" />
         </button>
 
-        <div className="w-full max-w-md space-y-8 text-center">
+        <div 
+          className="w-full max-w-md space-y-8 text-center transition-opacity duration-500 ease-in-out"
+          style={{ opacity: timerOpacity }}
+        >
           {/* Progress ring */}
           <div className="relative w-64 h-64 mx-auto">
             <svg className="w-full h-full transform -rotate-90">
@@ -215,7 +258,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
           <Button
             variant="outline"
             onClick={() => {
-              setIsComplete(true);
+              setDisplayPhase('complete');
               playNotificationSound();
             }}
             className="border-border text-foreground"
