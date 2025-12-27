@@ -86,7 +86,12 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     // Start showing timer while quote is almost gone (overlapping fade)
     setTimeout(() => {
       setDisplayPhase('running');
-      setTimerOpacity(1);
+      // Small delay to ensure the component renders with opacity 0 first
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTimerOpacity(1);
+        });
+      });
       
       // NOW set the actual start/end times when timer becomes visible
       const now = new Date();
@@ -205,8 +210,8 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
         </button>
 
         <div 
-          className="w-full max-w-md space-y-8 text-center transition-opacity duration-500 ease-in-out"
-          style={{ opacity: timerOpacity }}
+          className="w-full max-w-md space-y-8 text-center transition-opacity duration-1500 ease-in-out"
+          style={{ opacity: timerOpacity, transitionDuration: '1.5s' }}
         >
           {/* Progress ring */}
           <div className="relative w-64 h-64 mx-auto">
