@@ -87,7 +87,7 @@ export const parseCSV = (csvContent: string): { entries: ParsedEntry[]; errors: 
         continue;
       }
 
-      const [dateStr, startTimeStr, endTimeStr, description, energyLevel, category, client, customClient] = values;
+      const [dateStr, startTimeStr, endTimeStr, description, energyLevel, category, client, customClient] = values.map(v => v?.trim());
 
       // Validate date (MM/DD/YYYY or YYYY-MM-DD format)
       let isoDate: string;
@@ -100,7 +100,7 @@ export const parseCSV = (csvContent: string): { entries: ParsedEntry[]; errors: 
       } else if (yyyymmddMatch) {
         isoDate = dateStr;
       } else {
-        errors.push(`Row ${i + 1}: Invalid date format (use MM/DD/YYYY or YYYY-MM-DD)`);
+        errors.push(`Row ${i + 1}: Invalid date format "${dateStr}" (use MM/DD/YYYY or YYYY-MM-DD)`);
         continue;
       }
 
