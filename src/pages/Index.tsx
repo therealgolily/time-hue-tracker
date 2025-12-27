@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, startOfWeek, addWeeks, subWeeks } from 'date-fns';
+import { format, startOfWeek, addWeeks, subWeeks, formatDistanceToNow } from 'date-fns';
 import { LiveClock } from '@/components/LiveClock';
 import { WeekNavigator } from '@/components/WeekNavigator';
 import { MilestoneButton } from '@/components/MilestoneButton';
@@ -9,7 +9,7 @@ import { TimePickerDialog } from '@/components/TimePickerDialog';
 import { DaySummary } from '@/components/DaySummary';
 import { WeeklyStats } from '@/components/WeeklyStats';
 import { useTimeTracker } from '@/hooks/useTimeTracker';
-import { Activity } from 'lucide-react';
+import { Activity, Check } from 'lucide-react';
 
 const Index = () => {
   const {
@@ -20,6 +20,7 @@ const Index = () => {
     setSleepTime,
     addEntry,
     deleteEntry,
+    lastSaved,
   } = useTimeTracker();
 
   const [weekStart, setWeekStart] = useState(() => 
@@ -54,7 +55,14 @@ const Index = () => {
               </div>
               <div>
                 <h1 className="font-semibold text-lg text-foreground">Energy Tracker</h1>
-                <p className="text-sm text-muted-foreground">Track your daily energy</p>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {lastSaved && (
+                    <>
+                      <Check className="w-3 h-3 text-energy-positive" />
+                      <span>Saved {formatDistanceToNow(lastSaved, { addSuffix: true })}</span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <LiveClock />

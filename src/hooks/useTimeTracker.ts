@@ -41,9 +41,11 @@ const saveData = (data: Record<string, DayData>) => {
 export const useTimeTracker = () => {
   const [data, setData] = useState<Record<string, DayData>>(loadData);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
 
   useEffect(() => {
     saveData(data);
+    setLastSaved(new Date());
   }, [data]);
 
   const getDayData = useCallback((date: Date): DayData => {
@@ -128,5 +130,6 @@ export const useTimeTracker = () => {
     addEntry,
     updateEntry,
     deleteEntry,
+    lastSaved,
   };
 };
