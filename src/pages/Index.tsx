@@ -8,10 +8,15 @@ import { AddEntryForm } from '@/components/AddEntryForm';
 import { TimePickerDialog } from '@/components/TimePickerDialog';
 import { DaySummary } from '@/components/DaySummary';
 import { WeeklyStats } from '@/components/WeeklyStats';
-import { useTimeTracker } from '@/hooks/useTimeTracker';
-import { Activity, Check } from 'lucide-react';
+import { AuthForm } from '@/components/AuthForm';
+import { useAuth } from '@/hooks/useAuth';
+import { useCloudTimeTracker } from '@/hooks/useCloudTimeTracker';
+import { Activity, Check, LogOut, Cloud, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
+  const { user, loading: authLoading, signOut } = useAuth();
+
   const {
     selectedDate,
     setSelectedDate,
@@ -21,12 +26,13 @@ const Index = () => {
     addEntry,
     deleteEntry,
     lastSaved,
-  } = useTimeTracker();
+    isLoading: dataLoading,
+  } = useCloudTimeTracker(user?.id || null);
 
-  const [weekStart, setWeekStart] = useState(() => 
+  const [weekStart, setWeekStart] = useState(() =>
     startOfWeek(new Date(2025, 11, 27), { weekStartsOn: 6 }) // Saturday
   );
-  
+
   const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | null>(null);
 
   const dayData = getDayData(selectedDate);
@@ -43,6 +49,42 @@ const Index = () => {
     }
   };
 
+  // Show loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth form if not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
+          <div className="container max-w-2xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
+                <Activity className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-lg text-foreground">Energy Tracker</h1>
+                <p className="text-sm text-muted-foreground">Track your daily energy</p>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="container max-w-2xl mx-auto px-4 py-12">
+          <AuthForm />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -56,90 +98,111 @@ const Index = () => {
               <div>
                 <h1 className="font-semibold text-lg text-foreground">Energy Tracker</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  {lastSaved && (
+                  <Cloud className="w-3 h-3 text-primary" />
+                  {lastSaved ? (
                     <>
                       <Check className="w-3 h-3 text-energy-positive" />
-                      <span>Saved {formatDistanceToNow(lastSaved, { addSuffix: true })}</span>
+                      <span>Synced {formatDistanceToNow(lastSaved, { addSuffix: true })}</span>
                     </>
+                  ) : (
+                    <span>Cloud sync enabled</span>
                   )}
                 </div>
               </div>
             </div>
-            <LiveClock />
+            <div className="flex items-center gap-3">
+              <LiveClock />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={signOut}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>
 
       <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
-        {/* Week Navigator */}
-        <WeekNavigator
-          selectedDate={selectedDate}
-          onSelectDate={setSelectedDate}
-          onPreviousWeek={() => setWeekStart(subWeeks(weekStart, 1))}
-          onNextWeek={() => setWeekStart(addWeeks(weekStart, 1))}
-          weekStart={weekStart}
-        />
-
-        {/* Selected Date Header */}
-        <div className="text-center py-2">
-          <h2 className="text-2xl font-bold text-foreground">
-            {format(selectedDate, 'EEEE')}
-          </h2>
-          <p className="text-muted-foreground">
-            {format(selectedDate, 'MMMM d, yyyy')}
-          </p>
-        </div>
-
-        {/* Milestones */}
-        <div className="grid grid-cols-2 gap-4">
-          <MilestoneButton
-            type="wake"
-            time={dayData.wakeTime}
-            onSetTime={() => handleSetMilestone('wake')}
-          />
-          <MilestoneButton
-            type="sleep"
-            time={dayData.sleepTime}
-            onSetTime={() => handleSetMilestone('sleep')}
-          />
-        </div>
-
-        {/* Day Summary */}
-        <DaySummary dayData={dayData} />
-
-        {/* Add Entry Form */}
-        <AddEntryForm
-          selectedDate={selectedDate}
-          onAddEntry={(entry) => addEntry(selectedDate, entry)}
-        />
-
-        {/* Timeline */}
-        <div className="glass-card p-6">
-          <h3 className="font-semibold text-lg text-foreground mb-4">Today's Timeline</h3>
-          <TimelineView
-            dayData={dayData}
-            onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
-          />
-        </div>
-
-        {/* Weekly Stats */}
-        <WeeklyStats weekStart={weekStart} getDayData={getDayData} />
-
-        {/* Legend */}
-        <div className="flex justify-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-energy-positive" />
-            <span>Energizing</span>
+        {dataLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-energy-neutral" />
-            <span>Neutral</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-energy-negative" />
-            <span>Draining</span>
-          </div>
-        </div>
+        ) : (
+          <>
+            {/* Week Navigator */}
+            <WeekNavigator
+              selectedDate={selectedDate}
+              onSelectDate={setSelectedDate}
+              onPreviousWeek={() => setWeekStart(subWeeks(weekStart, 1))}
+              onNextWeek={() => setWeekStart(addWeeks(weekStart, 1))}
+              weekStart={weekStart}
+            />
+
+            {/* Selected Date Header */}
+            <div className="text-center py-2">
+              <h2 className="text-2xl font-bold text-foreground">
+                {format(selectedDate, 'EEEE')}
+              </h2>
+              <p className="text-muted-foreground">
+                {format(selectedDate, 'MMMM d, yyyy')}
+              </p>
+            </div>
+
+            {/* Milestones */}
+            <div className="grid grid-cols-2 gap-4">
+              <MilestoneButton
+                type="wake"
+                time={dayData.wakeTime}
+                onSetTime={() => handleSetMilestone('wake')}
+              />
+              <MilestoneButton
+                type="sleep"
+                time={dayData.sleepTime}
+                onSetTime={() => handleSetMilestone('sleep')}
+              />
+            </div>
+
+            {/* Day Summary */}
+            <DaySummary dayData={dayData} />
+
+            {/* Add Entry Form */}
+            <AddEntryForm
+              selectedDate={selectedDate}
+              onAddEntry={(entry) => addEntry(selectedDate, entry)}
+            />
+
+            {/* Timeline */}
+            <div className="glass-card p-6">
+              <h3 className="font-semibold text-lg text-foreground mb-4">Today's Timeline</h3>
+              <TimelineView
+                dayData={dayData}
+                onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
+              />
+            </div>
+
+            {/* Weekly Stats */}
+            <WeeklyStats weekStart={weekStart} getDayData={getDayData} />
+
+            {/* Legend */}
+            <div className="flex justify-center gap-6 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-energy-positive" />
+                <span>Energizing</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-energy-neutral" />
+                <span>Neutral</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-energy-negative" />
+                <span>Draining</span>
+              </div>
+            </div>
+          </>
+        )}
       </main>
 
       {/* Time Picker Dialog */}
