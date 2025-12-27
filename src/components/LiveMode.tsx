@@ -1,0 +1,335 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { format, differenceInSeconds, addMinutes, setHours, setMinutes } from 'date-fns';
+import { Play, Clock, Timer, X, Volume2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { cn } from '@/lib/utils';
+
+interface LiveModeProps {
+  selectedDate: Date;
+  onComplete: (startTime: Date, endTime: Date) => void;
+  onCancel: () => void;
+}
+
+type TimerMode = 'duration' | 'time';
+
+export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) => {
+  const [mode, setMode] = useState<TimerMode>('duration');
+  const [durationMinutes, setDurationMinutes] = useState('25');
+  const [targetTime, setTargetTime] = useState('');
+  const [isRunning, setIsRunning] = useState(false);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
+  const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Create audio context for notification
+  useEffect(() => {
+    // Create a simple beep sound using Web Audio API
+    audioRef.current = new Audio();
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    // Create audio context and play notification beeps
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    const playBeep = (startTime: number, frequency: number, duration: number) => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = frequency;
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, startTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
+      
+      oscillator.start(startTime);
+      oscillator.stop(startTime + duration);
+    };
+
+    // Play a series of beeps
+    const now = audioContext.currentTime;
+    playBeep(now, 880, 0.2);
+    playBeep(now + 0.25, 880, 0.2);
+    playBeep(now + 0.5, 1100, 0.4);
+  }, []);
+
+  const handleStart = () => {
+    const now = new Date();
+    setStartTime(now);
+
+    let end: Date;
+    if (mode === 'duration') {
+      const mins = parseInt(durationMinutes) || 25;
+      end = addMinutes(now, mins);
+    } else {
+      const [hours, mins] = targetTime.split(':').map(Number);
+      end = setMinutes(setHours(selectedDate, hours), mins);
+      // If the target time has already passed today, it's invalid
+      if (end <= now) {
+        return;
+      }
+    }
+
+    setEndTime(end);
+    setSecondsRemaining(differenceInSeconds(end, now));
+    setIsRunning(true);
+  };
+
+  // Countdown timer
+  useEffect(() => {
+    if (!isRunning || !endTime) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const remaining = differenceInSeconds(endTime, now);
+
+      if (remaining <= 0) {
+        setSecondsRemaining(0);
+        setIsRunning(false);
+        setIsComplete(true);
+        playNotificationSound();
+        clearInterval(interval);
+      } else {
+        setSecondsRemaining(remaining);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [isRunning, endTime, playNotificationSound]);
+
+  const formatTime = (seconds: number): string => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    if (hrs > 0) {
+      return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const progress = endTime && startTime
+    ? 1 - (secondsRemaining / differenceInSeconds(endTime, startTime))
+    : 0;
+
+  // Show completion state
+  if (isComplete && startTime) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
+        <div className="w-full max-w-md space-y-8 text-center">
+          <div className="space-y-4">
+            <div className="w-20 h-20 rounded-full bg-energy-positive/20 flex items-center justify-center mx-auto">
+              <Volume2 className="w-10 h-10 text-energy-positive" />
+            </div>
+            <h2 className="text-3xl font-bold text-foreground">Time's Up!</h2>
+            <p className="text-muted-foreground">
+              Session completed at {format(new Date(), 'h:mm a')}
+            </p>
+          </div>
+
+          <Button
+            onClick={() => onComplete(startTime, new Date())}
+            className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            Log This Activity
+          </Button>
+
+          <button
+            onClick={onCancel}
+            className="text-muted-foreground hover:text-foreground text-sm"
+          >
+            Discard session
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show running countdown
+  if (isRunning) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
+        <button
+          onClick={onCancel}
+          className="absolute top-6 right-6 p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="w-full max-w-md space-y-8 text-center">
+          {/* Progress ring */}
+          <div className="relative w-64 h-64 mx-auto">
+            <svg className="w-full h-full transform -rotate-90">
+              {/* Background circle */}
+              <circle
+                cx="128"
+                cy="128"
+                r="120"
+                stroke="hsl(var(--secondary))"
+                strokeWidth="8"
+                fill="none"
+              />
+              {/* Progress circle */}
+              <circle
+                cx="128"
+                cy="128"
+                r="120"
+                stroke="hsl(var(--primary))"
+                strokeWidth="8"
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 120}
+                strokeDashoffset={2 * Math.PI * 120 * (1 - progress)}
+                className="transition-all duration-100"
+              />
+            </svg>
+            
+            {/* Time display */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-5xl font-mono font-bold text-foreground">
+                {formatTime(secondsRemaining)}
+              </span>
+              <span className="text-sm text-muted-foreground mt-2">remaining</span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-muted-foreground">
+              Started at {startTime ? format(startTime, 'h:mm a') : '--'}
+            </p>
+            <p className="text-muted-foreground">
+              Ends at {endTime ? format(endTime, 'h:mm a') : '--'}
+            </p>
+          </div>
+
+          <Button
+            variant="outline"
+            onClick={() => {
+              setIsComplete(true);
+              playNotificationSound();
+            }}
+            className="border-border text-foreground"
+          >
+            End Early
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show setup screen
+  return (
+    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
+      <button
+        onClick={onCancel}
+        className="absolute top-6 right-6 p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"
+      >
+        <X className="w-6 h-6" />
+      </button>
+
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center space-y-2">
+          <h2 className="text-3xl font-bold text-foreground">Live Mode</h2>
+          <p className="text-muted-foreground">
+            Start tracking an activity in real-time
+          </p>
+        </div>
+
+        {/* Mode selector */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => setMode('duration')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all',
+              mode === 'duration'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+            )}
+          >
+            <Timer className="w-5 h-5" />
+            <span className="font-medium">Duration</span>
+          </button>
+          <button
+            onClick={() => setMode('time')}
+            className={cn(
+              'flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all',
+              mode === 'time'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+            )}
+          >
+            <Clock className="w-5 h-5" />
+            <span className="font-medium">End Time</span>
+          </button>
+        </div>
+
+        {/* Input based on mode */}
+        <div className="space-y-4">
+          {mode === 'duration' ? (
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">
+                How many minutes?
+              </label>
+              <div className="flex gap-2">
+                {['15', '25', '45', '60'].map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => setDurationMinutes(preset)}
+                    className={cn(
+                      'flex-1 py-3 rounded-lg border-2 font-mono font-medium transition-all',
+                      durationMinutes === preset
+                        ? 'border-primary bg-primary/10 text-foreground'
+                        : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+                    )}
+                  >
+                    {preset}
+                  </button>
+                ))}
+              </div>
+              <Input
+                type="number"
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(e.target.value)}
+                placeholder="Custom minutes..."
+                className="bg-secondary border-border font-mono text-center text-xl h-14"
+                min="1"
+                max="480"
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <label className="text-sm text-muted-foreground">
+                End at what time?
+              </label>
+              <Input
+                type="time"
+                value={targetTime}
+                onChange={(e) => setTargetTime(e.target.value)}
+                className="bg-secondary border-border font-mono text-center text-xl h-14"
+              />
+            </div>
+          )}
+        </div>
+
+        <Button
+          onClick={handleStart}
+          disabled={mode === 'time' && !targetTime}
+          className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+        >
+          <Play className="w-5 h-5 mr-2" />
+          Begin
+        </Button>
+      </div>
+    </div>
+  );
+};
