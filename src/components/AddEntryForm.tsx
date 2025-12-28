@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Clock, Briefcase, User } from 'lucide-react';
+import { Plus, Clock, Briefcase, User, ArrowRight, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EnergySelector } from './EnergySelector';
-import { EnergyLevel, Category, Client, CLIENT_LABELS } from '@/types/timeTracker';
+import { EnergyLevel, Category, Client, CLIENT_LABELS, TimeEntry } from '@/types/timeTracker';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -16,6 +16,7 @@ import {
 
 interface AddEntryFormProps {
   selectedDate: Date;
+  entries?: TimeEntry[];
   onAddEntry: (entry: {
     startTime: Date;
     endTime: Date;
@@ -27,7 +28,7 @@ interface AddEntryFormProps {
   }) => void;
 }
 
-export const AddEntryForm = ({ selectedDate, onAddEntry }: AddEntryFormProps) => {
+export const AddEntryForm = ({ selectedDate, entries = [], onAddEntry }: AddEntryFormProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -103,9 +104,28 @@ export const AddEntryForm = ({ selectedDate, onAddEntry }: AddEntryFormProps) =>
               type="time"
               value={startTime}
               onChange={(e) => setStartTime(e.target.value)}
-              className="pl-10 bg-secondary border-border font-mono"
+              className="pl-10 pr-20 bg-secondary border-border font-mono"
               required
             />
+            {entries.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const sortedEntries = [...entries].sort(
+                    (a, b) => new Date(b.endTime).getTime() - new Date(a.endTime).getTime()
+                  );
+                  const lastEntry = sortedEntries[0];
+                  if (lastEntry) {
+                    setStartTime(format(new Date(lastEntry.endTime), 'HH:mm'));
+                  }
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1"
+                title="Set to last entry's end time"
+              >
+                <ArrowRight className="w-3 h-3" />
+                Last
+              </button>
+            )}
           </div>
         </div>
         <div>
@@ -116,9 +136,18 @@ export const AddEntryForm = ({ selectedDate, onAddEntry }: AddEntryFormProps) =>
               type="time"
               value={endTime}
               onChange={(e) => setEndTime(e.target.value)}
-              className="pl-10 bg-secondary border-border font-mono"
+              className="pl-10 pr-16 bg-secondary border-border font-mono"
               required
             />
+            <button
+              type="button"
+              onClick={() => setEndTime(format(new Date(), 'HH:mm'))}
+              className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-xs font-medium rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1"
+              title="Set to current time"
+            >
+              <Timer className="w-3 h-3" />
+              Now
+            </button>
           </div>
         </div>
       </div>
