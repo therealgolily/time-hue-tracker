@@ -18,7 +18,7 @@ import { useCloudTimeTracker } from '@/hooks/useCloudTimeTracker';
 import { useTheme } from '@/hooks/useTheme';
 import { Activity, Check, LogOut, Cloud, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { TimeEntry } from '@/types/timeTracker';
+import { TimeEntry, LiveSegment, EnergyLevel, Category, Client } from '@/types/timeTracker';
 
 const Index = () => {
   // Initialize theme
@@ -49,7 +49,7 @@ const Index = () => {
 
   const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | null>(null);
   const [liveModeActive, setLiveModeActive] = useState(false);
-  const [liveEntryTimes, setLiveEntryTimes] = useState<{ start: Date; end: Date } | null>(null);
+  const [liveSegments, setLiveSegments] = useState<LiveSegment[] | null>(null);
 
   const dayData = getDayData(selectedDate);
 
@@ -65,14 +65,25 @@ const Index = () => {
     }
   };
 
-  const handleLiveModeComplete = (startTime: Date, endTime: Date) => {
+  const handleLiveModeComplete = (segments: LiveSegment[]) => {
     setLiveModeActive(false);
-    setLiveEntryTimes({ start: startTime, end: endTime });
+    setLiveSegments(segments);
   };
 
-  const handleLiveEntrySubmit = (entry: Omit<TimeEntry, 'id'>) => {
-    addEntry(new Date(), entry);
-    setLiveEntryTimes(null);
+  const handleLiveEntrySubmit = (entries: Array<{
+    startTime: Date;
+    endTime: Date;
+    description: string;
+    energyLevel: EnergyLevel;
+    category: Category;
+    client?: Client;
+    customClient?: string;
+  }>) => {
+    // Add each entry
+    entries.forEach(entry => {
+      addEntry(new Date(), entry);
+    });
+    setLiveSegments(null);
   };
 
   // Show loading state
@@ -123,13 +134,12 @@ const Index = () => {
   }
 
   // Show Live Entry Form after timer completes
-  if (liveEntryTimes) {
+  if (liveSegments) {
     return (
       <LiveEntryForm
-        startTime={liveEntryTimes.start}
-        endTime={liveEntryTimes.end}
+        segments={liveSegments}
         onSubmit={handleLiveEntrySubmit}
-        onCancel={() => setLiveEntryTimes(null)}
+        onCancel={() => setLiveSegments(null)}
       />
     );
   }

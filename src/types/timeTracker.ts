@@ -45,3 +45,10 @@ export interface WeekData {
   startDate: Date;
   days: DayData[];
 }
+
+// For Live Mode segment tracking
+export interface LiveSegment {
+  startTime: Date;
+  endTime: Date;
+  isBreak: boolean;
+}

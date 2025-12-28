@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { Plus, Clock, Briefcase, User } from 'lucide-react';
+import { Plus, Briefcase, User, Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EnergySelector } from './EnergySelector';
-import { EnergyLevel, Category, Client, CLIENT_LABELS } from '@/types/timeTracker';
+import { EnergyLevel, Category, Client, CLIENT_LABELS, LiveSegment } from '@/types/timeTracker';
 import { cn } from '@/lib/utils';
 import {
   Select,
@@ -15,9 +15,8 @@ import {
 } from '@/components/ui/select';
 
 interface LiveEntryFormProps {
-  startTime: Date;
-  endTime: Date;
-  onSubmit: (entry: {
+  segments: LiveSegment[];
+  onSubmit: (entries: Array<{
     startTime: Date;
     endTime: Date;
     description: string;
@@ -25,11 +24,11 @@ interface LiveEntryFormProps {
     category: Category;
     client?: Client;
     customClient?: string;
-  }) => void;
+  }>) => void;
   onCancel: () => void;
 }
 
-export const LiveEntryForm = ({ startTime, endTime, onSubmit, onCancel }: LiveEntryFormProps) => {
+export const LiveEntryForm = ({ segments, onSubmit, onCancel }: LiveEntryFormProps) => {
   const [description, setDescription] = useState('');
   const [energyLevel, setEnergyLevel] = useState<EnergyLevel>('neutral');
   const [category, setCategory] = useState<Category>('personal');
@@ -43,21 +42,34 @@ export const LiveEntryForm = ({ startTime, endTime, onSubmit, onCancel }: LiveEn
     if (category === 'work' && !client) return;
     if (category === 'work' && client === 'other' && !customClient.trim()) return;
 
-    onSubmit({
-      startTime,
-      endTime,
-      description: description.trim(),
-      energyLevel,
+    // Create entries for each segment
+    const entries = segments.map(segment => ({
+      startTime: segment.startTime,
+      endTime: segment.endTime,
+      description: segment.isBreak ? 'Break' : description.trim(),
+      energyLevel: segment.isBreak ? 'neutral' as EnergyLevel : energyLevel,
       category,
       client: category === 'work' ? client : undefined,
       customClient: category === 'work' && client === 'other' ? customClient.trim() : undefined,
-    });
+    }));
+
+    onSubmit(entries);
   };
 
-  const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / 1000 / 60);
-  const hours = Math.floor(durationMinutes / 60);
-  const mins = durationMinutes % 60;
+  // Calculate total duration
+  const totalSeconds = segments.reduce((acc, seg) => {
+    return acc + Math.round((seg.endTime.getTime() - seg.startTime.getTime()) / 1000);
+  }, 0);
+  const totalMinutes = Math.round(totalSeconds / 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
   const durationStr = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+  const workSegments = segments.filter(s => !s.isBreak);
+  const breakSegments = segments.filter(s => s.isBreak);
+
+  const firstStart = segments.length > 0 ? segments[0].startTime : new Date();
+  const lastEnd = segments.length > 0 ? segments[segments.length - 1].endTime : new Date();
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6 overflow-auto">
@@ -66,11 +78,40 @@ export const LiveEntryForm = ({ startTime, endTime, onSubmit, onCancel }: LiveEn
           <h2 className="text-2xl font-bold text-foreground">Log Your Activity</h2>
           <div className="text-muted-foreground">
             <p className="font-mono">
-              {format(startTime, 'h:mm a')} → {format(endTime, 'h:mm a')}
+              {format(firstStart, 'h:mm a')} → {format(lastEnd, 'h:mm a')}
             </p>
-            <p className="text-sm mt-1">{durationStr}</p>
+            <p className="text-sm mt-1">{durationStr} total</p>
           </div>
         </div>
+
+        {/* Segment summary */}
+        {segments.length > 1 && (
+          <div className="glass-card p-4 space-y-2">
+            <p className="text-sm text-muted-foreground font-medium">Session breakdown:</p>
+            <div className="space-y-1 text-sm">
+              {segments.map((segment, idx) => {
+                const segMins = Math.round((segment.endTime.getTime() - segment.startTime.getTime()) / 1000 / 60);
+                return (
+                  <div key={idx} className="flex items-center gap-2">
+                    {segment.isBreak ? (
+                      <Coffee className="w-3 h-3 text-energy-neutral" />
+                    ) : (
+                      <div className="w-3 h-3 rounded-full bg-primary" />
+                    )}
+                    <span className="font-mono text-muted-foreground">
+                      {format(segment.startTime, 'h:mm a')} - {format(segment.endTime, 'h:mm a')}
+                    </span>
+                    <span className="text-muted-foreground/60">({segMins}m)</span>
+                    {segment.isBreak && <span className="text-energy-neutral text-xs">break</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="pt-2 border-t border-border text-xs text-muted-foreground/60">
+              {workSegments.length} work segment{workSegments.length !== 1 ? 's' : ''}, {breakSegments.length} break{breakSegments.length !== 1 ? 's' : ''}
+            </div>
+          </div>
+        )}
 
         <div className="glass-card p-6 space-y-4">
           <div>
@@ -84,6 +125,11 @@ export const LiveEntryForm = ({ startTime, endTime, onSubmit, onCancel }: LiveEn
               autoFocus
               required
             />
+            {breakSegments.length > 0 && (
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Break segments will be labeled as "Break"
+              </p>
+            )}
           </div>
 
           {/* Category Selection */}
@@ -159,6 +205,11 @@ export const LiveEntryForm = ({ startTime, endTime, onSubmit, onCancel }: LiveEn
           <div>
             <label className="text-sm text-muted-foreground mb-2 block">How did it affect your energy?</label>
             <EnergySelector value={energyLevel} onChange={setEnergyLevel} />
+            {breakSegments.length > 0 && (
+              <p className="text-xs text-muted-foreground/60 mt-1">
+                Break segments will be marked as "neutral"
+              </p>
+            )}
           </div>
         </div>
 
@@ -173,7 +224,7 @@ export const LiveEntryForm = ({ startTime, endTime, onSubmit, onCancel }: LiveEn
           </Button>
           <Button type="submit" className="flex-1 bg-primary hover:bg-primary/90 text-primary-foreground">
             <Plus className="w-4 h-4 mr-2" />
-            Save Entry
+            Save {segments.length > 1 ? `${segments.length} Entries` : 'Entry'}
           </Button>
         </div>
       </form>
