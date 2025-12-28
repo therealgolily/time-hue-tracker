@@ -240,6 +240,7 @@ const Index = () => {
             {/* Add Entry Form */}
             <AddEntryForm
               selectedDate={selectedDate}
+              entries={dayData.entries}
               onAddEntry={(entry) => addEntry(selectedDate, entry)}
             />
 
