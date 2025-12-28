@@ -294,6 +294,8 @@ const Index = () => {
         title={timePickerType === 'wake' ? 'Set wake time' : 'Set bedtime'}
         selectedDate={selectedDate}
         onConfirm={handleConfirmTime}
+        wakeTime={dayData.wakeTime}
+        isSleepTime={timePickerType === 'sleep'}
       />
     </div>
   );
