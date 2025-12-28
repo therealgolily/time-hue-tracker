@@ -1,20 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, differenceInSeconds, addMinutes, setHours, setMinutes } from 'date-fns';
-import { Play, Clock, Timer, X, Volume2, Infinity } from 'lucide-react';
+import { Play, Clock, Timer, X, Volume2, Infinity, Coffee } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useQuoteRotation } from '@/hooks/useQuoteRotation';
 import { Quote } from '@/data/motivationalQuotes';
+import { LiveSegment } from '@/types/timeTracker';
 
 interface LiveModeProps {
   selectedDate: Date;
-  onComplete: (startTime: Date, endTime: Date) => void;
+  onComplete: (segments: LiveSegment[]) => void;
   onCancel: () => void;
 }
 
 type TimerMode = 'duration' | 'time' | 'open';
-type DisplayPhase = 'setup' | 'quote' | 'running' | 'complete';
+type DisplayPhase = 'setup' | 'quote' | 'running' | 'complete' | 'break-setup' | 'on-break';
+type BreakMode = 'duration' | 'time' | 'open';
 
 export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) => {
   const [mode, setMode] = useState<TimerMode>('duration');
@@ -29,6 +31,17 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
   const [quoteOpacity, setQuoteOpacity] = useState(0);
   const [timerOpacity, setTimerOpacity] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Break state
+  const [segments, setSegments] = useState<LiveSegment[]>([]);
+  const [currentSegmentStart, setCurrentSegmentStart] = useState<Date | null>(null);
+  const [breakMode, setBreakMode] = useState<BreakMode>('open');
+  const [breakDurationMinutes, setBreakDurationMinutes] = useState('10');
+  const [breakTargetTime, setBreakTargetTime] = useState('');
+  const [breakStartTime, setBreakStartTime] = useState<Date | null>(null);
+  const [breakEndTime, setBreakEndTime] = useState<Date | null>(null);
+  const [breakSecondsRemaining, setBreakSecondsRemaining] = useState(0);
+  const [breakSecondsElapsed, setBreakSecondsElapsed] = useState(0);
   
   const { getQuoteAndAdvance } = useQuoteRotation();
 
@@ -97,6 +110,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
       // NOW set the actual start/end times when timer becomes visible
       const now = new Date();
       setStartTime(now);
+      setCurrentSegmentStart(now);
       
       if (mode === 'open') {
         setEndTime(null);
@@ -116,6 +130,82 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     }, 5000);
   };
 
+  const handleTakeBreak = () => {
+    // Save current work segment
+    if (currentSegmentStart) {
+      const now = new Date();
+      setSegments(prev => [...prev, {
+        startTime: currentSegmentStart,
+        endTime: now,
+        isBreak: false
+      }]);
+    }
+    
+    // Reset break options
+    setBreakMode('open');
+    setBreakDurationMinutes('10');
+    setBreakTargetTime('');
+    setDisplayPhase('break-setup');
+  };
+
+  const handleStartBreak = () => {
+    const now = new Date();
+    setBreakStartTime(now);
+    
+    if (breakMode === 'open') {
+      setBreakEndTime(null);
+      setBreakSecondsElapsed(0);
+    } else {
+      let end: Date;
+      if (breakMode === 'duration') {
+        const mins = parseInt(breakDurationMinutes) || 10;
+        end = addMinutes(now, mins);
+      } else {
+        const [hours, mins] = breakTargetTime.split(':').map(Number);
+        end = setMinutes(setHours(new Date(), hours), mins);
+      }
+      setBreakEndTime(end);
+      setBreakSecondsRemaining(differenceInSeconds(end, now));
+    }
+    
+    setDisplayPhase('on-break');
+  };
+
+  const handleResumeFromBreak = () => {
+    // Save break segment
+    if (breakStartTime) {
+      const now = new Date();
+      setSegments(prev => [...prev, {
+        startTime: breakStartTime,
+        endTime: now,
+        isBreak: true
+      }]);
+    }
+    
+    // Start new work segment
+    setCurrentSegmentStart(new Date());
+    setBreakStartTime(null);
+    setBreakEndTime(null);
+    setDisplayPhase('running');
+  };
+
+  const handleComplete = () => {
+    // Save final work segment
+    const now = new Date();
+    const allSegments: LiveSegment[] = [...segments];
+    
+    if (currentSegmentStart) {
+      allSegments.push({
+        startTime: currentSegmentStart,
+        endTime: now,
+        isBreak: false
+      });
+    }
+    
+    playNotificationSound();
+    onComplete(allSegments);
+  };
+
   // Countdown timer (for duration/time modes)
   useEffect(() => {
     if (displayPhase !== 'running' || !endTime) return;
@@ -126,8 +216,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
 
       if (remaining <= 0) {
         setSecondsRemaining(0);
-        setDisplayPhase('complete');
-        playNotificationSound();
+        handleComplete();
         clearInterval(interval);
       } else {
         setSecondsRemaining(remaining);
@@ -135,7 +224,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     }, 100);
 
     return () => clearInterval(interval);
-  }, [displayPhase, endTime, playNotificationSound]);
+  }, [displayPhase, endTime]);
 
   // Count-up timer (for open mode)
   useEffect(() => {
@@ -148,6 +237,38 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
 
     return () => clearInterval(interval);
   }, [displayPhase, startTime, endTime]);
+
+  // Break countdown timer
+  useEffect(() => {
+    if (displayPhase !== 'on-break' || !breakEndTime) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const remaining = differenceInSeconds(breakEndTime, now);
+
+      if (remaining <= 0) {
+        setBreakSecondsRemaining(0);
+        playNotificationSound();
+        // Don't auto-resume, let user click resume
+      } else {
+        setBreakSecondsRemaining(remaining);
+      }
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [displayPhase, breakEndTime, playNotificationSound]);
+
+  // Break count-up timer
+  useEffect(() => {
+    if (displayPhase !== 'on-break' || !breakStartTime || breakEndTime !== null) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      setBreakSecondsElapsed(differenceInSeconds(now, breakStartTime));
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [displayPhase, breakStartTime, breakEndTime]);
 
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
@@ -183,34 +304,212 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     );
   }
 
-  // Show completion state
-  if (displayPhase === 'complete' && startTime) {
+  // Show break setup screen
+  if (displayPhase === 'break-setup') {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
-        <div className="w-full max-w-md space-y-8 text-center">
-          <div className="space-y-4">
-            <div className="w-20 h-20 rounded-full bg-energy-positive/20 flex items-center justify-center mx-auto">
-              <Volume2 className="w-10 h-10 text-energy-positive" />
+        <button
+          onClick={() => setDisplayPhase('running')}
+          className="absolute top-6 right-6 p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 rounded-full bg-energy-neutral/20 flex items-center justify-center mx-auto mb-4">
+              <Coffee className="w-8 h-8 text-energy-neutral" />
             </div>
-            <h2 className="text-3xl font-bold text-foreground">Time's Up!</h2>
+            <h2 className="text-3xl font-bold text-foreground">Take a Break</h2>
             <p className="text-muted-foreground">
-              Session completed at {format(new Date(), 'h:mm a')}
+              How long will you be away?
             </p>
           </div>
 
-          <Button
-            onClick={() => onComplete(startTime, new Date())}
-            className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-primary-foreground"
-          >
-            Log This Activity
-          </Button>
+          {/* Break mode selector */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setBreakMode('duration')}
+              className={cn(
+                'flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all',
+                breakMode === 'duration'
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+              )}
+            >
+              <Timer className="w-5 h-5" />
+              <span className="font-medium text-sm">Duration</span>
+            </button>
+            <button
+              onClick={() => setBreakMode('time')}
+              className={cn(
+                'flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all',
+                breakMode === 'time'
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+              )}
+            >
+              <Clock className="w-5 h-5" />
+              <span className="font-medium text-sm">Resume At</span>
+            </button>
+            <button
+              onClick={() => setBreakMode('open')}
+              className={cn(
+                'flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all',
+                breakMode === 'open'
+                  ? 'border-primary bg-primary/10 text-foreground'
+                  : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+              )}
+            >
+              <Infinity className="w-5 h-5" />
+              <span className="font-medium text-sm">Open</span>
+            </button>
+          </div>
 
-          <button
-            onClick={onCancel}
-            className="text-muted-foreground hover:text-foreground text-sm"
+          {/* Break input based on mode */}
+          <div className="space-y-4">
+            {breakMode === 'duration' && (
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  Break for how many minutes?
+                </label>
+                <div className="flex gap-2">
+                  {['5', '10', '15', '30'].map((preset) => (
+                    <button
+                      key={preset}
+                      onClick={() => setBreakDurationMinutes(preset)}
+                      className={cn(
+                        'flex-1 py-3 rounded-lg border-2 font-mono font-medium transition-all',
+                        breakDurationMinutes === preset
+                          ? 'border-primary bg-primary/10 text-foreground'
+                          : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+                      )}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+                <Input
+                  type="number"
+                  value={breakDurationMinutes}
+                  onChange={(e) => setBreakDurationMinutes(e.target.value)}
+                  placeholder="Custom minutes..."
+                  className="bg-secondary border-border font-mono text-center text-xl h-14"
+                  min="1"
+                  max="480"
+                />
+              </div>
+            )}
+            {breakMode === 'time' && (
+              <div className="space-y-2">
+                <label className="text-sm text-muted-foreground">
+                  Resume at what time?
+                </label>
+                <Input
+                  type="time"
+                  value={breakTargetTime}
+                  onChange={(e) => setBreakTargetTime(e.target.value)}
+                  className="bg-secondary border-border font-mono text-center text-xl h-14"
+                />
+              </div>
+            )}
+            {breakMode === 'open' && (
+              <div className="text-center py-4">
+                <p className="text-muted-foreground">
+                  Take as long as you need. Resume when ready.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <Button
+            onClick={handleStartBreak}
+            disabled={breakMode === 'time' && !breakTargetTime}
+            className="w-full h-14 text-lg bg-energy-neutral hover:bg-energy-neutral/90 text-white"
           >
-            Discard session
-          </button>
+            <Coffee className="w-5 h-5 mr-2" />
+            Start Break
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show on-break screen
+  if (displayPhase === 'on-break') {
+    const isOpenBreak = breakEndTime === null;
+    const breakTimerDone = !isOpenBreak && breakSecondsRemaining <= 0;
+    
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
+        <button
+          onClick={onCancel}
+          className="absolute top-6 right-6 p-2 text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        <div className="w-full max-w-md space-y-8 text-center">
+          {/* Break indicator */}
+          <div className="relative w-64 h-64 mx-auto">
+            <svg className="w-full h-full" viewBox="0 0 256 256">
+              {/* Background circle */}
+              <circle
+                cx="128"
+                cy="128"
+                r="112"
+                stroke="hsl(var(--secondary))"
+                strokeWidth="8"
+                fill="none"
+              />
+              {/* Pulsing break indicator */}
+              <circle
+                cx="128"
+                cy="128"
+                r="112"
+                stroke="hsl(var(--energy-neutral))"
+                strokeWidth="8"
+                fill="none"
+                strokeLinecap="round"
+                className={cn("animate-pulse", breakTimerDone && "animate-bounce")}
+              />
+            </svg>
+            
+            {/* Time display */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <Coffee className="w-8 h-8 text-energy-neutral mb-2" />
+              <span className="text-4xl font-mono font-bold text-foreground">
+                {isOpenBreak ? formatTime(breakSecondsElapsed) : formatTime(breakSecondsRemaining)}
+              </span>
+              <span className="text-sm text-muted-foreground mt-2">
+                {breakTimerDone ? 'Break ended!' : isOpenBreak ? 'on break' : 'break remaining'}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-muted-foreground">
+              Break started at {breakStartTime ? format(breakStartTime, 'h:mm a') : '--'}
+            </p>
+            {!isOpenBreak && !breakTimerDone && (
+              <p className="text-muted-foreground">
+                Resume at {breakEndTime ? format(breakEndTime, 'h:mm a') : '--'}
+              </p>
+            )}
+          </div>
+
+          <Button
+            onClick={handleResumeFromBreak}
+            className={cn(
+              "w-full h-14 text-lg",
+              breakTimerDone 
+                ? "bg-energy-positive hover:bg-energy-positive/90 text-white animate-pulse"
+                : "bg-primary hover:bg-primary/90 text-primary-foreground"
+            )}
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Resume Working
+          </Button>
         </div>
       </div>
     );
@@ -296,18 +595,35 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
                 Ends at {endTime ? format(endTime, 'h:mm a') : '--'}
               </p>
             )}
+            {segments.length > 0 && (
+              <p className="text-xs text-muted-foreground/60">
+                {segments.filter(s => s.isBreak).length} break(s) taken
+              </p>
+            )}
           </div>
 
-          <Button
-            variant={isOpenMode ? 'default' : 'outline'}
-            onClick={() => {
-              setDisplayPhase('complete');
-              playNotificationSound();
-            }}
-            className={isOpenMode ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground'}
-          >
-            {isOpenMode ? 'Stop Tracking' : 'End Early'}
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              onClick={handleTakeBreak}
+              className="flex-1 border-border text-foreground hover:bg-energy-neutral/10"
+            >
+              <Coffee className="w-4 h-4 mr-2" />
+              Take a Break
+            </Button>
+            <Button
+              variant={isOpenMode ? 'default' : 'outline'}
+              onClick={handleComplete}
+              className={cn(
+                "flex-1",
+                isOpenMode 
+                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground' 
+                  : 'border-border text-foreground'
+              )}
+            >
+              {isOpenMode ? 'Stop Tracking' : 'End Early'}
+            </Button>
+          </div>
         </div>
       </div>
     );
