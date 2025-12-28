@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { format, differenceInSeconds, addMinutes, setHours, setMinutes } from 'date-fns';
-import { Play, Clock, Timer, X, Volume2 } from 'lucide-react';
+import { Play, Clock, Timer, X, Volume2, Infinity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,7 @@ interface LiveModeProps {
   onCancel: () => void;
 }
 
-type TimerMode = 'duration' | 'time';
+type TimerMode = 'duration' | 'time' | 'open';
 type DisplayPhase = 'setup' | 'quote' | 'running' | 'complete';
 
 export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) => {
@@ -24,6 +24,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [endTime, setEndTime] = useState<Date | null>(null);
   const [secondsRemaining, setSecondsRemaining] = useState(0);
+  const [secondsElapsed, setSecondsElapsed] = useState(0);
   const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
   const [quoteOpacity, setQuoteOpacity] = useState(0);
   const [timerOpacity, setTimerOpacity] = useState(0);
@@ -95,22 +96,27 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
       
       // NOW set the actual start/end times when timer becomes visible
       const now = new Date();
-      let end: Date;
-      if (mode === 'duration') {
-        const mins = parseInt(durationMinutes) || 25;
-        end = addMinutes(now, mins);
-      } else {
-        const [hours, mins] = targetTime.split(':').map(Number);
-        end = setMinutes(setHours(selectedDate, hours), mins);
-      }
-      
       setStartTime(now);
-      setEndTime(end);
-      setSecondsRemaining(differenceInSeconds(end, now));
+      
+      if (mode === 'open') {
+        setEndTime(null);
+        setSecondsElapsed(0);
+      } else {
+        let end: Date;
+        if (mode === 'duration') {
+          const mins = parseInt(durationMinutes) || 25;
+          end = addMinutes(now, mins);
+        } else {
+          const [hours, mins] = targetTime.split(':').map(Number);
+          end = setMinutes(setHours(selectedDate, hours), mins);
+        }
+        setEndTime(end);
+        setSecondsRemaining(differenceInSeconds(end, now));
+      }
     }, 5000);
   };
 
-  // Countdown timer
+  // Countdown timer (for duration/time modes)
   useEffect(() => {
     if (displayPhase !== 'running' || !endTime) return;
 
@@ -131,6 +137,18 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     return () => clearInterval(interval);
   }, [displayPhase, endTime, playNotificationSound]);
 
+  // Count-up timer (for open mode)
+  useEffect(() => {
+    if (displayPhase !== 'running' || !startTime || endTime !== null) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      setSecondsElapsed(differenceInSeconds(now, startTime));
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [displayPhase, startTime, endTime]);
+
   const formatTime = (seconds: number): string => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
@@ -144,7 +162,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
 
   const progress = endTime && startTime
     ? 1 - (secondsRemaining / differenceInSeconds(endTime, startTime))
-    : 0;
+    : null;
 
   // Show quote phase
   if (displayPhase === 'quote' && currentQuote) {
@@ -198,8 +216,10 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
     );
   }
 
-  // Show running countdown
+  // Show running timer (countdown or count-up)
   if (displayPhase === 'running') {
+    const isOpenMode = endTime === null;
+    
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
         <button
@@ -225,28 +245,45 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
                 strokeWidth="8"
                 fill="none"
               />
-              {/* Progress circle */}
-              <circle
-                cx="128"
-                cy="128"
-                r="112"
-                stroke="hsl(var(--primary))"
-                strokeWidth="8"
-                fill="none"
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 112}
-                strokeDashoffset={2 * Math.PI * 112 * (1 - progress)}
-                transform="rotate(-90 128 128)"
-                className="transition-all duration-100"
-              />
+              {/* Progress circle (only for countdown modes) */}
+              {progress !== null && (
+                <circle
+                  cx="128"
+                  cy="128"
+                  r="112"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 112}
+                  strokeDashoffset={2 * Math.PI * 112 * (1 - progress)}
+                  transform="rotate(-90 128 128)"
+                  className="transition-all duration-100"
+                />
+              )}
+              {/* Pulsing indicator for open mode */}
+              {isOpenMode && (
+                <circle
+                  cx="128"
+                  cy="128"
+                  r="112"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="8"
+                  fill="none"
+                  strokeLinecap="round"
+                  className="animate-pulse"
+                />
+              )}
             </svg>
             
             {/* Time display */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-5xl font-mono font-bold text-foreground">
-                {formatTime(secondsRemaining)}
+                {isOpenMode ? formatTime(secondsElapsed) : formatTime(secondsRemaining)}
               </span>
-              <span className="text-sm text-muted-foreground mt-2">remaining</span>
+              <span className="text-sm text-muted-foreground mt-2">
+                {isOpenMode ? 'elapsed' : 'remaining'}
+              </span>
             </div>
           </div>
 
@@ -254,20 +291,22 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
             <p className="text-muted-foreground">
               Started at {startTime ? format(startTime, 'h:mm a') : '--'}
             </p>
-            <p className="text-muted-foreground">
-              Ends at {endTime ? format(endTime, 'h:mm a') : '--'}
-            </p>
+            {!isOpenMode && (
+              <p className="text-muted-foreground">
+                Ends at {endTime ? format(endTime, 'h:mm a') : '--'}
+              </p>
+            )}
           </div>
 
           <Button
-            variant="outline"
+            variant={isOpenMode ? 'default' : 'outline'}
             onClick={() => {
               setDisplayPhase('complete');
               playNotificationSound();
             }}
-            className="border-border text-foreground"
+            className={isOpenMode ? 'bg-primary hover:bg-primary/90 text-primary-foreground' : 'border-border text-foreground'}
           >
-            End Early
+            {isOpenMode ? 'Stop Tracking' : 'End Early'}
           </Button>
         </div>
       </div>
@@ -297,32 +336,44 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
           <button
             onClick={() => setMode('duration')}
             className={cn(
-              'flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all',
+              'flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all',
               mode === 'duration'
                 ? 'border-primary bg-primary/10 text-foreground'
                 : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
             )}
           >
             <Timer className="w-5 h-5" />
-            <span className="font-medium">Duration</span>
+            <span className="font-medium text-sm">Duration</span>
           </button>
           <button
             onClick={() => setMode('time')}
             className={cn(
-              'flex-1 flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all',
+              'flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all',
               mode === 'time'
                 ? 'border-primary bg-primary/10 text-foreground'
                 : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
             )}
           >
             <Clock className="w-5 h-5" />
-            <span className="font-medium">End Time</span>
+            <span className="font-medium text-sm">End Time</span>
+          </button>
+          <button
+            onClick={() => setMode('open')}
+            className={cn(
+              'flex-1 flex flex-col items-center justify-center gap-1 p-3 rounded-xl border-2 transition-all',
+              mode === 'open'
+                ? 'border-primary bg-primary/10 text-foreground'
+                : 'border-border bg-secondary text-muted-foreground hover:border-primary/50'
+            )}
+          >
+            <Infinity className="w-5 h-5" />
+            <span className="font-medium text-sm">Open</span>
           </button>
         </div>
 
         {/* Input based on mode */}
         <div className="space-y-4">
-          {mode === 'duration' ? (
+          {mode === 'duration' && (
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">
                 How many minutes?
@@ -353,7 +404,8 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
                 max="480"
               />
             </div>
-          ) : (
+          )}
+          {mode === 'time' && (
             <div className="space-y-2">
               <label className="text-sm text-muted-foreground">
                 End at what time?
@@ -366,6 +418,13 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
               />
             </div>
           )}
+          {mode === 'open' && (
+            <div className="text-center py-4">
+              <p className="text-muted-foreground">
+                Track indefinitely until you choose to stop.
+              </p>
+            </div>
+          )}
         </div>
 
         <Button
@@ -374,7 +433,7 @@ export const LiveMode = ({ selectedDate, onComplete, onCancel }: LiveModeProps) 
           className="w-full h-14 text-lg bg-primary hover:bg-primary/90 text-primary-foreground"
         >
           <Play className="w-5 h-5 mr-2" />
-          Begin
+          {mode === 'open' ? 'Start Tracking' : 'Begin'}
         </Button>
       </div>
     </div>
