@@ -5,13 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CONSISTENCY_QUOTES, Quote } from '@/data/consistencyQuotes';
 
-type Phase = 'intro' | 'quote' | 'main';
+type Phase = 'quote' | 'main';
 
 const STORAGE_KEY = 'refresh-quote-index';
 
 const Refresh = () => {
-  const [phase, setPhase] = useState<Phase>('intro');
-  const [introVisible, setIntroVisible] = useState(false);
+  const [phase, setPhase] = useState<Phase>('quote');
   const [quoteVisible, setQuoteVisible] = useState(false);
   const [mainVisible, setMainVisible] = useState(false);
 
@@ -33,27 +32,18 @@ const Refresh = () => {
   const [priorities, setPriorities] = useState(['', '', '']);
 
   useEffect(() => {
-    // Phase 1: Show "What's next?"
-    const introFadeIn = setTimeout(() => setIntroVisible(true), 100);
+    // Quote fades in
+    const quoteFadeIn = setTimeout(() => setQuoteVisible(true), 100);
     
-    // Phase 2: Hide intro, show quote
-    const introFadeOut = setTimeout(() => setIntroVisible(false), 3100);
-    const showQuote = setTimeout(() => {
-      setPhase('quote');
-      setQuoteVisible(true);
-    }, 4100);
-
-    // Phase 3: Hide quote, show main form
-    const quoteFadeOut = setTimeout(() => setQuoteVisible(false), 9100);
+    // Quote fades out, main form fades in
+    const quoteFadeOut = setTimeout(() => setQuoteVisible(false), 5100);
     const showMain = setTimeout(() => {
       setPhase('main');
       setMainVisible(true);
-    }, 10100);
+    }, 6100);
 
     return () => {
-      clearTimeout(introFadeIn);
-      clearTimeout(introFadeOut);
-      clearTimeout(showQuote);
+      clearTimeout(quoteFadeIn);
       clearTimeout(quoteFadeOut);
       clearTimeout(showMain);
     };
@@ -76,21 +66,6 @@ const Refresh = () => {
     console.log('Priorities:', priorities);
     // For now just log - persistence can be added later
   };
-
-  // Intro phase
-  if (phase === 'intro') {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <h1 
-          className={`text-4xl md:text-6xl font-light text-foreground transition-opacity duration-1000 ${
-            introVisible ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          What's next?
-        </h1>
-      </div>
-    );
-  }
 
   // Quote phase
   if (phase === 'quote') {
