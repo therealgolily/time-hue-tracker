@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { Home, Send } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Home, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CONSISTENCY_QUOTES, Quote } from '@/data/consistencyQuotes';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 type Phase = 'quote' | 'main';
 
@@ -13,6 +16,10 @@ const Refresh = () => {
   const [phase, setPhase] = useState<Phase>('quote');
   const [quoteVisible, setQuoteVisible] = useState(false);
   const [mainVisible, setMainVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Get quote on mount and advance index
   const currentQuote = useMemo<Quote>(() => {
@@ -61,10 +68,51 @@ const Refresh = () => {
     setPriorities(newPriorities);
   };
 
-  const handleSubmit = () => {
-    console.log('Accomplishments:', accomplishments);
-    console.log('Priorities:', priorities);
-    // For now just log - persistence can be added later
+  const handleSubmit = async () => {
+    if (!user) {
+      toast({
+        title: "Please sign in",
+        description: "You need to be signed in to save reflections.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSaving(true);
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    const { error } = await supabase
+      .from('reflections')
+      .upsert({
+        user_id: user.id,
+        date: today,
+        accomplishment_1: accomplishments[0] || null,
+        accomplishment_2: accomplishments[1] || null,
+        accomplishment_3: accomplishments[2] || null,
+        priority_1: priorities[0] || null,
+        priority_2: priorities[1] || null,
+        priority_3: priorities[2] || null,
+      }, {
+        onConflict: 'user_id,date'
+      });
+
+    setSaving(false);
+
+    if (error) {
+      console.error('Error saving reflection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save reflection. Please try again.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Saved",
+        description: "Your reflection has been saved.",
+      });
+      navigate('/');
+    }
   };
 
   // Quote phase
@@ -156,8 +204,13 @@ const Refresh = () => {
               onClick={handleSubmit}
               size="lg"
               className="gap-2"
+              disabled={saving}
             >
-              <Send className="h-4 w-4" />
+              {saving ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
               Save Reflection
             </Button>
           </div>
