@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Zap, RefreshCw } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -5,6 +6,9 @@ import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
+import { CONSISTENCY_QUOTES } from '@/data/consistencyQuotes';
+
+const STORAGE_KEY = 'home-quote-index';
 
 const apps = [
   {
@@ -25,12 +29,17 @@ const Home = () => {
   useTheme();
   const { user, signOut } = useAuth();
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
+  const currentQuote = useMemo(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const index = stored ? parseInt(stored, 10) : 0;
+    const quote = CONSISTENCY_QUOTES[index % CONSISTENCY_QUOTES.length];
+    
+    // Advance for next time
+    const nextIndex = (index + 1) % CONSISTENCY_QUOTES.length;
+    localStorage.setItem(STORAGE_KEY, nextIndex.toString());
+    
+    return quote;
+  }, []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -54,9 +63,11 @@ const Home = () => {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-2">{getGreeting()}</h2>
-          <p className="text-muted-foreground">What would you like to work on?</p>
+        <div className="text-center mb-12 max-w-xl">
+          <blockquote className="text-xl md:text-2xl font-light text-foreground leading-relaxed mb-3">
+            "{currentQuote.text}"
+          </blockquote>
+          <p className="text-sm text-muted-foreground">— {currentQuote.author}</p>
         </div>
 
         {/* App Grid */}
