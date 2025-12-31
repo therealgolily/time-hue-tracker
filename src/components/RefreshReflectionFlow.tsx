@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { format } from 'date-fns';
 import { Home, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -82,8 +83,9 @@ const RefreshReflectionFlow = ({ onComplete }: RefreshReflectionFlowProps) => {
     }
 
     setSaving(true);
-    
-    const today = new Date().toISOString().split('T')[0];
+
+    // Use local date (not UTC) so the calendar matches the user's day
+    const today = format(new Date(), 'yyyy-MM-dd');
     
     const { error } = await supabase
       .from('reflections')
