@@ -99,6 +99,10 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
     return { streak, total };
   }, [reflections]);
 
+  // Check if today already has a reflection
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayReflection = reflections.get(todayStr);
+
   const renderMiniCalendar = (month: Date) => {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
@@ -216,11 +220,21 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
 
         {/* Today's prompt */}
         <div 
-          onClick={onStartReflection}
+          onClick={() => {
+            if (todayReflection) {
+              onViewReflection(todayReflection);
+            } else {
+              onStartReflection();
+            }
+          }}
           className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-8 text-center cursor-pointer hover:bg-primary/20 transition-colors"
         >
-          <p className="text-lg text-foreground mb-2">Ready for today's reflection?</p>
-          <p className="text-sm text-muted-foreground">Click here or tap today's date below</p>
+          <p className="text-lg text-foreground mb-2">
+            {todayReflection ? "View today's reflection" : "Ready for today's reflection?"}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {todayReflection ? "Click to see what you wrote" : "Click here or tap today's date below"}
+          </p>
         </div>
 
         {/* 12-month calendar grid */}
