@@ -1,4 +1,4 @@
-import { Zap, LayoutGrid } from 'lucide-react';
+import { Zap, RefreshCw } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
@@ -15,12 +15,11 @@ const apps = [
     gradient: 'bg-gradient-to-br from-amber-500 to-orange-600',
   },
   {
-    name: 'New App',
-    description: 'Coming soon',
-    route: '#',
-    icon: LayoutGrid,
-    gradient: 'bg-gradient-to-br from-blue-500 to-indigo-600',
-    comingSoon: true,
+    name: 'Refresh',
+    description: 'Daily reflection',
+    route: '/refresh',
+    icon: RefreshCw,
+    gradient: 'bg-gradient-to-br from-violet-500 to-purple-600',
   },
 ];
 
