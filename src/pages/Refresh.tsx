@@ -122,7 +122,6 @@ const Refresh = () => {
                   <Textarea
                     value={value}
                     onChange={(e) => handleAccomplishmentChange(index, e.target.value)}
-                    placeholder="Write your accomplishment..."
                     className="min-h-[80px] resize-none bg-card border-border"
                   />
                 </div>
@@ -144,7 +143,6 @@ const Refresh = () => {
                   <Textarea
                     value={value}
                     onChange={(e) => handlePriorityChange(index, e.target.value)}
-                    placeholder="Write your priority..."
                     className="min-h-[80px] resize-none bg-card border-border"
                   />
                 </div>
