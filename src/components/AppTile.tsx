@@ -33,7 +33,7 @@ export const AppTile = ({ name, route, icon: Icon, gradient, comingSoon }: AppTi
   return (
     <Link
       to={route}
-      className="group flex flex-col items-center gap-3 p-6 rounded-2xl transition-all duration-300 hover:bg-accent/50"
+      className="group p-4 rounded-2xl transition-all duration-300 hover:bg-accent/50"
     >
       <div
         className={cn(
@@ -43,7 +43,6 @@ export const AppTile = ({ name, route, icon: Icon, gradient, comingSoon }: AppTi
       >
         <Icon className="w-10 h-10 text-white" />
       </div>
-      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors text-center">{name}</h3>
     </Link>
   );
 };
