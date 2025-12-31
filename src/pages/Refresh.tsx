@@ -1,35 +1,38 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Home, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { useRefreshQuoteRotation } from '@/hooks/useRefreshQuoteRotation';
-import { Quote } from '@/data/consistencyQuotes';
+import { CONSISTENCY_QUOTES, Quote } from '@/data/consistencyQuotes';
 
 type Phase = 'intro' | 'quote' | 'main';
+
+const STORAGE_KEY = 'refresh-quote-index';
 
 const Refresh = () => {
   const [phase, setPhase] = useState<Phase>('intro');
   const [introVisible, setIntroVisible] = useState(false);
   const [quoteVisible, setQuoteVisible] = useState(false);
   const [mainVisible, setMainVisible] = useState(false);
-  const [currentQuote, setCurrentQuote] = useState<Quote | null>(null);
-  
-  const { getQuoteAndAdvance } = useRefreshQuoteRotation();
-  const hasStarted = useRef(false);
+
+  // Get quote on mount and advance index
+  const currentQuote = useMemo<Quote>(() => {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const index = stored ? parseInt(stored, 10) : 0;
+    const quote = CONSISTENCY_QUOTES[index % CONSISTENCY_QUOTES.length];
+    
+    // Advance for next time
+    const nextIndex = (index + 1) % CONSISTENCY_QUOTES.length;
+    localStorage.setItem(STORAGE_KEY, nextIndex.toString());
+    
+    return quote;
+  }, []);
 
   // Form state
   const [accomplishments, setAccomplishments] = useState(['', '', '']);
   const [priorities, setPriorities] = useState(['', '', '']);
 
   useEffect(() => {
-    if (hasStarted.current) return;
-    hasStarted.current = true;
-
-    // Get the quote immediately
-    const quote = getQuoteAndAdvance();
-    setCurrentQuote(quote);
-
     // Phase 1: Show "What's next?"
     const introFadeIn = setTimeout(() => setIntroVisible(true), 100);
     
@@ -54,7 +57,7 @@ const Refresh = () => {
       clearTimeout(quoteFadeOut);
       clearTimeout(showMain);
     };
-  }, [getQuoteAndAdvance]);
+  }, []);
 
   const handleAccomplishmentChange = (index: number, value: string) => {
     const newAccomplishments = [...accomplishments];
@@ -99,10 +102,10 @@ const Refresh = () => {
           }`}
         >
           <blockquote className="text-2xl md:text-3xl font-light text-foreground leading-relaxed mb-6">
-            "{currentQuote?.text}"
+            "{currentQuote.text}"
           </blockquote>
           <p className="text-lg text-muted-foreground">
-            — {currentQuote?.author}
+            — {currentQuote.author}
           </p>
         </div>
       </div>
