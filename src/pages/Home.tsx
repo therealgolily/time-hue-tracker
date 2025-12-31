@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
-import { Zap, RefreshCw } from 'lucide-react';
+import { useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Zap, RefreshCw, LogOut } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
 import { CONSISTENCY_QUOTES } from '@/data/consistencyQuotes';
 
 const STORAGE_KEY = 'home-quote-index';
@@ -27,7 +27,15 @@ const apps = [
 
 const Home = () => {
   useTheme();
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!loading && !user) {
+      navigate('/auth');
+    }
+  }, [user, loading, navigate]);
 
   const currentQuote = useMemo(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -41,6 +49,15 @@ const Home = () => {
     return quote;
   }, []);
 
+  // Show loading or nothing while checking auth
+  if (loading || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
@@ -48,16 +65,14 @@ const Home = () => {
         <h1 className="text-lg font-semibold text-foreground">My Apps</h1>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          {user && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={signOut}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <LogOut className="w-5 h-5" />
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
         </div>
       </header>
 
