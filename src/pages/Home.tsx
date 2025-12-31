@@ -9,14 +9,12 @@ import { LogOut } from 'lucide-react';
 const apps = [
   {
     name: 'Energy Tracker',
-    description: 'Track your time & energy',
     route: '/energy-tracker',
     icon: Zap,
     gradient: 'bg-gradient-to-br from-amber-500 to-orange-600',
   },
   {
     name: 'Refresh',
-    description: 'Daily reflection',
     route: '/refresh',
     icon: RefreshCw,
     gradient: 'bg-gradient-to-br from-violet-500 to-purple-600',

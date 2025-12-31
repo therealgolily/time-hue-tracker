@@ -4,14 +4,13 @@ import { cn } from '@/lib/utils';
 
 interface AppTileProps {
   name: string;
-  description: string;
   route: string;
   icon: LucideIcon;
   gradient: string;
   comingSoon?: boolean;
 }
 
-export const AppTile = ({ name, description, route, icon: Icon, gradient, comingSoon }: AppTileProps) => {
+export const AppTile = ({ name, route, icon: Icon, gradient, comingSoon }: AppTileProps) => {
   if (comingSoon) {
     return (
       <div className="group flex flex-col items-center gap-3 p-6 cursor-not-allowed opacity-60">
@@ -44,10 +43,7 @@ export const AppTile = ({ name, description, route, icon: Icon, gradient, coming
       >
         <Icon className="w-10 h-10 text-white" />
       </div>
-      <div className="text-center">
-        <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors">{name}</h3>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
-      </div>
+      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors text-center">{name}</h3>
     </Link>
   );
 };
