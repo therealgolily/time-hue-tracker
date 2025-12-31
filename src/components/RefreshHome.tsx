@@ -8,20 +8,31 @@ import {
   startOfMonth, 
   endOfMonth, 
   eachDayOfInterval, 
-  isSameDay, 
   isToday,
   addMonths,
   getDay,
-  startOfYear
+  startOfYear,
+  isFuture
 } from 'date-fns';
+
+interface Reflection {
+  date: string;
+  accomplishment_1: string | null;
+  accomplishment_2: string | null;
+  accomplishment_3: string | null;
+  priority_1: string | null;
+  priority_2: string | null;
+  priority_3: string | null;
+}
 
 interface RefreshHomeProps {
   onStartReflection: () => void;
+  onViewReflection: (reflection: Reflection) => void;
 }
 
-const RefreshHome = ({ onStartReflection }: RefreshHomeProps) => {
+const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) => {
   const { user } = useAuth();
-  const [reflectionDates, setReflectionDates] = useState<Set<string>>(new Set());
+  const [reflections, setReflections] = useState<Map<string, Reflection>>(new Map());
   const [loading, setLoading] = useState(true);
 
   // Get the 12 months starting from January of the current year
@@ -39,13 +50,15 @@ const RefreshHome = ({ onStartReflection }: RefreshHomeProps) => {
 
       const { data, error } = await supabase
         .from('reflections')
-        .select('date')
+        .select('date, accomplishment_1, accomplishment_2, accomplishment_3, priority_1, priority_2, priority_3')
         .eq('user_id', user.id);
 
       if (error) {
         console.error('Error fetching reflections:', error);
       } else if (data) {
-        setReflectionDates(new Set(data.map(r => r.date)));
+        const reflectionMap = new Map<string, Reflection>();
+        data.forEach(r => reflectionMap.set(r.date, r));
+        setReflections(reflectionMap);
       }
       setLoading(false);
     };
@@ -55,11 +68,11 @@ const RefreshHome = ({ onStartReflection }: RefreshHomeProps) => {
 
   // Calculate streak and total
   const { streak, total } = useMemo(() => {
-    if (reflectionDates.size === 0) {
+    if (reflections.size === 0) {
       return { streak: 0, total: 0 };
     }
 
-    const total = reflectionDates.size;
+    const total = reflections.size;
     
     // Calculate streak
     let streak = 0;
@@ -68,14 +81,14 @@ const RefreshHome = ({ onStartReflection }: RefreshHomeProps) => {
     
     // Check if today has a reflection, if not start from yesterday
     const todayStr = format(today, 'yyyy-MM-dd');
-    if (!reflectionDates.has(todayStr)) {
+    if (!reflections.has(todayStr)) {
       currentDate = new Date(today);
       currentDate.setDate(currentDate.getDate() - 1);
     }
     
     while (true) {
       const dateStr = format(currentDate, 'yyyy-MM-dd');
-      if (reflectionDates.has(dateStr)) {
+      if (reflections.has(dateStr)) {
         streak++;
         currentDate.setDate(currentDate.getDate() - 1);
       } else {
@@ -84,7 +97,7 @@ const RefreshHome = ({ onStartReflection }: RefreshHomeProps) => {
     }
 
     return { streak, total };
-  }, [reflectionDates]);
+  }, [reflections]);
 
   const renderMiniCalendar = (month: Date) => {
     const monthStart = startOfMonth(month);
@@ -114,23 +127,35 @@ const RefreshHome = ({ onStartReflection }: RefreshHomeProps) => {
           {emptyCells}
           {days.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd');
-            const hasReflection = reflectionDates.has(dateStr);
+            const reflection = reflections.get(dateStr);
+            const hasReflection = !!reflection;
             const isTodayDate = isToday(day);
+            const isFutureDate = isFuture(day);
+            const isClickable = isTodayDate || hasReflection;
+            
+            const handleClick = () => {
+              if (isTodayDate) {
+                onStartReflection();
+              } else if (hasReflection && reflection) {
+                onViewReflection(reflection);
+              }
+            };
             
             return (
               <button
                 key={dateStr}
-                onClick={() => isTodayDate && onStartReflection()}
-                disabled={!isTodayDate}
+                onClick={handleClick}
+                disabled={!isClickable}
                 className={`
                   w-5 h-5 text-[10px] rounded flex items-center justify-center transition-colors
                   ${isTodayDate 
                     ? 'bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90' 
                     : hasReflection 
-                      ? 'bg-emerald-500/20 text-emerald-500' 
-                      : 'text-muted-foreground'
+                      ? 'bg-emerald-500/20 text-emerald-500 cursor-pointer hover:bg-emerald-500/30' 
+                      : isFutureDate
+                        ? 'text-muted-foreground/50'
+                        : 'text-muted-foreground'
                   }
-                  ${!isTodayDate && 'cursor-default'}
                 `}
               >
                 {hasReflection && !isTodayDate ? (
