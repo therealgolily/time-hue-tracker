@@ -16,11 +16,12 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { useCloudTimeTracker } from '@/hooks/useCloudTimeTracker';
 import { useTheme } from '@/hooks/useTheme';
-import { Activity, Check, LogOut, Cloud, Loader2, Zap } from 'lucide-react';
+import { Activity, Check, LogOut, Cloud, Loader2, Zap, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TimeEntry, LiveSegment, EnergyLevel, Category, Client } from '@/types/timeTracker';
+import { Link } from 'react-router-dom';
 
-const Index = () => {
+const EnergyTracker = () => {
   // Initialize theme
   useTheme();
   
@@ -151,9 +152,13 @@ const Index = () => {
         <div className="container max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-primary" />
-              </div>
+              <Link
+                to="/"
+                className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center hover:bg-primary/30 transition-colors"
+                title="Back to Home"
+              >
+                <Home className="w-5 h-5 text-primary" />
+              </Link>
               <div>
                 <h1 className="font-semibold text-lg text-foreground">Energy Tracker</h1>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -302,4 +307,4 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default EnergyTracker;
