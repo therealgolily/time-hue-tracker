@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Check, Flame, Calendar as CalendarIcon } from 'lucide-react';
+import { Home, Check, Flame, Calendar as CalendarIcon, Search, List } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { Input } from '@/components/ui/input';
 import { 
   format, 
   startOfMonth, 
@@ -12,7 +13,8 @@ import {
   addMonths,
   getDay,
   startOfYear,
-  isFuture
+  isFuture,
+  parseISO
 } from 'date-fns';
 
 interface Reflection {
@@ -34,6 +36,7 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
   const { user, loading: authLoading } = useAuth();
   const [reflections, setReflections] = useState<Map<string, Reflection>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Get the 12 months starting from January of the current year
   const months = useMemo(() => {
@@ -109,6 +112,19 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
   const localTodayStr = format(new Date(), 'yyyy-MM-dd');
   const utcTodayStr = new Date().toISOString().split('T')[0];
   const todayReflection = reflections.get(localTodayStr) ?? reflections.get(utcTodayStr);
+
+  // Sorted list of reflections (most recent first) with search filtering
+  const filteredReflections = useMemo(() => {
+    const all = Array.from(reflections.values()).sort(
+      (a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()
+    );
+    if (!searchQuery.trim()) return all;
+    const q = searchQuery.toLowerCase();
+    return all.filter(r => 
+      [r.accomplishment_1, r.accomplishment_2, r.accomplishment_3, r.priority_1, r.priority_2, r.priority_3]
+        .some(text => text?.toLowerCase().includes(q))
+    );
+  }, [reflections, searchQuery]);
 
   const renderMiniCalendar = (month: Date) => {
     const monthStart = startOfMonth(month);
@@ -248,12 +264,51 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
         </div>
 
         {/* 12-month calendar grid */}
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-10">
           {months.map((month) => (
             <div key={format(month, 'yyyy-MM')}>
               {renderMiniCalendar(month)}
             </div>
           ))}
+        </div>
+
+        {/* Reflection History */}
+        <div className="border-t border-border pt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <List className="w-5 h-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold text-foreground">History</h2>
+          </div>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search reflections..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          {filteredReflections.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              {searchQuery ? 'No reflections match your search.' : 'No reflections yet.'}
+            </p>
+          ) : (
+            <ul className="space-y-3">
+              {filteredReflections.map((r) => (
+                <li
+                  key={r.date}
+                  onClick={() => onViewReflection(r)}
+                  className="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                >
+                  <div className="text-sm font-medium text-foreground mb-1">
+                    {format(parseISO(r.date), 'EEEE, MMMM d, yyyy')}
+                  </div>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {[r.accomplishment_1, r.accomplishment_2, r.accomplishment_3].filter(Boolean).join(' • ') || 'No accomplishments'}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </main>
     </div>
