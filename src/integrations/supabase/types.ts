@@ -44,6 +44,48 @@ export type Database = {
         }
         Relationships: []
       }
+      reflections: {
+        Row: {
+          accomplishment_1: string | null
+          accomplishment_2: string | null
+          accomplishment_3: string | null
+          created_at: string
+          date: string
+          id: string
+          priority_1: string | null
+          priority_2: string | null
+          priority_3: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accomplishment_1?: string | null
+          accomplishment_2?: string | null
+          accomplishment_3?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          priority_1?: string | null
+          priority_2?: string | null
+          priority_3?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accomplishment_1?: string | null
+          accomplishment_2?: string | null
+          accomplishment_3?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          priority_1?: string | null
+          priority_2?: string | null
+          priority_3?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           category: string
