@@ -31,7 +31,7 @@ interface RefreshHomeProps {
 }
 
 const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [reflections, setReflections] = useState<Map<string, Reflection>>(new Map());
   const [loading, setLoading] = useState(true);
 
@@ -43,11 +43,19 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
 
   useEffect(() => {
     const fetchReflections = async () => {
+      // Wait for auth to complete
+      if (authLoading) {
+        return;
+      }
+      
       if (!user) {
+        console.log('No user logged in, skipping reflection fetch');
         setLoading(false);
         return;
       }
 
+      console.log('Fetching reflections for user:', user.id);
+      
       const { data, error } = await supabase
         .from('reflections')
         .select('date, accomplishment_1, accomplishment_2, accomplishment_3, priority_1, priority_2, priority_3')
@@ -56,6 +64,7 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
       if (error) {
         console.error('Error fetching reflections:', error);
       } else if (data) {
+        console.log('Fetched reflections:', data);
         const reflectionMap = new Map<string, Reflection>();
         data.forEach(r => reflectionMap.set(r.date, r));
         setReflections(reflectionMap);
@@ -64,7 +73,7 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
     };
 
     fetchReflections();
-  }, [user]);
+  }, [user, authLoading]);
 
   // Calculate streak and total
   const { streak, total } = useMemo(() => {
