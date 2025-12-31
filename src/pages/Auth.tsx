@@ -11,10 +11,7 @@ import { z } from 'zod';
 const emailSchema = z.string().email('Please enter a valid email');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
-type Mode = 'login' | 'signup';
-
 const Auth = () => {
-  const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -46,51 +43,19 @@ const Auth = () => {
     
     setLoading(true);
 
-    if (mode === 'login') {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (error) {
-        toast({
-          title: 'Login failed',
-          description: error.message,
-          variant: 'destructive',
-        });
-      } else {
-        navigate('/');
-      }
+    if (error) {
+      toast({
+        title: 'Login failed',
+        description: error.message,
+        variant: 'destructive',
+      });
     } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
-      });
-
-      if (error) {
-        if (error.message.includes('already registered')) {
-          toast({
-            title: 'Account exists',
-            description: 'This email is already registered. Please log in instead.',
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'Signup failed',
-            description: error.message,
-            variant: 'destructive',
-          });
-        }
-      } else {
-        toast({
-          title: 'Account created',
-          description: 'You can now log in with your credentials.',
-        });
-        setMode('login');
-      }
+      navigate('/');
     }
 
     setLoading(false);
@@ -100,7 +65,7 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex items-center justify-center p-8">
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-semibold text-foreground text-center mb-8">
-          {mode === 'login' ? 'Welcome back' : 'Create account'}
+          Welcome back
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -136,33 +101,9 @@ const Auth = () => {
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            {mode === 'login' ? 'Log in' : 'Sign up'}
+            Log in
           </Button>
         </form>
-
-        <p className="text-center text-sm text-muted-foreground mt-6">
-          {mode === 'login' ? (
-            <>
-              Don't have an account?{' '}
-              <button
-                onClick={() => setMode('signup')}
-                className="text-primary hover:underline"
-              >
-                Sign up
-              </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <button
-                onClick={() => setMode('login')}
-                className="text-primary hover:underline"
-              >
-                Log in
-              </button>
-            </>
-          )}
-        </p>
       </div>
     </div>
   );
