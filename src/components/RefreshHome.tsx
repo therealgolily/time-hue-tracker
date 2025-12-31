@@ -44,18 +44,13 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
   useEffect(() => {
     const fetchReflections = async () => {
       // Wait for auth to complete
-      if (authLoading) {
-        return;
-      }
-      
+      if (authLoading) return;
+
       if (!user) {
-        console.log('No user logged in, skipping reflection fetch');
         setLoading(false);
         return;
       }
 
-      console.log('Fetching reflections for user:', user.id);
-      
       const { data, error } = await supabase
         .from('reflections')
         .select('date, accomplishment_1, accomplishment_2, accomplishment_3, priority_1, priority_2, priority_3')
@@ -64,7 +59,6 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
       if (error) {
         console.error('Error fetching reflections:', error);
       } else if (data) {
-        console.log('Fetched reflections:', data);
         const reflectionMap = new Map<string, Reflection>();
         data.forEach(r => reflectionMap.set(r.date, r));
         setReflections(reflectionMap);
@@ -90,7 +84,10 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
     
     // Check if today has a reflection, if not start from yesterday
     const todayStr = format(today, 'yyyy-MM-dd');
-    if (!reflections.has(todayStr)) {
+    const utcTodayStr = new Date().toISOString().split('T')[0];
+    const hasToday = reflections.has(todayStr) || reflections.has(utcTodayStr);
+
+    if (!hasToday) {
       currentDate = new Date(today);
       currentDate.setDate(currentDate.getDate() - 1);
     }
@@ -108,9 +105,10 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
     return { streak, total };
   }, [reflections]);
 
-  // Check if today already has a reflection
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
-  const todayReflection = reflections.get(todayStr);
+  // Check if today already has a reflection (handle legacy UTC-saved dates too)
+  const localTodayStr = format(new Date(), 'yyyy-MM-dd');
+  const utcTodayStr = new Date().toISOString().split('T')[0];
+  const todayReflection = reflections.get(localTodayStr) ?? reflections.get(utcTodayStr);
 
   const renderMiniCalendar = (month: Date) => {
     const monthStart = startOfMonth(month);
@@ -140,9 +138,12 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
           {emptyCells}
           {days.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd');
-            const reflection = reflections.get(dateStr);
-            const hasReflection = !!reflection;
             const isTodayDate = isToday(day);
+
+            // Normal lookup by date, but if it's "today" allow a fallback to the UTC date
+            // (fixes cases where a reflection was saved with UTC day boundary)
+            const reflection = reflections.get(dateStr) ?? (isTodayDate ? reflections.get(utcTodayStr) : undefined);
+            const hasReflection = !!reflection;
             const isFutureDate = isFuture(day);
             const isClickable = isTodayDate || hasReflection;
             
