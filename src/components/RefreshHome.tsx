@@ -134,10 +134,11 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
             const isClickable = isTodayDate || hasReflection;
             
             const handleClick = () => {
-              if (isTodayDate) {
-                onStartReflection();
-              } else if (hasReflection && reflection) {
+              // If there's already a reflection, show it (even for today)
+              if (hasReflection && reflection) {
                 onViewReflection(reflection);
+              } else if (isTodayDate) {
+                onStartReflection();
               }
             };
             
@@ -158,7 +159,7 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
                   }
                 `}
               >
-                {hasReflection && !isTodayDate ? (
+                {hasReflection ? (
                   <Check className="w-3 h-3" />
                 ) : (
                   format(day, 'd')
