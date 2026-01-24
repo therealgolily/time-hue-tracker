@@ -222,6 +222,7 @@ const EnergyTracker = () => {
               onPreviousWeek={() => setWeekStart(subWeeks(weekStart, 1))}
               onNextWeek={() => setWeekStart(addWeeks(weekStart, 1))}
               weekStart={weekStart}
+              getDayData={getDayData}
             />
 
             {/* Selected Date Header */}
