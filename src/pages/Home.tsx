@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, LogOut, Building2 } from 'lucide-react';
+import { Zap, RefreshCw, LogOut, Building2, Calculator } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
@@ -25,6 +25,11 @@ const apps = [
     name: 'Refresh',
     route: '/refresh',
     icon: RefreshCw,
+  },
+  {
+    name: 'Debt',
+    route: '/debt-calculator',
+    icon: Calculator,
   },
 ];
 
@@ -93,7 +98,7 @@ const Home = () => {
         </div>
 
         {/* App Grid - Swiss grid system */}
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 border-b-2 border-foreground">
+        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 border-b-2 border-foreground">
           {apps.map((app, index) => (
             <AppTile key={app.name} {...app} isLast={index === apps.length - 1} />
           ))}
