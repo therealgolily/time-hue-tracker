@@ -12,22 +12,19 @@ const STORAGE_KEY = 'home-quote-index';
 
 const apps = [
   {
-    name: 'Energy Tracker',
+    name: 'Energy',
     route: '/energy-tracker',
     icon: Zap,
-    gradient: 'bg-gradient-to-br from-amber-500 to-orange-600',
   },
   {
-    name: 'Client Tracker',
+    name: 'Clients',
     route: '/client-tracker',
     icon: Building2,
-    gradient: 'bg-gradient-to-br from-blue-500 to-cyan-600',
   },
   {
     name: 'Refresh',
     route: '/refresh',
     icon: RefreshCw,
-    gradient: 'bg-gradient-to-br from-violet-500 to-purple-600',
   },
 ];
 
@@ -36,7 +33,6 @@ const Home = () => {
   const { user, loading, signOut } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect to auth if not logged in
   useEffect(() => {
     if (!loading && !user) {
       navigate('/auth');
@@ -48,60 +44,69 @@ const Home = () => {
     const index = stored ? parseInt(stored, 10) : 0;
     const quote = CONSISTENCY_QUOTES[index % CONSISTENCY_QUOTES.length];
     
-    // Advance for next time
     const nextIndex = (index + 1) % CONSISTENCY_QUOTES.length;
     localStorage.setItem(STORAGE_KEY, nextIndex.toString());
     
     return quote;
   }, []);
 
-  // Show loading or nothing while checking auth
   if (loading || !user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="text-muted-foreground font-mono text-sm uppercase tracking-widest">Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="p-4 flex justify-between items-center border-b border-border">
-        <h1 className="text-lg font-semibold text-foreground">My Apps</h1>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={signOut}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <LogOut className="w-5 h-5" />
-          </Button>
+      {/* Header - Swiss style with bold typography */}
+      <header className="border-b-2 border-foreground">
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+          <h1 className="text-sm font-bold uppercase tracking-widest">Dashboard</h1>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={signOut}
+              className="hover:bg-primary hover:text-primary-foreground"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col items-center justify-center p-8">
-        <div className="text-center mb-12 max-w-xl">
-          <blockquote className="text-xl md:text-2xl font-light text-foreground leading-relaxed mb-3">
-            "{currentQuote.text}"
-          </blockquote>
-          <p className="text-sm text-muted-foreground">— {currentQuote.author}</p>
+      {/* Main Content - Grid-based Swiss layout */}
+      <main className="flex-1 flex flex-col">
+        {/* Quote section - Large typography */}
+        <div className="border-b-2 border-foreground px-6 py-12 md:py-16">
+          <div className="container mx-auto max-w-4xl">
+            <blockquote className="text-2xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight">
+              "{currentQuote.text}"
+            </blockquote>
+            <p className="mt-6 text-sm font-mono uppercase tracking-widest text-muted-foreground">
+              — {currentQuote.author}
+            </p>
+          </div>
         </div>
 
-        {/* App Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 max-w-2xl">
-          {apps.map((app) => (
-            <AppTile key={app.name} {...app} />
+        {/* App Grid - Swiss grid system */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 border-b-2 border-foreground">
+          {apps.map((app, index) => (
+            <AppTile key={app.name} {...app} isLast={index === apps.length - 1} />
           ))}
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="p-4 text-center text-xs text-muted-foreground border-t border-border">
-        Personal Dashboard
+      {/* Footer - Minimal */}
+      <footer className="px-6 py-4">
+        <div className="container mx-auto">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+            Personal Dashboard
+          </p>
+        </div>
       </footer>
     </div>
   );

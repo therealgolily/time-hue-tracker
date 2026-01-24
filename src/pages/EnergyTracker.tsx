@@ -16,13 +16,12 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { useCloudTimeTracker } from '@/hooks/useCloudTimeTracker';
 import { useTheme } from '@/hooks/useTheme';
-import { Activity, Check, LogOut, Cloud, Loader2, Zap, Home } from 'lucide-react';
+import { Check, LogOut, Cloud, Loader2, Zap, Home, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TimeEntry, LiveSegment, EnergyLevel, Category, Client } from '@/types/timeTracker';
 import { Link } from 'react-router-dom';
 
 const EnergyTracker = () => {
-  // Initialize theme
   useTheme();
   
   const { user, loading: authLoading, signOut } = useAuth();
@@ -45,10 +44,9 @@ const EnergyTracker = () => {
   } = useCloudTimeTracker(user?.id || null);
 
   const [weekStart, setWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 6 }) // Saturday
+    startOfWeek(new Date(), { weekStartsOn: 6 })
   );
 
-  // Sync weekStart when selectedDate changes to a different week
   const handleSelectDate = (date: Date) => {
     setSelectedDate(date);
     const newWeekStart = startOfWeek(date, { weekStartsOn: 6 });
@@ -89,50 +87,41 @@ const EnergyTracker = () => {
     client?: Client;
     customClient?: string;
   }>) => {
-    // Add each entry
     entries.forEach(entry => {
       addEntry(new Date(), entry);
     });
     setLiveSegments(null);
   };
 
-  // Show loading state
   if (authLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // Show auth form if not logged in
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
-          <div className="container max-w-2xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                <Activity className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-semibold text-lg text-foreground">Energy Tracker</h1>
-                <p className="text-sm text-muted-foreground">Track your daily energy</p>
-              </div>
+        <header className="border-b-2 border-foreground">
+          <div className="container max-w-2xl mx-auto px-6 py-4">
+            <div className="text-center">
+              <h1 className="text-lg font-bold uppercase tracking-widest">Energy Tracker</h1>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-1">Track your daily energy</p>
             </div>
           </div>
         </header>
-        <main className="container max-w-2xl mx-auto px-4 py-12">
+        <main className="container max-w-2xl mx-auto px-6 py-12">
           <AuthForm />
         </main>
       </div>
     );
   }
 
-  // Show Live Mode
   if (liveModeActive) {
     return (
       <LiveMode
@@ -143,7 +132,6 @@ const EnergyTracker = () => {
     );
   }
 
-  // Show Live Entry Form after timer completes
   if (liveSegments) {
     return (
       <LiveEntryForm
@@ -156,25 +144,24 @@ const EnergyTracker = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
-        <div className="container max-w-2xl mx-auto px-4 py-4">
+      {/* Header - Swiss style */}
+      <header className="sticky top-0 z-50 bg-background border-b-2 border-foreground">
+        <div className="container max-w-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <Link
                 to="/"
-                className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center hover:bg-primary/30 transition-colors"
+                className="p-2 -ml-2 hover:bg-primary hover:text-primary-foreground transition-colors"
                 title="Back to Home"
               >
-                <Home className="w-5 h-5 text-primary" />
+                <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="font-semibold text-lg text-foreground">Energy Tracker</h1>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Cloud className="w-3 h-3 text-primary" />
+                <h1 className="text-sm font-bold uppercase tracking-widest">Energy</h1>
+                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground">
                   {lastSaved ? (
                     <>
-                      <Check className="w-3 h-3 text-energy-positive" />
+                      <Check className="w-3 h-3 text-primary" />
                       <span>Synced {formatDistanceToNow(lastSaved, { addSuffix: true })}</span>
                     </>
                   ) : (
@@ -190,7 +177,7 @@ const EnergyTracker = () => {
                 variant="ghost"
                 size="icon"
                 onClick={signOut}
-                className="text-muted-foreground hover:text-foreground"
+                className="hover:bg-primary hover:text-primary-foreground"
               >
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -199,19 +186,19 @@ const EnergyTracker = () => {
         </div>
       </header>
 
-      <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <main className="container max-w-2xl mx-auto px-6 py-8 space-y-8">
         {dataLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="w-6 h-6 animate-spin" />
           </div>
         ) : (
           <>
-            {/* Live Mode Button */}
+            {/* Live Mode Button - Swiss style */}
             <Button
               onClick={() => setLiveModeActive(true)}
-              className="w-full h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg"
+              className="w-full h-14 text-sm font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:bg-foreground hover:text-background transition-colors"
             >
-              <Zap className="w-5 h-5 mr-2" />
+              <Zap className="w-4 h-4 mr-3" />
               Start Live Mode
             </Button>
 
@@ -226,11 +213,11 @@ const EnergyTracker = () => {
             />
 
             {/* Selected Date Header */}
-            <div className="text-center py-2">
-              <h2 className="text-2xl font-bold text-foreground">
+            <div className="text-center py-4 border-b-2 border-foreground">
+              <h2 className="text-3xl font-bold uppercase tracking-tight">
                 {format(selectedDate, 'EEEE')}
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-sm font-mono uppercase tracking-widest text-muted-foreground mt-1">
                 {format(selectedDate, 'MMMM d, yyyy')}
               </p>
             </div>
@@ -260,8 +247,8 @@ const EnergyTracker = () => {
             />
 
             {/* Timeline */}
-            <div className="glass-card p-6">
-              <h3 className="font-semibold text-lg text-foreground mb-4">Today's Timeline</h3>
+            <div className="border-2 border-foreground p-6">
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-6">Timeline</h3>
               <TimelineView
                 dayData={dayData}
                 onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
@@ -275,8 +262,8 @@ const EnergyTracker = () => {
             <WeeklyStats weekStart={weekStart} getDayData={getDayData} />
 
             {/* CSV Import/Export */}
-            <div className="glass-card p-4">
-              <h3 className="font-semibold text-foreground mb-3">Import / Export</h3>
+            <div className="border-2 border-foreground p-6">
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-4">Import / Export</h3>
               <CSVImportExport
                 getDayData={getDayData}
                 allData={allData}
@@ -284,18 +271,18 @@ const EnergyTracker = () => {
               />
             </div>
 
-            {/* Legend */}
-            <div className="flex justify-center gap-6 text-sm text-muted-foreground">
+            {/* Legend - Swiss style */}
+            <div className="flex justify-center gap-8 text-xs font-mono uppercase tracking-widest">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-energy-positive" />
+                <div className="w-3 h-3 bg-primary" />
                 <span>Energizing</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-energy-neutral" />
+                <div className="w-3 h-3 bg-muted-foreground" />
                 <span>Neutral</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-energy-negative" />
+                <div className="w-3 h-3 bg-foreground" />
                 <span>Draining</span>
               </div>
             </div>

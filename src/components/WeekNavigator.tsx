@@ -1,4 +1,4 @@
-import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
+import { format, addDays, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -25,30 +25,30 @@ export const WeekNavigator = ({
   const today = new Date();
 
   return (
-    <div className="glass-card p-4 slide-up">
+    <div className="border-2 border-foreground p-4">
       <div className="flex items-center justify-between mb-4">
         <Button
           variant="ghost"
           size="icon"
           onClick={onPreviousWeek}
-          className="text-muted-foreground hover:text-foreground hover:bg-accent"
+          className="hover:bg-primary hover:text-primary-foreground"
         >
           <ChevronLeft className="w-5 h-5" />
         </Button>
-        <span className="font-medium text-foreground">
+        <span className="text-sm font-bold uppercase tracking-widest">
           {format(weekStart, 'MMMM yyyy')}
         </span>
         <Button
           variant="ghost"
           size="icon"
           onClick={onNextWeek}
-          className="text-muted-foreground hover:text-foreground hover:bg-accent"
+          className="hover:bg-primary hover:text-primary-foreground"
         >
           <ChevronRight className="w-5 h-5" />
         </Button>
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1">
         {days.map((day) => {
           const isSelected = isSameDay(day, selectedDate);
           const isToday = isSameDay(day, today);
@@ -61,34 +61,31 @@ export const WeekNavigator = ({
               key={day.toISOString()}
               onClick={() => onSelectDate(day)}
               className={cn(
-                'flex flex-col items-center gap-1 p-3 rounded-lg transition-all duration-200 relative',
+                'flex flex-col items-center gap-1 p-3 transition-colors duration-200 relative',
                 isSelected
                   ? 'bg-primary text-primary-foreground'
-                  : 'hover:bg-accent text-muted-foreground hover:text-foreground',
-                isToday && !isSelected && 'ring-1 ring-primary/50'
+                  : 'hover:bg-foreground hover:text-background',
+                isToday && !isSelected && 'border-2 border-primary'
               )}
             >
-              <span className="text-xs uppercase font-medium">
+              <span className="text-[10px] font-mono uppercase tracking-widest">
                 {format(day, 'EEE')}
               </span>
-              <span className={cn(
-                'text-lg font-semibold',
-                isSelected ? 'text-primary-foreground' : 'text-foreground'
-              )}>
+              <span className="text-lg font-bold">
                 {format(day, 'd')}
               </span>
-              {/* Entry indicator dot */}
+              {/* Entry indicator */}
               {(hasEntries || hasWakeOrSleep) && (
                 <div className="flex gap-0.5">
                   {hasEntries && (
                     <div className={cn(
-                      'w-1.5 h-1.5 rounded-full',
+                      'w-1.5 h-1.5',
                       isSelected ? 'bg-primary-foreground' : 'bg-primary'
                     )} />
                   )}
                   {hasWakeOrSleep && !hasEntries && (
                     <div className={cn(
-                      'w-1.5 h-1.5 rounded-full',
+                      'w-1.5 h-1.5',
                       isSelected ? 'bg-primary-foreground/50' : 'bg-muted-foreground'
                     )} />
                   )}

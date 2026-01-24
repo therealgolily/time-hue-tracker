@@ -15,7 +15,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { useCloudClientTracker } from '@/hooks/useCloudClientTracker';
 import { useTheme } from '@/hooks/useTheme';
-import { Building2, Check, LogOut, Cloud, Loader2, Zap, Home } from 'lucide-react';
+import { Check, LogOut, Loader2, Zap, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ClientLiveSegment, TrackerClient, TRACKER_CLIENT_LABELS } from '@/types/clientTracker';
 import { Link } from 'react-router-dom';
@@ -93,8 +93,8 @@ const ClientTracker = () => {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Loading...</p>
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Loading...</p>
         </div>
       </div>
     );
@@ -103,20 +103,15 @@ const ClientTracker = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
-        <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
-          <div className="container max-w-2xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-semibold text-lg text-foreground">Client Tracker</h1>
-                <p className="text-sm text-muted-foreground">Track your client work</p>
-              </div>
+        <header className="border-b-2 border-foreground">
+          <div className="container max-w-2xl mx-auto px-6 py-4">
+            <div className="text-center">
+              <h1 className="text-lg font-bold uppercase tracking-widest">Client Tracker</h1>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-1">Track your client work</p>
             </div>
           </div>
         </header>
-        <main className="container max-w-2xl mx-auto px-4 py-12">
+        <main className="container max-w-2xl mx-auto px-6 py-12">
           <AuthForm />
         </main>
       </div>
@@ -145,24 +140,24 @@ const ClientTracker = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border">
-        <div className="container max-w-2xl mx-auto px-4 py-4">
+      {/* Header - Swiss style */}
+      <header className="sticky top-0 z-50 bg-background border-b-2 border-foreground">
+        <div className="container max-w-2xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <Link
                 to="/"
-                className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center hover:bg-primary/30 transition-colors"
+                className="p-2 -ml-2 hover:bg-primary hover:text-primary-foreground transition-colors"
                 title="Back to Home"
               >
-                <Home className="w-5 h-5 text-primary" />
+                <ArrowLeft className="w-5 h-5" />
               </Link>
               <div>
-                <h1 className="font-semibold text-lg text-foreground">Client Tracker</h1>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Cloud className="w-3 h-3 text-primary" />
+                <h1 className="text-sm font-bold uppercase tracking-widest">Clients</h1>
+                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-muted-foreground">
                   {lastSaved ? (
                     <>
-                      <Check className="w-3 h-3 text-energy-positive" />
+                      <Check className="w-3 h-3 text-primary" />
                       <span>Synced {formatDistanceToNow(lastSaved, { addSuffix: true })}</span>
                     </>
                   ) : (
@@ -178,7 +173,7 @@ const ClientTracker = () => {
                 variant="ghost"
                 size="icon"
                 onClick={signOut}
-                className="text-muted-foreground hover:text-foreground"
+                className="hover:bg-primary hover:text-primary-foreground"
               >
                 <LogOut className="w-4 h-4" />
               </Button>
@@ -187,18 +182,19 @@ const ClientTracker = () => {
         </div>
       </header>
 
-      <main className="container max-w-2xl mx-auto px-4 py-6 space-y-6">
+      <main className="container max-w-2xl mx-auto px-6 py-8 space-y-8">
         {dataLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <Loader2 className="w-6 h-6 animate-spin" />
           </div>
         ) : (
           <>
+            {/* Live Mode Button - Swiss style */}
             <Button
               onClick={() => setLiveModeActive(true)}
-              className="w-full h-14 text-lg bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground shadow-lg"
+              className="w-full h-14 text-sm font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:bg-foreground hover:text-background transition-colors"
             >
-              <Zap className="w-5 h-5 mr-2" />
+              <Zap className="w-4 h-4 mr-3" />
               Start Live Mode
             </Button>
 
@@ -211,15 +207,17 @@ const ClientTracker = () => {
               getDayData={getDayData}
             />
 
-            <div className="text-center py-2">
-              <h2 className="text-2xl font-bold text-foreground">
+            {/* Selected Date Header */}
+            <div className="text-center py-4 border-b-2 border-foreground">
+              <h2 className="text-3xl font-bold uppercase tracking-tight">
                 {format(selectedDate, 'EEEE')}
               </h2>
-              <p className="text-muted-foreground">
+              <p className="text-sm font-mono uppercase tracking-widest text-muted-foreground mt-1">
                 {format(selectedDate, 'MMMM d, yyyy')}
               </p>
             </div>
 
+            {/* Milestones */}
             <div className="grid grid-cols-2 gap-4">
               <MilestoneButton
                 type="wake"
@@ -241,8 +239,8 @@ const ClientTracker = () => {
               onAddEntry={(entry) => addEntry(selectedDate, entry)}
             />
 
-            <div className="glass-card p-6">
-              <h3 className="font-semibold text-lg text-foreground mb-4">Today's Timeline</h3>
+            <div className="border-2 border-foreground p-6">
+              <h3 className="text-sm font-bold uppercase tracking-widest mb-6">Timeline</h3>
               <ClientTrackerTimelineView
                 dayData={dayData}
                 onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
@@ -254,17 +252,14 @@ const ClientTracker = () => {
 
             <ClientTrackerWeeklyStats weekStart={weekStart} getDayData={getDayData} />
 
-            {/* Legend */}
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-muted-foreground">
-              {(Object.keys(TRACKER_CLIENT_LABELS) as TrackerClient[]).slice(0, 6).map(client => (
+            {/* Legend - Swiss style */}
+            <div className="flex flex-wrap justify-center gap-6 text-xs font-mono uppercase tracking-widest">
+              {(Object.keys(TRACKER_CLIENT_LABELS) as TrackerClient[]).slice(0, 6).map((client, index) => (
                 <div key={client} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    client === 'rosser-results' ? 'bg-violet-500' :
-                    client === 'carolinas' ? 'bg-blue-500' :
-                    client === 'richmond' ? 'bg-emerald-500' :
-                    client === 'memphis' ? 'bg-amber-500' :
-                    client === 'tri-cities' ? 'bg-rose-500' :
-                    'bg-cyan-500'
+                  <div className={`w-3 h-3 ${
+                    index === 0 ? 'bg-primary' :
+                    index % 2 === 0 ? 'bg-foreground' :
+                    'bg-muted-foreground'
                   }`} />
                   <span>{TRACKER_CLIENT_LABELS[client]}</span>
                 </div>
