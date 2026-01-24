@@ -45,8 +45,17 @@ const EnergyTracker = () => {
   } = useCloudTimeTracker(user?.id || null);
 
   const [weekStart, setWeekStart] = useState(() =>
-    startOfWeek(new Date(2025, 11, 27), { weekStartsOn: 6 }) // Saturday
+    startOfWeek(new Date(), { weekStartsOn: 6 }) // Saturday
   );
+
+  // Sync weekStart when selectedDate changes to a different week
+  const handleSelectDate = (date: Date) => {
+    setSelectedDate(date);
+    const newWeekStart = startOfWeek(date, { weekStartsOn: 6 });
+    if (newWeekStart.getTime() !== weekStart.getTime()) {
+      setWeekStart(newWeekStart);
+    }
+  };
 
   const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | null>(null);
   const [liveModeActive, setLiveModeActive] = useState(false);
@@ -209,7 +218,7 @@ const EnergyTracker = () => {
             {/* Week Navigator */}
             <WeekNavigator
               selectedDate={selectedDate}
-              onSelectDate={setSelectedDate}
+              onSelectDate={handleSelectDate}
               onPreviousWeek={() => setWeekStart(subWeeks(weekStart, 1))}
               onNextWeek={() => setWeekStart(addWeeks(weekStart, 1))}
               weekStart={weekStart}
