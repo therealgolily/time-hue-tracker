@@ -2,6 +2,7 @@ import { format, startOfWeek, addDays, isSameDay } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { DayData } from '@/types/timeTracker';
 
 interface WeekNavigatorProps {
   selectedDate: Date;
@@ -9,6 +10,7 @@ interface WeekNavigatorProps {
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   weekStart: Date;
+  getDayData?: (date: Date) => DayData;
 }
 
 export const WeekNavigator = ({
@@ -17,6 +19,7 @@ export const WeekNavigator = ({
   onPreviousWeek,
   onNextWeek,
   weekStart,
+  getDayData,
 }: WeekNavigatorProps) => {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const today = new Date();
@@ -49,13 +52,16 @@ export const WeekNavigator = ({
         {days.map((day) => {
           const isSelected = isSameDay(day, selectedDate);
           const isToday = isSameDay(day, today);
+          const dayData = getDayData?.(day);
+          const hasEntries = dayData && dayData.entries.length > 0;
+          const hasWakeOrSleep = dayData && (dayData.wakeTime || dayData.sleepTime);
 
           return (
             <button
               key={day.toISOString()}
               onClick={() => onSelectDate(day)}
               className={cn(
-                'flex flex-col items-center gap-1 p-3 rounded-lg transition-all duration-200',
+                'flex flex-col items-center gap-1 p-3 rounded-lg transition-all duration-200 relative',
                 isSelected
                   ? 'bg-primary text-primary-foreground'
                   : 'hover:bg-accent text-muted-foreground hover:text-foreground',
@@ -71,6 +77,23 @@ export const WeekNavigator = ({
               )}>
                 {format(day, 'd')}
               </span>
+              {/* Entry indicator dot */}
+              {(hasEntries || hasWakeOrSleep) && (
+                <div className="flex gap-0.5">
+                  {hasEntries && (
+                    <div className={cn(
+                      'w-1.5 h-1.5 rounded-full',
+                      isSelected ? 'bg-primary-foreground' : 'bg-primary'
+                    )} />
+                  )}
+                  {hasWakeOrSleep && !hasEntries && (
+                    <div className={cn(
+                      'w-1.5 h-1.5 rounded-full',
+                      isSelected ? 'bg-primary-foreground/50' : 'bg-muted-foreground'
+                    )} />
+                  )}
+                </div>
+              )}
             </button>
           );
         })}
