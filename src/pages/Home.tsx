@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, LogOut } from 'lucide-react';
+import { Zap, RefreshCw, LogOut, Building2 } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
@@ -16,6 +16,12 @@ const apps = [
     route: '/energy-tracker',
     icon: Zap,
     gradient: 'bg-gradient-to-br from-amber-500 to-orange-600',
+  },
+  {
+    name: 'Client Tracker',
+    route: '/client-tracker',
+    icon: Building2,
+    gradient: 'bg-gradient-to-br from-blue-500 to-cyan-600',
   },
   {
     name: 'Refresh',
