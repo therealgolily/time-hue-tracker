@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Home, Check, Flame, Calendar as CalendarIcon, Search, List } from 'lucide-react';
+import { ArrowLeft, Check, Flame, Calendar as CalendarIcon, Search, List } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,6 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Get the 12 months starting from January of the current year
   const months = useMemo(() => {
     const start = startOfYear(new Date());
     return Array.from({ length: 12 }, (_, i) => addMonths(start, i));
@@ -46,7 +45,6 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
 
   useEffect(() => {
     const fetchReflections = async () => {
-      // Wait for auth to complete
       if (authLoading) return;
 
       if (!user) {
@@ -72,7 +70,6 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
     fetchReflections();
   }, [user, authLoading]);
 
-  // Calculate streak and total
   const { streak, total } = useMemo(() => {
     if (reflections.size === 0) {
       return { streak: 0, total: 0 };
@@ -80,12 +77,10 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
 
     const total = reflections.size;
     
-    // Calculate streak
     let streak = 0;
     const today = new Date();
     let currentDate = today;
     
-    // Check if today has a reflection, if not start from yesterday
     const todayStr = format(today, 'yyyy-MM-dd');
     const utcTodayStr = new Date().toISOString().split('T')[0];
     const hasToday = reflections.has(todayStr) || reflections.has(utcTodayStr);
@@ -108,12 +103,10 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
     return { streak, total };
   }, [reflections]);
 
-  // Check if today already has a reflection (handle legacy UTC-saved dates too)
   const localTodayStr = format(new Date(), 'yyyy-MM-dd');
   const utcTodayStr = new Date().toISOString().split('T')[0];
   const todayReflection = reflections.get(localTodayStr) ?? reflections.get(utcTodayStr);
 
-  // Sorted list of reflections (most recent first) with search filtering
   const filteredReflections = useMemo(() => {
     const all = Array.from(reflections.values()).sort(
       (a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()
@@ -131,23 +124,20 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
     const monthEnd = endOfMonth(month);
     const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
     
-    // Get the day of week the month starts on (0 = Sunday)
     const startDayOfWeek = getDay(monthStart);
     
-    // Create empty cells for days before the month starts
     const emptyCells = Array.from({ length: startDayOfWeek }, (_, i) => (
       <div key={`empty-${i}`} className="w-5 h-5" />
     ));
 
     return (
-      <div className="bg-card rounded-lg p-3 border border-border">
-        <h3 className="text-sm font-medium text-foreground mb-2 text-center">
-          {format(month, 'MMMM')}
+      <div className="border-2 border-foreground p-3">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-center mb-3">
+          {format(month, 'MMM')}
         </h3>
         <div className="grid grid-cols-7 gap-0.5">
-          {/* Day headers */}
           {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-            <div key={day + i} className="w-5 h-5 text-[10px] text-muted-foreground flex items-center justify-center">
+            <div key={day + i} className="w-5 h-5 text-[9px] font-mono uppercase text-muted-foreground flex items-center justify-center">
               {day}
             </div>
           ))}
@@ -156,15 +146,12 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
             const dateStr = format(day, 'yyyy-MM-dd');
             const isTodayDate = isToday(day);
 
-            // Normal lookup by date, but if it's "today" allow a fallback to the UTC date
-            // (fixes cases where a reflection was saved with UTC day boundary)
             const reflection = reflections.get(dateStr) ?? (isTodayDate ? reflections.get(utcTodayStr) : undefined);
             const hasReflection = !!reflection;
             const isFutureDate = isFuture(day);
             const isClickable = isTodayDate || hasReflection;
             
             const handleClick = () => {
-              // If there's already a reflection, show it (even for today)
               if (hasReflection && reflection) {
                 onViewReflection(reflection);
               } else if (isTodayDate) {
@@ -178,13 +165,13 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
                 onClick={handleClick}
                 disabled={!isClickable}
                 className={`
-                  w-5 h-5 text-[10px] rounded flex items-center justify-center transition-colors
+                  w-5 h-5 text-[9px] font-mono flex items-center justify-center transition-colors
                   ${isTodayDate 
-                    ? 'bg-primary text-primary-foreground cursor-pointer hover:bg-primary/90' 
+                    ? 'bg-primary text-primary-foreground cursor-pointer hover:bg-foreground hover:text-background' 
                     : hasReflection 
-                      ? 'bg-emerald-500/20 text-emerald-500 cursor-pointer hover:bg-emerald-500/30' 
+                      ? 'bg-foreground text-background cursor-pointer hover:bg-primary hover:text-primary-foreground' 
                       : isFutureDate
-                        ? 'text-muted-foreground/50'
+                        ? 'text-muted-foreground/30'
                         : 'text-muted-foreground'
                   }
                 `}
@@ -205,46 +192,46 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link to="/" className="p-2 hover:bg-accent rounded-lg transition-colors">
-            <Home className="h-5 w-5 text-foreground" />
+      {/* Header - Swiss style */}
+      <header className="border-b-2 border-foreground">
+        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+          <Link to="/" className="p-2 -ml-2 hover:bg-primary hover:text-primary-foreground transition-colors">
+            <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-xl font-semibold text-foreground">Refresh</h1>
+          <h1 className="text-sm font-bold uppercase tracking-widest">Refresh</h1>
           <div className="w-9" />
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
-          <div className="bg-card rounded-xl p-6 border border-border text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <Flame className="w-5 h-5 text-orange-500" />
-              <span className="text-sm text-muted-foreground">Current Streak</span>
+      <main className="container mx-auto px-6 py-8 max-w-4xl">
+        {/* Stats - Swiss grid */}
+        <div className="grid grid-cols-2 gap-px bg-foreground mb-8">
+          <div className="bg-background p-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <Flame className="w-4 h-4 text-primary" />
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Streak</span>
             </div>
-            <div className="text-4xl font-bold text-foreground">{streak}</div>
-            <div className="text-sm text-muted-foreground">days</div>
+            <div className="text-5xl font-black">{streak}</div>
+            <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-2">days</div>
           </div>
-          <div className="bg-card rounded-xl p-6 border border-border text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <CalendarIcon className="w-5 h-5 text-primary" />
-              <span className="text-sm text-muted-foreground">Total Days</span>
+          <div className="bg-background p-8 text-center">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <CalendarIcon className="w-4 h-4 text-primary" />
+              <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Total</span>
             </div>
-            <div className="text-4xl font-bold text-foreground">{total}</div>
-            <div className="text-sm text-muted-foreground">reflections</div>
+            <div className="text-5xl font-black">{total}</div>
+            <div className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-2">reflections</div>
           </div>
         </div>
 
-        {/* Today's prompt */}
+        {/* Today's prompt - Swiss style */}
         <div 
           onClick={() => {
             if (todayReflection) {
@@ -253,18 +240,18 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
               onStartReflection();
             }
           }}
-          className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-8 text-center cursor-pointer hover:bg-primary/20 transition-colors"
+          className="border-2 border-primary p-8 mb-8 text-center cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors group"
         >
-          <p className="text-lg text-foreground mb-2">
+          <p className="text-lg font-bold uppercase tracking-tight">
             {todayReflection ? "View today's reflection" : "Ready for today's reflection?"}
           </p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground group-hover:text-primary-foreground/70 mt-2">
             {todayReflection ? "Click to see what you wrote" : "Click here or tap today's date below"}
           </p>
         </div>
 
-        {/* 12-month calendar grid */}
-        <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-10">
+        {/* 12-month calendar grid - Swiss style */}
+        <div className="grid grid-cols-3 md:grid-cols-4 gap-4 mb-12">
           {months.map((month) => (
             <div key={format(month, 'yyyy-MM')}>
               {renderMiniCalendar(month)}
@@ -272,34 +259,34 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
           ))}
         </div>
 
-        {/* Reflection History */}
-        <div className="border-t border-border pt-8">
-          <div className="flex items-center gap-2 mb-4">
-            <List className="w-5 h-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold text-foreground">History</h2>
+        {/* Reflection History - Swiss style */}
+        <div className="border-t-2 border-foreground pt-8">
+          <div className="flex items-center gap-3 mb-6">
+            <List className="w-4 h-4" />
+            <h2 className="text-sm font-bold uppercase tracking-widest">History</h2>
           </div>
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <div className="relative mb-6">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search reflections..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-12 border-2 border-foreground bg-transparent text-sm font-mono"
             />
           </div>
           {filteredReflections.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">
+            <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground text-center py-8">
               {searchQuery ? 'No reflections match your search.' : 'No reflections yet.'}
             </p>
           ) : (
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               {filteredReflections.map((r) => (
                 <li
                   key={r.date}
                   onClick={() => onViewReflection(r)}
-                  className="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                  className="border-2 border-foreground p-4 cursor-pointer hover:bg-primary hover:text-primary-foreground hover:border-primary transition-colors"
                 >
-                  <div className="text-sm font-medium text-foreground mb-1">
+                  <div className="text-xs font-bold uppercase tracking-widest mb-2">
                     {format(parseISO(r.date), 'EEEE, MMMM d, yyyy')}
                   </div>
                   <p className="text-sm text-muted-foreground line-clamp-2">

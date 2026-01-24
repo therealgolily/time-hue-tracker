@@ -2,119 +2,119 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @layer base {
-  /* Light mode (default) */
+  /* Swiss/International Design - Light mode (default) */
   :root, .light {
-    --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 0%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 0%;
 
-    --primary: 142 76% 36%;
+    --primary: 0 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 0%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 0%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 142 76% 36%;
+    --border: 0 0% 88%;
+    --input: 0 0% 88%;
+    --ring: 0 100% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0px;
 
-    /* Energy colors */
-    --energy-positive: 142 76% 36%;
-    --energy-neutral: 45 93% 47%;
-    --energy-negative: 0 84% 60%;
+    /* Energy colors - Swiss style (red accents) */
+    --energy-positive: 0 100% 50%;
+    --energy-neutral: 0 0% 50%;
+    --energy-negative: 0 0% 20%;
 
     /* Timeline */
-    --timeline-track: 220 14% 96%;
-    --timeline-marker: 220 9% 80%;
+    --timeline-track: 0 0% 94%;
+    --timeline-marker: 0 0% 70%;
 
-    /* Gradients */
-    --gradient-positive: linear-gradient(135deg, hsl(142 76% 36%), hsl(142 76% 30%));
-    --gradient-neutral: linear-gradient(135deg, hsl(45 93% 47%), hsl(45 93% 40%));
-    --gradient-negative: linear-gradient(135deg, hsl(0 84% 60%), hsl(0 84% 50%));
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(220 14% 98%));
+    /* Gradients - none for Swiss, solid colors */
+    --gradient-positive: hsl(0 100% 50%);
+    --gradient-neutral: hsl(0 0% 50%);
+    --gradient-negative: hsl(0 0% 20%);
+    --gradient-card: hsl(0 0% 100%);
 
     --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 142 76% 36%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-primary: 0 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 142 76% 36%;
+    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent-foreground: 0 0% 0%;
+    --sidebar-border: 0 0% 88%;
+    --sidebar-ring: 0 100% 50%;
   }
 
-  /* Dark mode */
+  /* Swiss/International Design - Dark mode */
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 100%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 6%;
+    --card-foreground: 0 0% 100%;
 
-    --popover: 222 47% 10%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 6%;
+    --popover-foreground: 0 0% 100%;
 
-    --primary: 142 76% 46%;
-    --primary-foreground: 222 47% 6%;
+    --primary: 0 100% 50%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 222 30% 14%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 222 30% 12%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 222 30% 18%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 222 30% 16%;
-    --input: 222 30% 14%;
-    --ring: 142 76% 46%;
+    --border: 0 0% 20%;
+    --input: 0 0% 15%;
+    --ring: 0 100% 50%;
 
-    /* Energy colors */
-    --energy-positive: 142 76% 46%;
-    --energy-neutral: 45 93% 58%;
-    --energy-negative: 0 84% 60%;
+    /* Energy colors - Swiss style (red accents) */
+    --energy-positive: 0 100% 50%;
+    --energy-neutral: 0 0% 60%;
+    --energy-negative: 0 0% 40%;
 
     /* Timeline */
-    --timeline-track: 222 30% 12%;
-    --timeline-marker: 222 30% 25%;
+    --timeline-track: 0 0% 12%;
+    --timeline-marker: 0 0% 30%;
 
-    /* Gradients */
-    --gradient-positive: linear-gradient(135deg, hsl(142 76% 46%), hsl(142 76% 36%));
-    --gradient-neutral: linear-gradient(135deg, hsl(45 93% 58%), hsl(45 93% 48%));
-    --gradient-negative: linear-gradient(135deg, hsl(0 84% 60%), hsl(0 84% 50%));
-    --gradient-card: linear-gradient(135deg, hsl(222 47% 10%), hsl(222 47% 8%));
+    /* Gradients - none for Swiss, solid colors */
+    --gradient-positive: hsl(0 100% 50%);
+    --gradient-neutral: hsl(0 0% 60%);
+    --gradient-negative: hsl(0 0% 40%);
+    --gradient-card: hsl(0 0% 6%);
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 142 76% 46%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 30% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 30% 16%;
-    --sidebar-ring: 142 76% 46%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 0 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 12%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 0 100% 50%;
   }
 }
 
@@ -125,7 +125,8 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    letter-spacing: -0.01em;
   }
 
   .font-mono {
@@ -134,47 +135,65 @@
 }
 
 @layer components {
+  /* Swiss grid helper */
+  .swiss-grid {
+    display: grid;
+    gap: 1px;
+    background: hsl(var(--border));
+  }
+
+  .swiss-grid > * {
+    background: hsl(var(--background));
+  }
+
   .energy-positive {
-    @apply bg-[hsl(var(--energy-positive))] text-[hsl(var(--background))];
+    @apply bg-primary text-primary-foreground;
   }
   
   .energy-neutral {
-    @apply bg-[hsl(var(--energy-neutral))] text-[hsl(var(--background))];
+    background: hsl(0 0% 50%);
+    @apply text-white;
   }
   
   .energy-negative {
-    @apply bg-[hsl(var(--energy-negative))] text-[hsl(var(--background))];
+    background: hsl(0 0% 20%);
+    @apply text-white;
   }
 
   .timeline-entry {
-    @apply transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-lg;
+    @apply transition-all duration-200 ease-out;
   }
 
+  .timeline-entry:hover {
+    background: hsl(var(--primary) / 0.1);
+  }
+
+  /* Swiss-style card - sharp edges, bold borders */
   .glass-card {
-    @apply bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl;
+    @apply bg-card border-2 border-foreground;
   }
 
   .pulse-live {
-    animation: pulse-glow 2s ease-in-out infinite;
+    animation: pulse-glow 1.5s ease-in-out infinite;
   }
 
   @keyframes pulse-glow {
     0%, 100% {
-      box-shadow: 0 0 0 0 hsl(var(--energy-positive) / 0.4);
+      box-shadow: 0 0 0 0 hsl(0 100% 50% / 0.6);
     }
     50% {
-      box-shadow: 0 0 0 8px hsl(var(--energy-positive) / 0);
+      box-shadow: 0 0 0 6px hsl(0 100% 50% / 0);
     }
   }
 
   .slide-up {
-    animation: slideUp 0.4s ease-out;
+    animation: slideUp 0.3s ease-out;
   }
 
   @keyframes slideUp {
     from {
       opacity: 0;
-      transform: translateY(20px);
+      transform: translateY(12px);
     }
     to {
       opacity: 1;
@@ -183,11 +202,21 @@
   }
 
   .fade-in {
-    animation: fadeIn 0.3s ease-out;
+    animation: fadeIn 0.2s ease-out;
   }
 
   @keyframes fadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+
+  /* Swiss typography utilities */
+  .swiss-heading {
+    @apply font-black uppercase tracking-tight;
+    letter-spacing: -0.02em;
+  }
+
+  .swiss-label {
+    @apply text-xs font-semibold uppercase tracking-widest;
   }
 }

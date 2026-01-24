@@ -41,47 +41,47 @@ export const AuthForm = () => {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-6">
-      <div className="glass-card p-8 space-y-6">
+    <div className="w-full max-w-md mx-auto">
+      <div className="border-2 border-foreground p-8 space-y-8">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-foreground">
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+          <h2 className="text-2xl font-bold uppercase tracking-tight">
+            {isLogin ? 'Sign In' : 'Create Account'}
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-2">
             {isLogin
-              ? 'Sign in to sync your data across devices'
-              : 'Sign up to save your time tracking data'}
+              ? 'Sync your data across devices'
+              : 'Save your tracking data'}
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-xs font-mono uppercase tracking-widest">Email</Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 bg-secondary border-border"
+                className="pl-12 border-2 border-foreground bg-transparent font-mono"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-xs font-mono uppercase tracking-widest">Password</Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 id="password"
                 type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 bg-secondary border-border"
+                className="pl-12 border-2 border-foreground bg-transparent font-mono"
                 required
                 minLength={6}
               />
@@ -90,7 +90,7 @@ export const AuthForm = () => {
 
           <Button
             type="submit"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="w-full h-12 text-sm font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:bg-foreground hover:text-background transition-colors"
             disabled={loading}
           >
             {loading ? (
@@ -113,7 +113,7 @@ export const AuthForm = () => {
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-primary hover:underline text-sm"
+            className="text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
           >
             {isLogin
               ? "Don't have an account? Sign up"

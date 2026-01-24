@@ -6,25 +6,22 @@ interface AppTileProps {
   name: string;
   route: string;
   icon: LucideIcon;
-  gradient: string;
   comingSoon?: boolean;
+  isLast?: boolean;
 }
 
-export const AppTile = ({ name, route, icon: Icon, gradient, comingSoon }: AppTileProps) => {
+export const AppTile = ({ name, route, icon: Icon, comingSoon, isLast }: AppTileProps) => {
   if (comingSoon) {
     return (
-      <div className="group flex flex-col items-center gap-3 p-6 cursor-not-allowed opacity-60">
-        <div
-          className={cn(
-            "w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg",
-            "bg-muted"
-          )}
-        >
-          <Icon className="w-10 h-10 text-muted-foreground" />
-        </div>
+      <div className={cn(
+        "flex flex-col items-center justify-center gap-4 p-12 md:p-16 cursor-not-allowed opacity-40",
+        "border-b-2 md:border-b-0 md:border-r-2 border-foreground",
+        isLast && "border-b-0 md:border-r-0"
+      )}>
+        <Icon className="w-12 h-12 md:w-16 md:h-16" strokeWidth={1.5} />
         <div className="text-center">
-          <h3 className="font-semibold text-foreground">{name}</h3>
-          <p className="text-xs text-muted-foreground mt-1">Coming Soon</p>
+          <h3 className="text-lg font-bold uppercase tracking-widest">{name}</h3>
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-2">Coming Soon</p>
         </div>
       </div>
     );
@@ -33,16 +30,15 @@ export const AppTile = ({ name, route, icon: Icon, gradient, comingSoon }: AppTi
   return (
     <Link
       to={route}
-      className="group p-4 rounded-2xl transition-all duration-300 hover:bg-accent/50"
+      className={cn(
+        "group flex flex-col items-center justify-center gap-4 p-12 md:p-16 transition-colors duration-200",
+        "border-b-2 md:border-b-0 md:border-r-2 border-foreground",
+        "hover:bg-primary hover:text-primary-foreground",
+        isLast && "border-b-0 md:border-r-0"
+      )}
     >
-      <div
-        className={cn(
-          "w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:shadow-xl",
-          gradient
-        )}
-      >
-        <Icon className="w-10 h-10 text-white" />
-      </div>
+      <Icon className="w-12 h-12 md:w-16 md:h-16" strokeWidth={1.5} />
+      <h3 className="text-lg font-bold uppercase tracking-widest">{name}</h3>
     </Link>
   );
 };
