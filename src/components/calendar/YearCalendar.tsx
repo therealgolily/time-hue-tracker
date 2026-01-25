@@ -86,8 +86,11 @@ export const YearCalendar = ({ countdowns = [] }: YearCalendarProps) => {
             ))}
             {/* Countdown Legend */}
             <div className="flex items-center gap-1">
-              <span className="w-3 h-3 bg-primary border border-foreground/20 flex items-center justify-center">
-                <Timer className="w-2 h-2 text-primary-foreground" />
+              <span 
+                className="w-3 h-3 border border-foreground/20 flex items-center justify-center"
+                style={{ backgroundColor: 'hsl(190 90% 45%)' }}
+              >
+                <Timer className="w-2 h-2 text-white" />
               </span>
               <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
                 Countdown

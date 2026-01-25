@@ -88,7 +88,7 @@ export const MiniMonth = ({
                 hasEvent && categoryColor
                   ? { backgroundColor: categoryColor.bg, color: categoryColor.text }
                   : countdown && !hasEvent
-                  ? { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
+                  ? { backgroundColor: 'hsl(190 90% 45%)', color: 'hsl(0 0% 100%)' }
                   : undefined
               }
               title={countdown ? `⏱ ${countdown.title}` : undefined}
@@ -99,7 +99,7 @@ export const MiniMonth = ({
                 <Timer 
                   className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5" 
                   style={{ 
-                    color: hasEvent && categoryColor ? categoryColor.text : 'hsl(var(--primary-foreground))'
+                    color: hasEvent && categoryColor ? categoryColor.text : 'hsl(0 0% 100%)'
                   }}
                 />
               )}
