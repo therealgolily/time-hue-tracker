@@ -1,12 +1,17 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { YearCalendar } from '@/components/calendar/YearCalendar';
 import { CountdownPanel } from '@/components/calendar/CountdownPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
+import { useCountdowns } from '@/hooks/useCountdowns';
+import { cn } from '@/lib/utils';
 
 const Calendar = () => {
   useTheme();
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const { countdowns } = useCountdowns();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -26,13 +31,16 @@ const Calendar = () => {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col pr-0 md:pr-72">
-        <YearCalendar />
+      {/* Main Content - Dynamic padding based on panel state */}
+      <main className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        isPanelOpen ? "pr-0 md:pr-72" : "pr-0"
+      )}>
+        <YearCalendar countdowns={countdowns} />
       </main>
 
       {/* Countdown Panel */}
-      <CountdownPanel />
+      <CountdownPanel onOpenChange={setIsPanelOpen} />
     </div>
   );
 };
