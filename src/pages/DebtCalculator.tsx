@@ -248,7 +248,7 @@ const DebtCalculator = () => {
                 <ArrowLeft className="w-4 h-4" />
               </Button>
             </Link>
-            <h1 className="text-sm font-bold uppercase tracking-widest">Debt</h1>
+            <h1 className="text-sm font-bold uppercase tracking-widest">Personal Finance</h1>
           </div>
         </header>
 

@@ -205,7 +205,7 @@ const RefreshHome = ({ onStartReflection, onViewReflection }: RefreshHomeProps) 
           <Link to="/" className="p-2 -ml-2 hover:bg-primary hover:text-primary-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-sm font-bold uppercase tracking-widest">Refresh</h1>
+          <h1 className="text-sm font-bold uppercase tracking-widest">Journal</h1>
           <div className="w-9" />
         </div>
       </header>

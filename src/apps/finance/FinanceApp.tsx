@@ -40,7 +40,7 @@ interface FinanceAppProps {
 }
 
 const FinanceApp = ({ 
-  authRedirectPath = '/finance/auth',
+  authRedirectPath = '/business-finance/auth',
 }: FinanceAppProps) => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const { user, loading, signOut } = useFinanceAuth();
