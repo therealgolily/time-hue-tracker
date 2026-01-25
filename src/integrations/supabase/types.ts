@@ -179,6 +179,33 @@ export type Database = {
         }
         Relationships: []
       }
+      contractors: {
+        Row: {
+          created_at: string
+          id: string
+          monthly_pay: number
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          monthly_pay?: number
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          monthly_pay?: number
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       countdowns: {
         Row: {
           created_at: string
@@ -252,6 +279,33 @@ export type Database = {
           created_at?: string
           data?: Json
           id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          salary: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          salary?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          salary?: number
           updated_at?: string
           user_id?: string
         }
