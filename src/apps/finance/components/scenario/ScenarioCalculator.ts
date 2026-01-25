@@ -2,6 +2,7 @@ import { ScenarioConfig } from '../../hooks/useScenarios';
 import { Client } from '../../hooks/useClients';
 import { Expense } from '../../hooks/useExpenses';
 import { Contractor } from '../../hooks/useContractors';
+import { Employee } from '../../hooks/useEmployees';
 import { TAX_RATES } from '../../data/businessData';
 
 export interface ScenarioResults {
@@ -31,7 +32,8 @@ export const calculateScenario = (
   clients: Client[],
   expenses: Expense[],
   contractors: Contractor[],
-  baseSalary: number
+  employees: Employee[],
+  _baseSalary?: number // Deprecated, kept for backwards compat
 ): ScenarioResults => {
   // Calculate monthly revenue from clients
   let monthlyRevenue = 0;
@@ -58,19 +60,40 @@ export const calculateScenario = (
   });
 
   // Add virtual expenses
-  config.scenarioExpenses.filter(e => e.isVirtual && e.recurring).forEach(expense => {
+  (config.scenarioExpenses || []).filter(e => e.isVirtual && e.recurring).forEach(expense => {
     monthlyRecurringExpenses += expense.amount;
   });
 
-  // Calculate contractor costs from database
-  const realContractorPay = contractors.reduce((sum, c) => sum + Number(c.monthly_pay), 0);
+  // Calculate contractor costs from database (with scenario modifications)
+  let realContractorPay = 0;
+  contractors.forEach(contractor => {
+    // Skip if removed in scenario
+    if ((config.removedContractorIds || []).includes(contractor.id)) return;
+    // Use scenario amount if modified
+    const scenarioContractor = (config.scenarioContractors || []).find(sc => sc.id === contractor.id);
+    realContractorPay += scenarioContractor?.monthlyPay ?? Number(contractor.monthly_pay);
+  });
   
   // Add virtual contractors from scenario
-  const virtualContractorPay = config.additionalContractors.reduce((sum, c) => sum + c.pay, 0);
+  const virtualContractorPay = (config.additionalContractors || []).reduce((sum, c) => sum + c.pay, 0);
   const monthlyContractors = realContractorPay + virtualContractorPay;
 
-  // Monthly salary (W-2)
-  const adjustedSalary = baseSalary + config.salaryAdjustment;
+  // Calculate employee salaries from database (with scenario modifications)
+  let totalAnnualSalary = 0;
+  employees.forEach(employee => {
+    // Skip if removed in scenario
+    if ((config.removedEmployeeIds || []).includes(employee.id)) return;
+    // Use scenario salary if modified
+    const scenarioEmployee = (config.scenarioEmployees || []).find(se => se.id === employee.id);
+    totalAnnualSalary += scenarioEmployee?.salary ?? Number(employee.salary);
+  });
+
+  // Add virtual employees from scenario
+  const virtualEmployeeSalary = (config.additionalEmployees || []).reduce((sum, e) => sum + e.salary, 0);
+  totalAnnualSalary += virtualEmployeeSalary;
+
+  // Apply salary adjustment (backwards compatibility)
+  const adjustedSalary = totalAnnualSalary + (config.salaryAdjustment || 0);
   const monthlySalary = adjustedSalary / 12;
 
   // Total monthly operating costs (matches Summary)
@@ -80,7 +103,7 @@ export const calculateScenario = (
   const grossProfit = monthlyRevenue - monthlyExpenses;
 
   // Calculate tax deductions
-  const taxDeductionsTotal = Object.values(config.taxDeductions)
+  const taxDeductionsTotal = Object.values(config.taxDeductions || {})
     .filter(d => d.enabled)
     .reduce((sum, d) => sum + d.amount, 0);
 
@@ -107,7 +130,7 @@ export const calculateScenario = (
   const netProfit = grossProfit - estimatedMonthlyTax;
 
   // Bank allocations
-  const bankAllocations = config.bankAllocations.map(allocation => ({
+  const bankAllocations = (config.bankAllocations || []).map(allocation => ({
     name: allocation.name,
     percentage: allocation.percentage,
     amount: Math.round(netProfit * (allocation.percentage / 100)),
@@ -141,14 +164,19 @@ export const calculateBaseline = (
   clients: Client[],
   expenses: Expense[],
   contractors: Contractor[],
-  baseSalary: number
+  employees: Employee[]
 ): ScenarioResults => {
   const emptyConfig: ScenarioConfig = {
     scenarioClients: [],
     removedClientIds: [],
     scenarioExpenses: [],
     removedExpenseIds: [],
+    scenarioContractors: [],
+    removedContractorIds: [],
     additionalContractors: [],
+    scenarioEmployees: [],
+    removedEmployeeIds: [],
+    additionalEmployees: [],
     salaryAdjustment: 0,
     taxDeductions: {},
     bankAllocations: [
@@ -158,5 +186,5 @@ export const calculateBaseline = (
     ],
   };
   
-  return calculateScenario(emptyConfig, clients, expenses, contractors, baseSalary);
+  return calculateScenario(emptyConfig, clients, expenses, contractors, employees);
 };
