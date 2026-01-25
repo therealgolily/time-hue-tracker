@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { Plus, Timer, X, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Plus, Timer, Pencil, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Countdown } from '@/types/calendar';
 import { useCountdowns } from '@/hooks/useCountdowns';
 import { CountdownModal } from './CountdownModal';
 import { cn } from '@/lib/utils';
 
-export const CountdownPanel = () => {
+interface CountdownPanelProps {
+  onOpenChange?: (isOpen: boolean) => void;
+}
+
+export const CountdownPanel = ({ onOpenChange }: CountdownPanelProps) => {
   const [isOpen, setIsOpen] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCountdown, setEditingCountdown] = useState<Countdown | undefined>();
@@ -21,6 +25,11 @@ export const CountdownPanel = () => {
     getDaysRemaining,
     getCountdownStatus,
   } = useCountdowns();
+
+  const handleToggle = (open: boolean) => {
+    setIsOpen(open);
+    onOpenChange?.(open);
+  };
 
   const handleAddNew = () => {
     setEditingCountdown(undefined);
@@ -61,7 +70,10 @@ export const CountdownPanel = () => {
             <h4 className="font-bold text-sm uppercase tracking-wide truncate">
               {countdown.title}
             </h4>
-            <p className="text-xs font-mono mt-1 text-muted-foreground">
+            <p className={cn(
+              "text-xs font-mono mt-1",
+              status === 'today' ? 'text-primary-foreground/70' : 'text-muted-foreground'
+            )}>
               {format(parseISO(countdown.targetDate), 'MMM d, yyyy')}
             </p>
           </div>
@@ -105,7 +117,7 @@ export const CountdownPanel = () => {
       {/* Toggle Button (visible when panel is closed) */}
       {!isOpen && (
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => handleToggle(true)}
           className="fixed right-0 top-1/2 -translate-y-1/2 z-50 bg-foreground text-background p-2 border-2 border-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
         >
           <ChevronLeft className="h-5 w-5" />
@@ -130,7 +142,7 @@ export const CountdownPanel = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleToggle(false)}
             className="h-8 w-8 hover:bg-primary hover:text-primary-foreground"
           >
             <ChevronRight className="h-4 w-4" />
@@ -199,3 +211,6 @@ export const CountdownPanel = () => {
     </>
   );
 };
+
+// Export hook for use in other components
+export { useCountdowns } from '@/hooks/useCountdowns';

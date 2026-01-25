@@ -9,20 +9,29 @@ import {
   isSameMonth,
   isToday,
 } from 'date-fns';
+import { Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, Countdown } from '@/types/calendar';
 
 interface MiniMonthProps {
   month: Date;
   events: CalendarEvent[];
+  countdowns: Countdown[];
   onDateClick: (date: string) => void;
   hasEventOnDate: (date: string) => boolean;
   getCategoryColorForDate: (date: string) => { bg: string; text: string } | null;
+  getCountdownForDate: (date: string) => Countdown | undefined;
 }
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-export const MiniMonth = ({ month, onDateClick, hasEventOnDate, getCategoryColorForDate }: MiniMonthProps) => {
+export const MiniMonth = ({ 
+  month, 
+  onDateClick, 
+  hasEventOnDate, 
+  getCategoryColorForDate,
+  getCountdownForDate 
+}: MiniMonthProps) => {
   const days = useMemo(() => {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
@@ -60,6 +69,7 @@ export const MiniMonth = ({ month, onDateClick, hasEventOnDate, getCategoryColor
           const isCurrentMonth = isSameMonth(day, month);
           const categoryColor = getCategoryColorForDate(dateString);
           const hasEvent = hasEventOnDate(dateString);
+          const countdown = getCountdownForDate(dateString);
           const today = isToday(day);
 
           return (
@@ -70,17 +80,29 @@ export const MiniMonth = ({ month, onDateClick, hasEventOnDate, getCategoryColor
               className={cn(
                 'aspect-square flex items-center justify-center text-xs font-mono transition-colors relative',
                 !isCurrentMonth && 'text-muted-foreground/30 cursor-default',
-                isCurrentMonth && !hasEvent && 'hover:bg-muted',
-                today && !hasEvent && 'border-2 border-primary',
-                today && hasEvent && 'ring-2 ring-foreground ring-inset'
+                isCurrentMonth && !hasEvent && !countdown && 'hover:bg-muted',
+                today && !hasEvent && !countdown && 'border-2 border-primary',
+                today && (hasEvent || countdown) && 'ring-2 ring-foreground ring-inset'
               )}
               style={
                 hasEvent && categoryColor
                   ? { backgroundColor: categoryColor.bg, color: categoryColor.text }
+                  : countdown && !hasEvent
+                  ? { backgroundColor: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }
                   : undefined
               }
+              title={countdown ? `⏱ ${countdown.title}` : undefined}
             >
               {format(day, 'd')}
+              {/* Countdown Indicator */}
+              {countdown && isCurrentMonth && (
+                <Timer 
+                  className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5" 
+                  style={{ 
+                    color: hasEvent && categoryColor ? categoryColor.text : 'hsl(var(--primary-foreground))'
+                  }}
+                />
+              )}
             </button>
           );
         })}

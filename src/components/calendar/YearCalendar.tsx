@@ -1,13 +1,18 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { startOfYear, addMonths, format } from 'date-fns';
 import { MiniMonth } from './MiniMonth';
 import { EventModal } from './EventModal';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
-import { CalendarEvent, EventCategory, EVENT_CATEGORIES } from '@/types/calendar';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useCountdowns } from '@/hooks/useCountdowns';
+import { CalendarEvent, EventCategory, EVENT_CATEGORIES, Countdown } from '@/types/calendar';
+import { ChevronLeft, ChevronRight, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export const YearCalendar = () => {
+interface YearCalendarProps {
+  countdowns?: Countdown[];
+}
+
+export const YearCalendar = ({ countdowns = [] }: YearCalendarProps) => {
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>();
@@ -20,6 +25,10 @@ export const YearCalendar = () => {
     const yearStart = startOfYear(new Date(currentYear, 0, 1));
     return Array.from({ length: 12 }, (_, i) => addMonths(yearStart, i));
   }, [currentYear]);
+
+  const getCountdownForDate = useCallback((date: string): Countdown | undefined => {
+    return countdowns.find(c => c.targetDate === date);
+  }, [countdowns]);
 
   const handleDateClick = (date: string) => {
     const eventsOnDate = getEventsForDate(date);
@@ -63,7 +72,7 @@ export const YearCalendar = () => {
         <div className="text-center">
           <h2 className="text-2xl md:text-4xl font-bold tracking-tight">{currentYear}</h2>
           {/* Category Legend */}
-          <div className="flex items-center justify-center gap-4 mt-2">
+          <div className="flex items-center justify-center gap-3 md:gap-4 mt-2 flex-wrap">
             {EVENT_CATEGORIES.map((cat) => (
               <div key={cat.value} className="flex items-center gap-1">
                 <span
@@ -75,6 +84,15 @@ export const YearCalendar = () => {
                 </span>
               </div>
             ))}
+            {/* Countdown Legend */}
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 bg-primary border border-foreground/20 flex items-center justify-center">
+                <Timer className="w-2 h-2 text-primary-foreground" />
+              </span>
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                Countdown
+              </span>
+            </div>
           </div>
         </div>
         
@@ -96,9 +114,11 @@ export const YearCalendar = () => {
               key={format(month, 'yyyy-MM')}
               month={month}
               events={events}
+              countdowns={countdowns}
               onDateClick={handleDateClick}
               hasEventOnDate={hasEventOnDate}
               getCategoryColorForDate={getCategoryColorForDate}
+              getCountdownForDate={getCountdownForDate}
             />
           ))}
         </div>
