@@ -55,24 +55,46 @@ export const ClientForm = ({ onSubmit, initialData, trigger }: ClientFormProps) 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        {trigger || <Button className="gap-2"><Plus className="w-4 h-4" />Add Client</Button>}
+        {trigger || (
+          <Button className="gap-2 bg-foreground text-background hover:bg-foreground/90 rounded-none border-2 border-foreground font-mono uppercase text-xs tracking-wider">
+            <Plus className="w-4 h-4" />
+            Add Client
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>{initialData ? 'Edit Client' : 'Add New Client'}</DialogTitle></DialogHeader>
+      <DialogContent className="border-2 border-foreground rounded-none">
+        <DialogHeader>
+          <DialogTitle className="uppercase tracking-wide font-bold">
+            {initialData ? 'Edit Client' : 'Add New Client'}
+          </DialogTitle>
+        </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label>Client Name</Label>
-            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
+            <Label className="text-xs font-mono uppercase tracking-widest">Client Name</Label>
+            <Input 
+              value={formData.name} 
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })} 
+              required 
+              className="border-2 border-foreground rounded-none"
+            />
           </div>
           <div className="space-y-2">
-            <Label>Monthly Retainer ($)</Label>
-            <Input type="number" value={formData.monthly_retainer} onChange={(e) => setFormData({ ...formData, monthly_retainer: e.target.value })} required />
+            <Label className="text-xs font-mono uppercase tracking-widest">Monthly Retainer ($)</Label>
+            <Input 
+              type="number" 
+              value={formData.monthly_retainer} 
+              onChange={(e) => setFormData({ ...formData, monthly_retainer: e.target.value })} 
+              required 
+              className="border-2 border-foreground rounded-none"
+            />
           </div>
           <div className="space-y-2">
-            <Label>Payment Method</Label>
+            <Label className="text-xs font-mono uppercase tracking-widest">Payment Method</Label>
             <Select value={formData.payment_method} onValueChange={(v: any) => setFormData({ ...formData, payment_method: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
+              <SelectTrigger className="border-2 border-foreground rounded-none">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="border-2 border-foreground rounded-none">
                 <SelectItem value="check">Check</SelectItem>
                 <SelectItem value="direct_deposit">Direct Deposit</SelectItem>
                 <SelectItem value="quickbooks">QuickBooks</SelectItem>
@@ -81,8 +103,21 @@ export const ClientForm = ({ onSubmit, initialData, trigger }: ClientFormProps) 
             </Select>
           </div>
           <div className="flex gap-2 pt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">Cancel</Button>
-            <Button type="submit" disabled={loading} className="flex-1">{loading ? 'Saving...' : initialData ? 'Update' : 'Add'}</Button>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setOpen(false)} 
+              className="flex-1 border-2 border-foreground rounded-none font-mono uppercase text-xs"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={loading} 
+              className="flex-1 bg-foreground text-background hover:bg-foreground/90 rounded-none font-mono uppercase text-xs"
+            >
+              {loading ? 'Saving...' : initialData ? 'Update' : 'Add'}
+            </Button>
           </div>
         </form>
       </DialogContent>

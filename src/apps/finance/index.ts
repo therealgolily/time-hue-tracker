@@ -35,7 +35,6 @@ export { useContractors } from './hooks/useContractors';
 export { useScenarios } from './hooks/useScenarios';
 
 // Components
-export { FinanceSidebar } from './components/FinanceSidebar';
 export { FinanceDashboard } from './components/FinanceDashboard';
 export { ClientsManager } from './components/ClientsManager';
 export { ExpensesManager } from './components/ExpensesManager';
