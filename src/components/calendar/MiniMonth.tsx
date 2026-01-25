@@ -91,27 +91,9 @@ export const MiniMonth = ({
 
           const hasTooltip = tooltipLines.length > 0 && isCurrentMonth;
 
-          const dayButton = (
-            <button
-              onClick={() => onDateClick(dateString)}
-              disabled={!isCurrentMonth}
-              className={cn(
-                'aspect-square flex items-center justify-center text-xs font-mono transition-colors relative',
-                !isCurrentMonth && 'text-muted-foreground/30 cursor-default',
-                isCurrentMonth && !hasEvent && !countdown && 'hover:bg-muted',
-                today && !hasEvent && !countdown && 'border-2 border-primary',
-                today && (hasEvent || countdown) && 'ring-2 ring-foreground ring-inset'
-              )}
-              style={
-                hasEvent && categoryColor
-                  ? { backgroundColor: categoryColor.bg, color: categoryColor.text }
-                  : countdown && !hasEvent
-                  ? { backgroundColor: 'hsl(190 90% 45%)', color: 'hsl(0 0% 100%)' }
-                  : undefined
-              }
-            >
+          const buttonContent = (
+            <>
               {format(day, 'd')}
-              {/* Countdown Indicator */}
               {countdown && isCurrentMonth && (
                 <Timer 
                   className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5" 
@@ -120,14 +102,35 @@ export const MiniMonth = ({
                   }}
                 />
               )}
-            </button>
+            </>
           );
+
+          const buttonStyles = cn(
+            'w-full aspect-square flex items-center justify-center text-xs font-mono transition-colors relative',
+            !isCurrentMonth && 'text-muted-foreground/30 cursor-default',
+            isCurrentMonth && !hasEvent && !countdown && 'hover:bg-muted',
+            today && !hasEvent && !countdown && 'border-2 border-primary',
+            today && (hasEvent || countdown) && 'ring-2 ring-foreground ring-inset'
+          );
+
+          const buttonInlineStyles = hasEvent && categoryColor
+            ? { backgroundColor: categoryColor.bg, color: categoryColor.text }
+            : countdown && !hasEvent
+            ? { backgroundColor: 'hsl(190 90% 45%)', color: 'hsl(0 0% 100%)' }
+            : undefined;
 
           if (hasTooltip) {
             return (
               <Tooltip key={dateString} delayDuration={200}>
                 <TooltipTrigger asChild>
-                  {dayButton}
+                  <button
+                    onClick={() => onDateClick(dateString)}
+                    disabled={!isCurrentMonth}
+                    className={buttonStyles}
+                    style={buttonInlineStyles}
+                  >
+                    {buttonContent}
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent 
                   side="top" 
@@ -141,7 +144,17 @@ export const MiniMonth = ({
             );
           }
 
-          return <div key={dateString}>{dayButton}</div>;
+          return (
+            <button
+              key={dateString}
+              onClick={() => onDateClick(dateString)}
+              disabled={!isCurrentMonth}
+              className={buttonStyles}
+              style={buttonInlineStyles}
+            >
+              {buttonContent}
+            </button>
+          );
         })}
       </div>
     </div>
