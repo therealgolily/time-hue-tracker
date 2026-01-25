@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, setYear, getYear } from 'date-fns';
 import { Countdown } from '@/types/calendar';
 import {
   Dialog,
@@ -13,7 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Trash2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { CalendarIcon, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CountdownModalProps {
@@ -33,16 +40,28 @@ export const CountdownModal = ({
 }: CountdownModalProps) => {
   const [title, setTitle] = useState('');
   const [targetDate, setTargetDate] = useState<Date | undefined>();
+  const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+
+  const currentYear = getYear(new Date());
+  const years = Array.from({ length: 20 }, (_, i) => currentYear + i);
 
   useEffect(() => {
     if (existingCountdown) {
       setTitle(existingCountdown.title);
-      setTargetDate(parseISO(existingCountdown.targetDate));
+      const date = parseISO(existingCountdown.targetDate);
+      setTargetDate(date);
+      setCalendarMonth(date);
     } else {
       setTitle('');
       setTargetDate(undefined);
+      setCalendarMonth(new Date());
     }
   }, [existingCountdown, open]);
+
+  const handleYearChange = (yearStr: string) => {
+    const year = parseInt(yearStr, 10);
+    setCalendarMonth(setYear(calendarMonth, year));
+  };
 
   const handleSave = () => {
     if (!title.trim() || !targetDate) return;
@@ -100,11 +119,50 @@ export const CountdownModal = ({
                   {targetDate ? format(targetDate, 'MMMM d, yyyy') : 'Pick a date'}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 border-2 border-foreground" align="start">
+              <PopoverContent className="w-auto p-0 border-2 border-foreground bg-background z-50" align="start">
+                {/* Year Selector */}
+                <div className="flex items-center justify-between border-b-2 border-foreground p-2 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 border border-foreground"
+                    onClick={() => setCalendarMonth(setYear(calendarMonth, getYear(calendarMonth) - 1))}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  
+                  <Select
+                    value={getYear(calendarMonth).toString()}
+                    onValueChange={handleYearChange}
+                  >
+                    <SelectTrigger className="w-24 border-2 border-foreground font-mono">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background border-2 border-foreground z-50 max-h-48">
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year.toString()} className="font-mono">
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 border border-foreground"
+                    onClick={() => setCalendarMonth(setYear(calendarMonth, getYear(calendarMonth) + 1))}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+                
                 <Calendar
                   mode="single"
                   selected={targetDate}
                   onSelect={setTargetDate}
+                  month={calendarMonth}
+                  onMonthChange={setCalendarMonth}
                   initialFocus
                   className="p-3 pointer-events-auto"
                 />
