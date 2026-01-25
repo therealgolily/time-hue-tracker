@@ -1,18 +1,46 @@
-import { PieChart, TrendingUp, TrendingDown, DollarSign, ArrowRight } from 'lucide-react';
-import { MetricCard } from './MetricCard';
-import {
-  calculateMonthlyRevenue,
-  calculateMonthlyExpenses,
-  calculateEstimatedTaxLiability,
-  clients,
-  expenses,
-} from '../data/businessData';
+import { PieChart, TrendingUp, TrendingDown, DollarSign, ArrowRight, Users } from 'lucide-react';
+import { format } from 'date-fns';
+import { TAX_RATES } from '../data/businessData';
+import { useClients } from '../hooks/useClients';
+import { useExpenses } from '../hooks/useExpenses';
+import { usePayments } from '../hooks/usePayments';
+import { useEmployees } from '../hooks/useEmployees';
 
 export const MonthlySummary = () => {
-  const monthlyRevenue = calculateMonthlyRevenue();
-  const monthlyExpenses = calculateMonthlyExpenses();
-  const taxes = calculateEstimatedTaxLiability();
+  const { clients, loading: clientsLoading } = useClients();
+  const { expenses, loading: expensesLoading } = useExpenses();
+  const { payments, loading: paymentsLoading } = usePayments();
+  const { totalSalary, loading: employeesLoading } = useEmployees();
+
+  const loading = clientsLoading || expensesLoading || paymentsLoading || employeesLoading;
+
+  const monthlyRevenue = clients
+    .filter((c) => c.status === 'active')
+    .reduce((sum, c) => sum + Number(c.monthly_retainer), 0);
+
+  // Use recurring expenses as the baseline monthly run-rate.
+  const monthlyExpenses = expenses
+    .filter((e) => e.recurring)
+    .reduce((sum, e) => sum + Number(e.amount), 0);
+
   const grossProfit = monthlyRevenue - monthlyExpenses;
+
+  // Estimated monthly tax reserve (based on salary + profit).
+  const salary = totalSalary;
+  const annualProfit = grossProfit * 12;
+  const employerFica = salary * TAX_RATES.employerFica;
+  const adjustedProfit = annualProfit - employerFica;
+  const totalTaxableIncome = salary + adjustedProfit;
+  const employeeFica = salary * TAX_RATES.employeeFica;
+  const federalIncome = totalTaxableIncome * TAX_RATES.federalIncome;
+  const stateIncome = totalTaxableIncome * TAX_RATES.stateIncome;
+  const totalAnnualTax = employerFica + employeeFica + federalIncome + stateIncome;
+
+  const taxes = {
+    annual: Math.max(0, Math.round(totalAnnualTax)),
+    monthly: Math.max(0, Math.round(totalAnnualTax / 12)),
+  };
+
   const netProfit = grossProfit - taxes.monthly;
 
   const months = [
@@ -28,120 +56,145 @@ export const MonthlySummary = () => {
     taxReserve: taxes.monthly,
   }));
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64 border-2 border-foreground">
+        <div className="text-muted-foreground font-mono text-sm uppercase tracking-widest">Loading…</div>
+      </div>
+    );
+  }
+
+  const hasAnyData = clients.length > 0 || expenses.length > 0 || payments.length > 0;
+
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Monthly Summary</h1>
-        <p className="text-muted-foreground mt-1">
-          Complete financial picture month by month
+    <div className="space-y-6">
+      <div className="border-b-2 border-foreground pb-4">
+        <h2 className="text-2xl font-bold uppercase tracking-tight">Monthly Summary</h2>
+        <p className="text-sm font-mono text-muted-foreground uppercase mt-1">
+          {format(new Date(), 'MMMM yyyy')}
         </p>
       </div>
 
-      <div className="bg-primary text-primary-foreground rounded-2xl p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-primary-foreground/70 text-sm uppercase tracking-wider">January 2025</p>
-            <h2 className="text-2xl font-bold mt-1">Monthly Snapshot</h2>
+      {!hasAnyData ? (
+        <div className="border-2 border-foreground p-8 text-center">
+          <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-bold uppercase mb-2">No finance data yet</h3>
+          <p className="text-sm font-mono text-muted-foreground uppercase">
+            Add a client, expense, or payment to see your monthly summary.
+          </p>
+        </div>
+      ) : (
+        <div className="border-2 border-foreground">
+          <div className="border-b-2 border-foreground p-4 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Snapshot</p>
+              <h3 className="text-lg font-bold uppercase">This Month</h3>
+            </div>
+            <PieChart className="w-6 h-6" />
           </div>
-          <PieChart className="w-10 h-10 text-primary-foreground/50" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-0">
+            <div className="p-4 border-r-0 md:border-r-2 border-foreground">
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Revenue</p>
+              <p className="text-2xl font-bold tabular-nums">${monthlyRevenue.toLocaleString()}</p>
+            </div>
+            <div className="p-4 border-r-0 md:border-r-2 border-foreground">
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Expenses</p>
+              <p className="text-2xl font-bold tabular-nums">${monthlyExpenses.toLocaleString()}</p>
+            </div>
+            <div className="p-4 border-r-0 md:border-r-2 border-foreground">
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Gross</p>
+              <p className="text-2xl font-bold tabular-nums">${grossProfit.toLocaleString()}</p>
+            </div>
+            <div className="p-4">
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Net</p>
+              <p className="text-2xl font-bold tabular-nums">${netProfit.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="border-2 border-foreground">
+        <div className="border-b-2 border-foreground p-4">
+          <h3 className="text-sm font-bold uppercase tracking-widest">Cash Flow Breakdown</h3>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <div>
-            <p className="text-primary-foreground/60 text-sm">Revenue</p>
-            <p className="text-3xl font-bold mt-1">${monthlyRevenue.toLocaleString()}</p>
+        <div className="p-4 space-y-4">
+          <div className="flex items-center justify-between p-4 border border-foreground">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border-2 border-foreground flex items-center justify-center">
+                <TrendingUp className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold uppercase">Expected Revenue</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  {clients.filter((c) => c.status === 'active').length} active clients
+                </p>
+              </div>
+            </div>
+            <p className="text-xl font-mono font-bold tabular-nums">+${monthlyRevenue.toLocaleString()}</p>
           </div>
-          <div>
-            <p className="text-primary-foreground/60 text-sm">Expenses</p>
-            <p className="text-3xl font-bold mt-1">${monthlyExpenses.toLocaleString()}</p>
+
+          <div className="flex items-center justify-between p-4 border border-foreground">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border-2 border-foreground flex items-center justify-center">
+                <TrendingDown className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold uppercase">Recurring Expenses</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  {expenses.filter((e) => e.recurring).length} recurring items
+                </p>
+              </div>
+            </div>
+            <p className="text-xl font-mono font-bold tabular-nums">-${monthlyExpenses.toLocaleString()}</p>
           </div>
-          <div>
-            <p className="text-primary-foreground/60 text-sm">Gross Profit</p>
-            <p className="text-3xl font-bold mt-1">${grossProfit.toLocaleString()}</p>
+
+          <div className="flex items-center justify-between p-4 border border-foreground">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border-2 border-foreground flex items-center justify-center">
+                <ArrowRight className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold uppercase">Gross Profit</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Before taxes</p>
+              </div>
+            </div>
+            <p className="text-xl font-mono font-bold tabular-nums">${grossProfit.toLocaleString()}</p>
           </div>
-          <div>
-            <p className="text-primary-foreground/60 text-sm">Net (After Tax Reserve)</p>
-            <p className="text-3xl font-bold mt-1">${netProfit.toLocaleString()}</p>
+
+          <div className="flex items-center justify-between p-4 border border-foreground">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border-2 border-foreground flex items-center justify-center">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold uppercase">Tax Reserve</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Estimated monthly</p>
+              </div>
+            </div>
+            <p className="text-xl font-mono font-bold tabular-nums">-${taxes.monthly.toLocaleString()}</p>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border-2 border-foreground bg-foreground text-background">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border-2 border-background flex items-center justify-center">
+                <DollarSign className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold uppercase">Net Available</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-background/70">After reserve</p>
+              </div>
+            </div>
+            <p className="text-2xl font-mono font-bold tabular-nums">${netProfit.toLocaleString()}</p>
           </div>
         </div>
       </div>
 
-      <div className="bg-card rounded-xl border border-border/50 shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-foreground mb-6">Cash Flow Breakdown</h2>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-success/5 rounded-lg border border-success/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-success" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Total Revenue</p>
-                <p className="text-sm text-muted-foreground">{clients.length} client retainers</p>
-              </div>
-            </div>
-            <p className="text-2xl font-bold revenue-text">+${monthlyRevenue.toLocaleString()}</p>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-destructive/5 rounded-lg border border-destructive/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center">
-                <TrendingDown className="w-5 h-5 text-destructive" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Total Expenses</p>
-                <p className="text-sm text-muted-foreground">{expenses.length} expense items</p>
-              </div>
-            </div>
-            <p className="text-2xl font-bold expense-text">-${monthlyExpenses.toLocaleString()}</p>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border border-border">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <ArrowRight className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Gross Profit</p>
-                <p className="text-sm text-muted-foreground">Before tax reserve</p>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-foreground">${grossProfit.toLocaleString()}</p>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-warning/5 rounded-lg border border-warning/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-warning" />
-              </div>
-              <div>
-                <p className="font-medium text-foreground">Tax Reserve</p>
-                <p className="text-sm text-muted-foreground">Estimated monthly liability</p>
-              </div>
-            </div>
-            <p className="text-2xl font-bold text-warning">-${taxes.monthly.toLocaleString()}</p>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-success/10 rounded-lg border-2 border-success/30">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-success/20 flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-success" />
-              </div>
-              <div>
-                <p className="font-semibold text-foreground">Net Available</p>
-                <p className="text-sm text-muted-foreground">After all obligations</p>
-              </div>
-            </div>
-            <p className="text-3xl font-bold revenue-text">${netProfit.toLocaleString()}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-border/50">
-          <h2 className="text-xl font-semibold text-foreground">2025 Monthly Projections</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Based on current client retainers and expenses
+      <div className="border-2 border-foreground overflow-hidden">
+        <div className="p-4 border-b-2 border-foreground">
+          <h3 className="text-sm font-bold uppercase tracking-widest">Monthly Projections</h3>
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-1">
+            Based on active retainers + recurring expenses
           </p>
         </div>
         <div className="overflow-x-auto">
