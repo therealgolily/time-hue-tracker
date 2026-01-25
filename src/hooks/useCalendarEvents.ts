@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, EVENT_CATEGORIES } from '@/types/calendar';
 
 const STORAGE_KEY = 'calendar-events';
 
@@ -56,6 +56,20 @@ export const useCalendarEvents = () => {
     return getEventsForDate(date).length > 0;
   }, [getEventsForDate]);
 
+  const getCategoryColorForDate = useCallback((date: string): { bg: string; text: string } | null => {
+    const eventsOnDate = getEventsForDate(date);
+    if (eventsOnDate.length === 0) return null;
+    
+    // Priority order: blocked > financial > travel > work
+    const priorityOrder = ['blocked', 'financial', 'travel', 'work'];
+    const sortedEvents = [...eventsOnDate].sort((a, b) => 
+      priorityOrder.indexOf(a.category) - priorityOrder.indexOf(b.category)
+    );
+    
+    const category = EVENT_CATEGORIES.find(c => c.value === sortedEvents[0].category);
+    return category ? { bg: category.color, text: category.textColor } : null;
+  }, [getEventsForDate]);
+
   return {
     events,
     addEvent,
@@ -63,5 +77,6 @@ export const useCalendarEvents = () => {
     deleteEvent,
     getEventsForDate,
     hasEventOnDate,
+    getCategoryColorForDate,
   };
 };
