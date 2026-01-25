@@ -1,39 +1,58 @@
-import { PieChart, TrendingUp, TrendingDown, DollarSign, ArrowRight, Users } from 'lucide-react';
+import { PieChart, TrendingUp, TrendingDown, DollarSign, ArrowRight, Users, User, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
 import { TAX_RATES } from '../data/businessData';
 import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { usePayments } from '../hooks/usePayments';
 import { useEmployees } from '../hooks/useEmployees';
+import { useContractors } from '../hooks/useContractors';
 
 export const MonthlySummary = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { payments, loading: paymentsLoading } = usePayments();
   const { totalSalary, loading: employeesLoading } = useEmployees();
+  const { totalMonthlyPay: contractorMonthlyPay, contractors, loading: contractorsLoading } = useContractors();
 
-  const loading = clientsLoading || expensesLoading || paymentsLoading || employeesLoading;
+  const loading = clientsLoading || expensesLoading || paymentsLoading || employeesLoading || contractorsLoading;
 
+  // Revenue from active clients
   const monthlyRevenue = clients
     .filter((c) => c.status === 'active')
     .reduce((sum, c) => sum + Number(c.monthly_retainer), 0);
 
-  // Use recurring expenses as the baseline monthly run-rate.
-  const monthlyExpenses = expenses
+  // Recurring software/misc expenses only
+  const monthlyRecurringExpenses = expenses
     .filter((e) => e.recurring)
     .reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const grossProfit = monthlyRevenue - monthlyExpenses;
+  // Monthly salary (W-2)
+  const monthlySalary = totalSalary / 12;
 
-  // Estimated monthly tax reserve (based on salary + profit).
-  const salary = totalSalary;
-  const annualProfit = grossProfit * 12;
-  const employerFica = salary * TAX_RATES.employerFica;
-  const adjustedProfit = annualProfit - employerFica;
-  const totalTaxableIncome = salary + adjustedProfit;
-  const employeeFica = salary * TAX_RATES.employeeFica;
+  // Total monthly operating costs
+  const totalMonthlyExpenses = monthlyRecurringExpenses + monthlySalary + contractorMonthlyPay;
+
+  // Gross profit before taxes
+  const grossProfit = monthlyRevenue - totalMonthlyExpenses;
+
+  // S-Corp Virginia Tax Calculations
+  const annualGrossProfit = grossProfit * 12;
+  const employerFica = totalSalary * TAX_RATES.employerFica; // Business expense
+  const monthlyEmployerFica = employerFica / 12;
+  
+  // K-1 pass-through income (after employer FICA deduction)
+  const adjustedProfit = annualGrossProfit - employerFica;
+  
+  // Total taxable income: W-2 salary + K-1 distributions
+  const totalTaxableIncome = totalSalary + adjustedProfit;
+  
+  // Employee FICA (withheld from paycheck)
+  const employeeFica = totalSalary * TAX_RATES.employeeFica;
+  
+  // Income taxes
   const federalIncome = totalTaxableIncome * TAX_RATES.federalIncome;
-  const stateIncome = totalTaxableIncome * TAX_RATES.stateIncome;
+  const stateIncome = totalTaxableIncome * TAX_RATES.stateIncome; // Virginia 5.75%
+  
   const totalAnnualTax = employerFica + employeeFica + federalIncome + stateIncome;
 
   const taxes = {
@@ -41,17 +60,21 @@ export const MonthlySummary = () => {
     monthly: Math.max(0, Math.round(totalAnnualTax / 12)),
   };
 
+  // Net available after tax reserve
   const netProfit = grossProfit - taxes.monthly;
+
+  // Net after employer FICA (true business profit)
+  const trueBizProfit = grossProfit - monthlyEmployerFica;
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const monthlyData = months.map((month, index) => ({
+  const monthlyData = months.map((month) => ({
     month,
     revenue: monthlyRevenue,
-    expenses: monthlyExpenses,
+    expenses: totalMonthlyExpenses,
     profit: grossProfit,
     taxReserve: taxes.monthly,
   }));
@@ -71,7 +94,7 @@ export const MonthlySummary = () => {
       <div className="border-b-2 border-foreground pb-4">
         <h2 className="text-2xl font-bold uppercase tracking-tight">Monthly Summary</h2>
         <p className="text-sm font-mono text-muted-foreground uppercase mt-1">
-          {format(new Date(), 'MMMM yyyy')}
+          {format(new Date(), 'MMMM yyyy')} • S-Corp Virginia
         </p>
       </div>
 
@@ -98,8 +121,8 @@ export const MonthlySummary = () => {
               <p className="text-2xl font-bold tabular-nums">${monthlyRevenue.toLocaleString()}</p>
             </div>
             <div className="p-4 border-r-0 md:border-r-2 border-foreground">
-              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Expenses</p>
-              <p className="text-2xl font-bold tabular-nums">${monthlyExpenses.toLocaleString()}</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">All Costs</p>
+              <p className="text-2xl font-bold tabular-nums">${totalMonthlyExpenses.toLocaleString()}</p>
             </div>
             <div className="p-4 border-r-0 md:border-r-2 border-foreground">
               <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Gross</p>
@@ -137,6 +160,36 @@ export const MonthlySummary = () => {
           <div className="flex items-center justify-between p-4 border border-foreground">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 border-2 border-foreground flex items-center justify-center">
+                <User className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold uppercase">Your Salary (W-2)</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  ${totalSalary.toLocaleString()}/year
+                </p>
+              </div>
+            </div>
+            <p className="text-xl font-mono font-bold tabular-nums">-${monthlySalary.toLocaleString()}</p>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-foreground">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border-2 border-foreground flex items-center justify-center">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-bold uppercase">Contractor Payments (1099)</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  {contractors.length} contractor{contractors.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+            </div>
+            <p className="text-xl font-mono font-bold tabular-nums">-${contractorMonthlyPay.toLocaleString()}</p>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-foreground">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 border-2 border-foreground flex items-center justify-center">
                 <TrendingDown className="w-5 h-5" />
               </div>
               <div>
@@ -146,7 +199,7 @@ export const MonthlySummary = () => {
                 </p>
               </div>
             </div>
-            <p className="text-xl font-mono font-bold tabular-nums">-${monthlyExpenses.toLocaleString()}</p>
+            <p className="text-xl font-mono font-bold tabular-nums">-${monthlyRecurringExpenses.toLocaleString()}</p>
           </div>
 
           <div className="flex items-center justify-between p-4 border border-foreground">
@@ -169,7 +222,9 @@ export const MonthlySummary = () => {
               </div>
               <div>
                 <p className="font-bold uppercase">Tax Reserve</p>
-                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Estimated monthly</p>
+                <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+                  FICA + Federal + VA State
+                </p>
               </div>
             </div>
             <p className="text-xl font-mono font-bold tabular-nums">-${taxes.monthly.toLocaleString()}</p>
@@ -194,7 +249,7 @@ export const MonthlySummary = () => {
         <div className="p-4 border-b-2 border-foreground">
           <h3 className="text-sm font-bold uppercase tracking-widest">Monthly Projections</h3>
           <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mt-1">
-            Based on active retainers + recurring expenses
+            Based on retainers, salary, contractors & recurring expenses
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -203,7 +258,7 @@ export const MonthlySummary = () => {
               <tr className="bg-muted/30">
                 <th>Month</th>
                 <th>Revenue</th>
-                <th>Expenses</th>
+                <th>All Costs</th>
                 <th>Gross Profit</th>
                 <th>Tax Reserve</th>
                 <th>Net</th>
@@ -234,7 +289,7 @@ export const MonthlySummary = () => {
               <tr className="bg-muted/30 font-semibold">
                 <td>Annual Total</td>
                 <td className="revenue-text">${(monthlyRevenue * 12).toLocaleString()}</td>
-                <td className="expense-text">${(monthlyExpenses * 12).toLocaleString()}</td>
+                <td className="expense-text">${(totalMonthlyExpenses * 12).toLocaleString()}</td>
                 <td>${(grossProfit * 12).toLocaleString()}</td>
                 <td className="text-warning">${taxes.annual.toLocaleString()}</td>
                 <td className="revenue-text">${(netProfit * 12).toLocaleString()}</td>
