@@ -16,6 +16,14 @@ export interface CalendarEvent {
   createdAt: string;
 }
 
+export interface Countdown {
+  id: string;
+  title: string;
+  targetDate: string; // YYYY-MM-DD format
+  createdAt: string;
+}
+
 export interface CalendarState {
   events: CalendarEvent[];
+  countdowns: Countdown[];
 }
