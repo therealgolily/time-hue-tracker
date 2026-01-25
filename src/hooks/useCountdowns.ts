@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Countdown } from '@/types/calendar';
 import { differenceInDays, differenceInMonths, differenceInYears, parseISO, startOfDay, addYears, addMonths } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,9 +12,9 @@ export interface CountdownDuration {
 }
 
 export const useCountdowns = () => {
+  const { user } = useAuth();
   const [countdowns, setCountdowns] = useState<Countdown[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   // Load countdowns from database on mount
   useEffect(() => {
@@ -33,6 +33,7 @@ export const useCountdowns = () => {
 
       if (error) {
         console.error('Failed to fetch countdowns:', error);
+        setLoading(false);
       } else {
         setCountdowns(data.map(countdown => ({
           id: countdown.id,
@@ -40,8 +41,8 @@ export const useCountdowns = () => {
           targetDate: countdown.target_date,
           createdAt: countdown.created_at,
         })));
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchCountdowns();
@@ -148,17 +149,19 @@ export const useCountdowns = () => {
   }, [getDaysRemaining]);
 
   // Sort countdowns: today first, then upcoming by days remaining, then passed
-  const sortedCountdowns = [...countdowns].sort((a, b) => {
-    const statusA = getCountdownStatus(a.targetDate);
-    const statusB = getCountdownStatus(b.targetDate);
-    
-    const statusOrder = { today: 0, upcoming: 1, passed: 2 };
-    if (statusOrder[statusA] !== statusOrder[statusB]) {
-      return statusOrder[statusA] - statusOrder[statusB];
-    }
-    
-    return getDaysRemaining(a.targetDate) - getDaysRemaining(b.targetDate);
-  });
+  const sortedCountdowns = useMemo(() => {
+    return [...countdowns].sort((a, b) => {
+      const statusA = getCountdownStatus(a.targetDate);
+      const statusB = getCountdownStatus(b.targetDate);
+      
+      const statusOrder = { today: 0, upcoming: 1, passed: 2 };
+      if (statusOrder[statusA] !== statusOrder[statusB]) {
+        return statusOrder[statusA] - statusOrder[statusB];
+      }
+      
+      return getDaysRemaining(a.targetDate) - getDaysRemaining(b.targetDate);
+    });
+  }, [countdowns, getCountdownStatus, getDaysRemaining]);
 
   return {
     countdowns: sortedCountdowns,
