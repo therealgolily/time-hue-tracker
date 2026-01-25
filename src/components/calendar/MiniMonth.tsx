@@ -12,6 +12,11 @@ import {
 import { Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CalendarEvent, Countdown } from '@/types/calendar';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface MiniMonthProps {
   month: Date;
@@ -21,6 +26,7 @@ interface MiniMonthProps {
   hasEventOnDate: (date: string) => boolean;
   getCategoryColorForDate: (date: string) => { bg: string; text: string } | null;
   getCountdownForDate: (date: string) => Countdown | undefined;
+  getEventsForDate: (date: string) => CalendarEvent[];
 }
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -30,7 +36,8 @@ export const MiniMonth = ({
   onDateClick, 
   hasEventOnDate, 
   getCategoryColorForDate,
-  getCountdownForDate 
+  getCountdownForDate,
+  getEventsForDate,
 }: MiniMonthProps) => {
   const days = useMemo(() => {
     const monthStart = startOfMonth(month);
@@ -71,10 +78,21 @@ export const MiniMonth = ({
           const hasEvent = hasEventOnDate(dateString);
           const countdown = getCountdownForDate(dateString);
           const today = isToday(day);
+          const eventsOnDate = getEventsForDate(dateString);
 
-          return (
+          // Build tooltip content
+          const tooltipLines: string[] = [];
+          if (eventsOnDate.length > 0) {
+            eventsOnDate.forEach(e => tooltipLines.push(e.title));
+          }
+          if (countdown) {
+            tooltipLines.push(`⏱ ${countdown.title}`);
+          }
+
+          const hasTooltip = tooltipLines.length > 0 && isCurrentMonth;
+
+          const dayButton = (
             <button
-              key={dateString}
               onClick={() => onDateClick(dateString)}
               disabled={!isCurrentMonth}
               className={cn(
@@ -91,7 +109,6 @@ export const MiniMonth = ({
                   ? { backgroundColor: 'hsl(190 90% 45%)', color: 'hsl(0 0% 100%)' }
                   : undefined
               }
-              title={countdown ? `⏱ ${countdown.title}` : undefined}
             >
               {format(day, 'd')}
               {/* Countdown Indicator */}
@@ -105,6 +122,26 @@ export const MiniMonth = ({
               )}
             </button>
           );
+
+          if (hasTooltip) {
+            return (
+              <Tooltip key={dateString} delayDuration={200}>
+                <TooltipTrigger asChild>
+                  {dayButton}
+                </TooltipTrigger>
+                <TooltipContent 
+                  side="top" 
+                  className="max-w-[200px] text-xs font-mono"
+                >
+                  {tooltipLines.map((line, i) => (
+                    <div key={i}>{line}</div>
+                  ))}
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return <div key={dateString}>{dayButton}</div>;
         })}
       </div>
     </div>

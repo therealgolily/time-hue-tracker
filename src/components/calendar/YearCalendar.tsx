@@ -122,6 +122,7 @@ export const YearCalendar = ({ countdowns = [] }: YearCalendarProps) => {
               hasEventOnDate={hasEventOnDate}
               getCategoryColorForDate={getCategoryColorForDate}
               getCountdownForDate={getCountdownForDate}
+              getEventsForDate={getEventsForDate}
             />
           ))}
         </div>
