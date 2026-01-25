@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 export const useCalendarEvents = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   // Load events from database on mount
   useEffect(() => {
@@ -25,6 +25,7 @@ export const useCalendarEvents = () => {
 
       if (error) {
         console.error('Failed to fetch calendar events:', error);
+        setLoading(false);
       } else {
         setEvents(data.map(event => ({
           id: event.id,
@@ -34,8 +35,8 @@ export const useCalendarEvents = () => {
           category: event.category as CalendarEvent['category'],
           createdAt: event.created_at,
         })));
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchEvents();
