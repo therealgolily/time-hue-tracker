@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from "react";
 import { 
   FinanceData, 
   CreditCard, 
@@ -10,10 +10,18 @@ import {
   ExpectedIncome, 
   OtherDebt 
 } from "../types";
-import { loadData, saveData, getInitialData } from "../lib/storage";
+import { 
+  loadDataFromDatabase, 
+  saveDataToDatabase, 
+  loadDataFromLocalStorage, 
+  clearLocalStorage,
+  getInitialData 
+} from "../lib/storage";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FinanceContextType {
   data: FinanceData;
+  loading: boolean;
   addCreditCard: (card: Omit<CreditCard, "id">) => void;
   updateCreditCard: (id: string, card: Partial<CreditCard>) => void;
   deleteCreditCard: (id: string) => void;
@@ -45,65 +53,128 @@ interface FinanceContextType {
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [data, setData] = useState<FinanceData>(() => {
-    const loaded = loadData();
-    return loaded || getInitialData();
-  });
+  const { user } = useAuth();
+  const [data, setData] = useState<FinanceData>(getInitialData());
+  const [loading, setLoading] = useState(true);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialLoadRef = useRef(true);
 
+  // Load data from database on mount
   useEffect(() => {
-    saveData(data);
-  }, [data]);
+    const loadData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-  const addCreditCard = (card: Omit<CreditCard, "id">) => {
+      setLoading(true);
+      
+      // Try to load from database first
+      const dbData = await loadDataFromDatabase(user.id);
+      
+      if (dbData) {
+        setData(dbData);
+      } else {
+        // Check if there's localStorage data to migrate
+        const localData = loadDataFromLocalStorage();
+        if (localData) {
+          setData(localData);
+          // Migrate to database
+          await saveDataToDatabase(user.id, localData);
+          // Clear localStorage after successful migration
+          clearLocalStorage();
+        }
+      }
+      
+      isInitialLoadRef.current = false;
+      setLoading(false);
+    };
+
+    loadData();
+  }, [user]);
+
+  // Save data to database with debouncing
+  const saveData = useCallback(async (newData: FinanceData) => {
+    if (!user || isInitialLoadRef.current) return;
+
+    // Clear any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Debounce saves to avoid too many database writes
+    saveTimeoutRef.current = setTimeout(async () => {
+      await saveDataToDatabase(user.id, newData);
+    }, 500);
+  }, [user]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const updateData = useCallback((updater: (prev: FinanceData) => FinanceData) => {
+    setData(prev => {
+      const newData = updater(prev);
+      saveData(newData);
+      return newData;
+    });
+  }, [saveData]);
+
+  const addCreditCard = useCallback((card: Omit<CreditCard, "id">) => {
     const newCard: CreditCard = {
       ...card,
       id: crypto.randomUUID(),
     };
-    setData(prev => ({
+    updateData(prev => ({
       ...prev,
       creditCards: [...prev.creditCards, newCard],
     }));
-  };
+  }, [updateData]);
 
-  const updateCreditCard = (id: string, updates: Partial<CreditCard>) => {
-    setData(prev => ({
+  const updateCreditCard = useCallback((id: string, updates: Partial<CreditCard>) => {
+    updateData(prev => ({
       ...prev,
       creditCards: prev.creditCards.map(card =>
         card.id === id ? { ...card, ...updates } : card
       ),
     }));
-  };
+  }, [updateData]);
 
-  const deleteCreditCard = (id: string) => {
-    setData(prev => ({
+  const deleteCreditCard = useCallback((id: string) => {
+    updateData(prev => ({
       ...prev,
       creditCards: prev.creditCards.filter(card => card.id !== id),
     }));
-  };
+  }, [updateData]);
 
-  const updateBudget = (updates: Partial<FinanceData["budget"]>) => {
-    setData(prev => ({
+  const updateBudget = useCallback((updates: Partial<FinanceData["budget"]>) => {
+    updateData(prev => ({
       ...prev,
       budget: { ...prev.budget, ...updates },
     }));
-  };
+  }, [updateData]);
 
-  const addExpense = (expense: Omit<Expense, "id">) => {
+  const addExpense = useCallback((expense: Omit<Expense, "id">) => {
     const newExpense: Expense = {
       ...expense,
       id: crypto.randomUUID(),
     };
-    setData(prev => ({
+    updateData(prev => ({
       ...prev,
       budget: {
         ...prev.budget,
         expenses: [...prev.budget.expenses, newExpense],
       },
     }));
-  };
+  }, [updateData]);
 
-  const updateExpense = (id: string, updates: Partial<Expense>) => {
-    setData(prev => ({
+  const updateExpense = useCallback((id: string, updates: Partial<Expense>) => {
+    updateData(prev => ({
       ...prev,
       budget: {
         ...prev.budget,
@@ -112,137 +183,138 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         ),
       },
     }));
-  };
+  }, [updateData]);
 
-  const deleteExpense = (id: string) => {
-    setData(prev => ({
+  const deleteExpense = useCallback((id: string) => {
+    updateData(prev => ({
       ...prev,
       budget: {
         ...prev.budget,
         expenses: prev.budget.expenses.filter(expense => expense.id !== id),
       },
     }));
-  };
+  }, [updateData]);
 
-  const addScenario = (scenario: Omit<PaymentScenario, "id">) => {
+  const addScenario = useCallback((scenario: Omit<PaymentScenario, "id">) => {
     const newScenario: PaymentScenario = {
       ...scenario,
       id: crypto.randomUUID(),
     };
-    setData(prev => ({
+    updateData(prev => ({
       ...prev,
       scenarios: [...prev.scenarios, newScenario],
     }));
-  };
+  }, [updateData]);
 
-  const updateScenario = (id: string, updates: Partial<PaymentScenario>) => {
-    setData(prev => ({
+  const updateScenario = useCallback((id: string, updates: Partial<PaymentScenario>) => {
+    updateData(prev => ({
       ...prev,
       scenarios: prev.scenarios.map(scenario =>
         scenario.id === id ? { ...scenario, ...updates } : scenario
       ),
     }));
-  };
+  }, [updateData]);
 
-  const deleteScenario = (id: string) => {
-    setData(prev => ({
+  const deleteScenario = useCallback((id: string) => {
+    updateData(prev => ({
       ...prev,
       scenarios: prev.scenarios.filter(scenario => scenario.id !== id),
       selectedScenarioId: prev.selectedScenarioId === id ? "default" : prev.selectedScenarioId,
     }));
-  };
+  }, [updateData]);
 
-  const selectScenario = (id: string) => {
-    setData(prev => ({
+  const selectScenario = useCallback((id: string) => {
+    updateData(prev => ({
       ...prev,
       selectedScenarioId: id,
     }));
-  };
+  }, [updateData]);
 
-  const addCheckingAccount = (account: Omit<CheckingAccount, "id">) => {
+  const addCheckingAccount = useCallback((account: Omit<CheckingAccount, "id">) => {
     const newAccount: CheckingAccount = { ...account, id: crypto.randomUUID() };
-    setData(prev => ({ ...prev, checkingAccounts: [...prev.checkingAccounts, newAccount] }));
-  };
+    updateData(prev => ({ ...prev, checkingAccounts: [...prev.checkingAccounts, newAccount] }));
+  }, [updateData]);
 
-  const updateCheckingAccount = (id: string, updates: Partial<CheckingAccount>) => {
-    setData(prev => ({
+  const updateCheckingAccount = useCallback((id: string, updates: Partial<CheckingAccount>) => {
+    updateData(prev => ({
       ...prev,
       checkingAccounts: prev.checkingAccounts.map(acc => acc.id === id ? { ...acc, ...updates } : acc),
     }));
-  };
+  }, [updateData]);
 
-  const deleteCheckingAccount = (id: string) => {
-    setData(prev => ({ ...prev, checkingAccounts: prev.checkingAccounts.filter(acc => acc.id !== id) }));
-  };
+  const deleteCheckingAccount = useCallback((id: string) => {
+    updateData(prev => ({ ...prev, checkingAccounts: prev.checkingAccounts.filter(acc => acc.id !== id) }));
+  }, [updateData]);
 
-  const addSavingsAccount = (account: Omit<SavingsAccount, "id">) => {
+  const addSavingsAccount = useCallback((account: Omit<SavingsAccount, "id">) => {
     const newAccount: SavingsAccount = { ...account, id: crypto.randomUUID() };
-    setData(prev => ({ ...prev, savingsAccounts: [...prev.savingsAccounts, newAccount] }));
-  };
+    updateData(prev => ({ ...prev, savingsAccounts: [...prev.savingsAccounts, newAccount] }));
+  }, [updateData]);
 
-  const updateSavingsAccount = (id: string, updates: Partial<SavingsAccount>) => {
-    setData(prev => ({
+  const updateSavingsAccount = useCallback((id: string, updates: Partial<SavingsAccount>) => {
+    updateData(prev => ({
       ...prev,
       savingsAccounts: prev.savingsAccounts.map(acc => acc.id === id ? { ...acc, ...updates } : acc),
     }));
-  };
+  }, [updateData]);
 
-  const deleteSavingsAccount = (id: string) => {
-    setData(prev => ({ ...prev, savingsAccounts: prev.savingsAccounts.filter(acc => acc.id !== id) }));
-  };
+  const deleteSavingsAccount = useCallback((id: string) => {
+    updateData(prev => ({ ...prev, savingsAccounts: prev.savingsAccounts.filter(acc => acc.id !== id) }));
+  }, [updateData]);
 
-  const addPhysicalAsset = (asset: Omit<PhysicalAsset, "id">) => {
+  const addPhysicalAsset = useCallback((asset: Omit<PhysicalAsset, "id">) => {
     const newAsset: PhysicalAsset = { ...asset, id: crypto.randomUUID() };
-    setData(prev => ({ ...prev, physicalAssets: [...prev.physicalAssets, newAsset] }));
-  };
+    updateData(prev => ({ ...prev, physicalAssets: [...prev.physicalAssets, newAsset] }));
+  }, [updateData]);
 
-  const updatePhysicalAsset = (id: string, updates: Partial<PhysicalAsset>) => {
-    setData(prev => ({
+  const updatePhysicalAsset = useCallback((id: string, updates: Partial<PhysicalAsset>) => {
+    updateData(prev => ({
       ...prev,
       physicalAssets: prev.physicalAssets.map(asset => asset.id === id ? { ...asset, ...updates } : asset),
     }));
-  };
+  }, [updateData]);
 
-  const deletePhysicalAsset = (id: string) => {
-    setData(prev => ({ ...prev, physicalAssets: prev.physicalAssets.filter(asset => asset.id !== id) }));
-  };
+  const deletePhysicalAsset = useCallback((id: string) => {
+    updateData(prev => ({ ...prev, physicalAssets: prev.physicalAssets.filter(asset => asset.id !== id) }));
+  }, [updateData]);
 
-  const addExpectedIncome = (income: Omit<ExpectedIncome, "id">) => {
+  const addExpectedIncome = useCallback((income: Omit<ExpectedIncome, "id">) => {
     const newIncome: ExpectedIncome = { ...income, id: crypto.randomUUID() };
-    setData(prev => ({ ...prev, expectedIncome: [...prev.expectedIncome, newIncome] }));
-  };
+    updateData(prev => ({ ...prev, expectedIncome: [...prev.expectedIncome, newIncome] }));
+  }, [updateData]);
 
-  const updateExpectedIncome = (id: string, updates: Partial<ExpectedIncome>) => {
-    setData(prev => ({
+  const updateExpectedIncome = useCallback((id: string, updates: Partial<ExpectedIncome>) => {
+    updateData(prev => ({
       ...prev,
       expectedIncome: prev.expectedIncome.map(income => income.id === id ? { ...income, ...updates } : income),
     }));
-  };
+  }, [updateData]);
 
-  const deleteExpectedIncome = (id: string) => {
-    setData(prev => ({ ...prev, expectedIncome: prev.expectedIncome.filter(income => income.id !== id) }));
-  };
+  const deleteExpectedIncome = useCallback((id: string) => {
+    updateData(prev => ({ ...prev, expectedIncome: prev.expectedIncome.filter(income => income.id !== id) }));
+  }, [updateData]);
 
-  const addOtherDebt = (debt: Omit<OtherDebt, "id">) => {
+  const addOtherDebt = useCallback((debt: Omit<OtherDebt, "id">) => {
     const newDebt: OtherDebt = { ...debt, id: crypto.randomUUID() };
-    setData(prev => ({ ...prev, otherDebts: [...prev.otherDebts, newDebt] }));
-  };
+    updateData(prev => ({ ...prev, otherDebts: [...prev.otherDebts, newDebt] }));
+  }, [updateData]);
 
-  const updateOtherDebt = (id: string, updates: Partial<OtherDebt>) => {
-    setData(prev => ({
+  const updateOtherDebt = useCallback((id: string, updates: Partial<OtherDebt>) => {
+    updateData(prev => ({
       ...prev,
       otherDebts: prev.otherDebts.map(debt => debt.id === id ? { ...debt, ...updates } : debt),
     }));
-  };
+  }, [updateData]);
 
-  const deleteOtherDebt = (id: string) => {
-    setData(prev => ({ ...prev, otherDebts: prev.otherDebts.filter(debt => debt.id !== id) }));
-  };
+  const deleteOtherDebt = useCallback((id: string) => {
+    updateData(prev => ({ ...prev, otherDebts: prev.otherDebts.filter(debt => debt.id !== id) }));
+  }, [updateData]);
 
   return (
     <FinanceContext.Provider
       value={{
         data,
+        loading,
         addCreditCard,
         updateCreditCard,
         deleteCreditCard,
