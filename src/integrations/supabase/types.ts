@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      auth_sessions: {
+        Row: {
+          auth_level: string
+          created_at: string
+          failed_attempts: number
+          id: string
+          lockout_until: string | null
+          partial_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth_level?: string
+          created_at?: string
+          failed_attempts?: number
+          id?: string
+          lockout_until?: string | null
+          partial_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth_level?: string
+          created_at?: string
+          failed_attempts?: number
+          id?: string
+          lockout_until?: string | null
+          partial_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       client_day_data: {
         Row: {
           created_at: string
