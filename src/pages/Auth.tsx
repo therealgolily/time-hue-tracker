@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useTwoStepAuth } from '@/hooks/useTwoStepAuth';
 import { Loader2 } from 'lucide-react';
 import { z } from 'zod';
 
@@ -18,6 +19,18 @@ const Auth = () => {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { authLevel, loading: authLoading, setPartialAuth } = useTwoStepAuth();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (!authLoading) {
+      if (authLevel === 'full') {
+        navigate('/');
+      } else if (authLevel === 'partial') {
+        navigate('/pin');
+      }
+    }
+  }, [authLevel, authLoading, navigate]);
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -49,17 +62,37 @@ const Auth = () => {
     });
 
     if (error) {
+      // Generic error message - don't reveal which step failed
       toast({
-        title: 'Login failed',
-        description: error.message,
+        title: 'Invalid credentials',
         variant: 'destructive',
       });
+      setLoading(false);
+      return;
+    }
+
+    // First password verified - set partial auth and redirect to PIN screen
+    const success = await setPartialAuth();
+    
+    if (success) {
+      navigate('/pin');
     } else {
-      navigate('/');
+      toast({
+        title: 'Invalid credentials',
+        variant: 'destructive',
+      });
     }
 
     setLoading(false);
   };
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-8">

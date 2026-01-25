@@ -5,12 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
+import PinScreen from "./pages/PinScreen";
 import EnergyTracker from "./pages/EnergyTracker";
 import ClientTracker from "./pages/ClientTracker";
 import Refresh from "./pages/Refresh";
 import DebtCalculator from "./pages/DebtCalculator";
 import NotFound from "./pages/NotFound";
 import { FinanceApp, FinanceAuth } from "@/apps/finance";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -21,14 +23,15 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/energy-tracker" element={<EnergyTracker />} />
-          <Route path="/client-tracker" element={<ClientTracker />} />
-          <Route path="/refresh" element={<Refresh />} />
-          <Route path="/debt-calculator" element={<DebtCalculator />} />
+          <Route path="/pin" element={<PinScreen />} />
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/energy-tracker" element={<ProtectedRoute><EnergyTracker /></ProtectedRoute>} />
+          <Route path="/client-tracker" element={<ProtectedRoute><ClientTracker /></ProtectedRoute>} />
+          <Route path="/refresh" element={<ProtectedRoute><Refresh /></ProtectedRoute>} />
+          <Route path="/debt-calculator" element={<ProtectedRoute><DebtCalculator /></ProtectedRoute>} />
           <Route path="/finance/auth" element={<FinanceAuth />} />
-          <Route path="/finance/*" element={<FinanceApp />} />
+          <Route path="/finance/*" element={<ProtectedRoute><FinanceApp /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
