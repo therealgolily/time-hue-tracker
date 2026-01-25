@@ -1,45 +1,112 @@
 import { useState, useEffect, useCallback } from 'react';
 import { CalendarEvent, EVENT_CATEGORIES } from '@/types/calendar';
-
-const STORAGE_KEY = 'calendar-events';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useCalendarEvents = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Load events from localStorage on mount
+  // Load events from database on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setEvents(JSON.parse(stored));
-      } catch {
-        console.error('Failed to parse calendar events');
-      }
+    if (!user) {
+      setEvents([]);
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  // Save events to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-  }, [events]);
+    const fetchEvents = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .order('start_date', { ascending: true });
 
-  const addEvent = useCallback((event: Omit<CalendarEvent, 'id' | 'createdAt'>) => {
-    const newEvent: CalendarEvent = {
-      ...event,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+      if (error) {
+        console.error('Failed to fetch calendar events:', error);
+      } else {
+        setEvents(data.map(event => ({
+          id: event.id,
+          title: event.title,
+          startDate: event.start_date,
+          endDate: event.end_date,
+          category: event.category as CalendarEvent['category'],
+          createdAt: event.created_at,
+        })));
+      }
+      setLoading(false);
     };
+
+    fetchEvents();
+  }, [user]);
+
+  const addEvent = useCallback(async (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => {
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('calendar_events')
+      .insert({
+        user_id: user.id,
+        title: event.title,
+        start_date: event.startDate,
+        end_date: event.endDate,
+        category: event.category,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to add calendar event:', error);
+      return null;
+    }
+
+    const newEvent: CalendarEvent = {
+      id: data.id,
+      title: data.title,
+      startDate: data.start_date,
+      endDate: data.end_date,
+      category: data.category as CalendarEvent['category'],
+      createdAt: data.created_at,
+    };
+
     setEvents(prev => [...prev, newEvent]);
     return newEvent;
-  }, []);
+  }, [user]);
 
-  const updateEvent = useCallback((id: string, updates: Partial<Omit<CalendarEvent, 'id' | 'createdAt'>>) => {
+  const updateEvent = useCallback(async (id: string, updates: Partial<Omit<CalendarEvent, 'id' | 'createdAt'>>) => {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.startDate !== undefined) dbUpdates.start_date = updates.startDate;
+    if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate;
+    if (updates.category !== undefined) dbUpdates.category = updates.category;
+
+    const { error } = await supabase
+      .from('calendar_events')
+      .update(dbUpdates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to update calendar event:', error);
+      return;
+    }
+
     setEvents(prev => prev.map(event => 
       event.id === id ? { ...event, ...updates } : event
     ));
   }, []);
 
-  const deleteEvent = useCallback((id: string) => {
+  const deleteEvent = useCallback(async (id: string) => {
+    const { error } = await supabase
+      .from('calendar_events')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete calendar event:', error);
+      return;
+    }
+
     setEvents(prev => prev.filter(event => event.id !== id));
   }, []);
 
@@ -72,6 +139,7 @@ export const useCalendarEvents = () => {
 
   return {
     events,
+    loading,
     addEvent,
     updateEvent,
     deleteEvent,

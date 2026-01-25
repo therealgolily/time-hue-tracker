@@ -47,6 +47,36 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_events: {
+        Row: {
+          category: string
+          created_at: string
+          end_date: string
+          id: string
+          start_date: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          end_date: string
+          id?: string
+          start_date: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          start_date?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       client_day_data: {
         Row: {
           created_at: string
@@ -145,6 +175,30 @@ export type Database = {
           payment_method?: string
           status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      countdowns: {
+        Row: {
+          created_at: string
+          id: string
+          target_date: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          target_date: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          target_date?: string
+          title?: string
           user_id?: string
         }
         Relationships: []
