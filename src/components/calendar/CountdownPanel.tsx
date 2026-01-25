@@ -22,7 +22,7 @@ export const CountdownPanel = ({ onOpenChange }: CountdownPanelProps) => {
     addCountdown,
     updateCountdown,
     deleteCountdown,
-    getDaysRemaining,
+    getDurationRemaining,
     getCountdownStatus,
   } = useCountdowns();
 
@@ -53,8 +53,70 @@ export const CountdownPanel = ({ onOpenChange }: CountdownPanelProps) => {
   const passedCountdowns = countdowns.filter(c => getCountdownStatus(c.targetDate) === 'passed');
 
   const renderCountdownItem = (countdown: Countdown) => {
-    const days = getDaysRemaining(countdown.targetDate);
+    const duration = getDurationRemaining(countdown.targetDate);
     const status = getCountdownStatus(countdown.targetDate);
+
+    const renderDuration = () => {
+      if (duration.totalDays <= 0) return null;
+      
+      // If over a year, show years, months, days
+      if (duration.years > 0) {
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <div className="flex items-baseline gap-2 justify-center flex-wrap">
+              <div>
+                <span className="text-2xl font-black">{duration.years}</span>
+                <span className="text-[10px] font-mono uppercase tracking-widest ml-1">
+                  {duration.years === 1 ? 'yr' : 'yrs'}
+                </span>
+              </div>
+              <div>
+                <span className="text-2xl font-black">{duration.months}</span>
+                <span className="text-[10px] font-mono uppercase tracking-widest ml-1">
+                  {duration.months === 1 ? 'mo' : 'mos'}
+                </span>
+              </div>
+              <div>
+                <span className="text-2xl font-black">{duration.days}</span>
+                <span className="text-[10px] font-mono uppercase tracking-widest ml-1">
+                  {duration.days === 1 ? 'day' : 'days'}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+      
+      // If over a month but less than a year, show months and days
+      if (duration.months > 0) {
+        return (
+          <div className="flex items-baseline gap-2 justify-center">
+            <div>
+              <span className="text-2xl font-black">{duration.months}</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest ml-1">
+                {duration.months === 1 ? 'mo' : 'mos'}
+              </span>
+            </div>
+            <div>
+              <span className="text-2xl font-black">{duration.days}</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest ml-1">
+                {duration.days === 1 ? 'day' : 'days'}
+              </span>
+            </div>
+          </div>
+        );
+      }
+      
+      // Less than a month, just show days
+      return (
+        <div>
+          <span className="text-3xl font-black">{duration.totalDays}</span>
+          <span className="text-xs font-mono uppercase tracking-widest ml-2">
+            {duration.totalDays === 1 ? 'day' : 'days'}
+          </span>
+        </div>
+      );
+    };
 
     return (
       <div
@@ -100,12 +162,7 @@ export const CountdownPanel = ({ onOpenChange }: CountdownPanelProps) => {
               Passed
             </div>
           ) : (
-            <div>
-              <span className="text-3xl font-black">{days}</span>
-              <span className="text-xs font-mono uppercase tracking-widest ml-2">
-                {days === 1 ? 'day' : 'days'}
-              </span>
-            </div>
+            renderDuration()
           )}
         </div>
       </div>
