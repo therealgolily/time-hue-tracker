@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { YearCalendar } from '@/components/calendar/YearCalendar';
+import { CountdownPanel } from '@/components/calendar/CountdownPanel';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
 
@@ -26,9 +27,12 @@ const Calendar = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col pr-0 md:pr-72">
         <YearCalendar />
       </main>
+
+      {/* Countdown Panel */}
+      <CountdownPanel />
     </div>
   );
 };
