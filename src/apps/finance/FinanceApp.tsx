@@ -10,7 +10,7 @@ import {
   FlaskConical,
   Building2,
   LogOut,
-  Home
+  ArrowLeft
 } from 'lucide-react';
 import { FinanceDashboard } from './components/FinanceDashboard';
 import { ClientsManager } from './components/ClientsManager';
@@ -92,17 +92,20 @@ const FinanceApp = ({
       {/* Header */}
       <header className="border-b-2 border-foreground">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <h1 className="text-sm font-bold uppercase tracking-widest">Finance Dashboard</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              className="p-2 -ml-2 hover:bg-primary hover:text-primary-foreground transition-colors"
+              title="Back to Home"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="text-sm font-bold uppercase tracking-widest">Business Finance</h1>
+          </div>
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-muted-foreground hidden sm:block">
               {user.email}
             </span>
-            <Link
-              to="/"
-              className="p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-            >
-              <Home className="w-4 h-4" />
-            </Link>
             <button
               onClick={signOut}
               className="p-2 hover:bg-primary hover:text-primary-foreground transition-colors"
