@@ -31,6 +31,7 @@ import { useScenarios, Scenario, ScenarioConfig } from '../hooks/useScenarios';
 import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
+import { useContractors } from '../hooks/useContractors';
 import { ScenarioEditor, getDefaultConfig } from './scenario/ScenarioEditor';
 import { ScenarioComparison } from './scenario/ScenarioComparison';
 import { calculateScenario, calculateBaseline, ScenarioResults } from './scenario/ScenarioCalculator';
@@ -40,6 +41,7 @@ export const ScenarioPlayground = () => {
   const { clients } = useClients();
   const { expenses } = useExpenses();
   const { totalSalary } = useEmployees();
+  const { contractors } = useContractors();
 
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [draftConfig, setDraftConfig] = useState<ScenarioConfig>(getDefaultConfig());
@@ -51,8 +53,8 @@ export const ScenarioPlayground = () => {
   const [activeTab, setActiveTab] = useState<'editor' | 'compare'>('editor');
 
   // Calculate baseline and scenario results
-  const baseline = calculateBaseline(clients, expenses, totalSalary);
-  const scenarioResults = calculateScenario(draftConfig, clients, expenses, totalSalary);
+  const baseline = calculateBaseline(clients, expenses, contractors, totalSalary);
+  const scenarioResults = calculateScenario(draftConfig, clients, expenses, contractors, totalSalary);
 
   // Load a saved scenario
   const loadScenario = (scenario: Scenario) => {
@@ -130,7 +132,7 @@ export const ScenarioPlayground = () => {
   // Get comparison scenario results
   const compareScenario = scenarios?.find(s => s.id === compareScenarioId);
   const compareResults = compareScenario 
-    ? calculateScenario(compareScenario.config, clients, expenses, totalSalary)
+    ? calculateScenario(compareScenario.config, clients, expenses, contractors, totalSalary)
     : null;
 
   if (isLoading) {
@@ -423,7 +425,7 @@ export const ScenarioPlayground = () => {
           </div>
           <div className="divide-y divide-foreground/30">
             {scenarios.map(scenario => {
-              const results = calculateScenario(scenario.config, clients, expenses, totalSalary);
+              const results = calculateScenario(scenario.config, clients, expenses, contractors, totalSalary);
               const delta = results.netProfit - baseline.netProfit;
               
               return (
