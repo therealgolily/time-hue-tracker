@@ -34,56 +34,55 @@ export const MetricCard = ({
   };
 
   return (
-    <div className="metric-card animate-fade-in">
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="metric-label">{title}</p>
+    <div className="border-2 border-foreground bg-background p-4 transition-colors hover:bg-muted/30">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
+            {title}
+          </p>
           <p
             className={cn(
-              'metric-value mt-2',
-              variant === 'revenue' && 'revenue-text',
-              variant === 'expense' && 'expense-text'
+              'text-2xl font-bold mt-2 tabular-nums',
+              variant === 'revenue' && 'text-foreground',
+              variant === 'expense' && 'text-primary',
+              variant === 'neutral' && 'text-muted-foreground'
             )}
           >
             {formatValue(value)}
           </p>
           {subtitle && (
-            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+            <p className="text-xs font-mono text-muted-foreground mt-1 uppercase">
+              {subtitle}
+            </p>
           )}
           {trend && (
             <div className="flex items-center gap-1 mt-2">
               <span
                 className={cn(
-                  'text-sm font-medium',
-                  trend.value >= 0 ? 'revenue-text' : 'expense-text'
+                  'text-sm font-bold tabular-nums',
+                  trend.value >= 0 ? 'text-foreground' : 'text-primary'
                 )}
               >
                 {trend.value >= 0 ? '+' : ''}
                 {trend.value}%
               </span>
-              <span className="text-xs text-muted-foreground">{trend.label}</span>
+              <span className="text-xs font-mono text-muted-foreground uppercase">
+                {trend.label}
+              </span>
             </div>
           )}
         </div>
         {Icon && (
           <div
             className={cn(
-              'w-12 h-12 rounded-xl flex items-center justify-center',
-              variant === 'revenue' && 'bg-success/10',
-              variant === 'expense' && 'bg-destructive/10',
-              variant === 'default' && 'bg-primary/10',
+              'w-10 h-10 border-2 border-foreground flex items-center justify-center flex-shrink-0',
+              variant === 'revenue' && 'bg-foreground text-background',
+              variant === 'expense' && 'bg-primary text-primary-foreground',
+              variant === 'default' && 'bg-background',
               variant === 'neutral' && 'bg-muted'
             )}
           >
-            <Icon
-              className={cn(
-                'w-6 h-6',
-                variant === 'revenue' && 'text-success',
-                variant === 'expense' && 'text-destructive',
-                variant === 'default' && 'text-primary',
-                variant === 'neutral' && 'text-muted-foreground'
-              )}
-            />
+            <Icon className="w-5 h-5" />
           </div>
         )}
       </div>

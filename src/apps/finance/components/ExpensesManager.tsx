@@ -3,7 +3,7 @@ import { Receipt, Edit, Trash2, Plane, Monitor, MessageSquare, Users, Building, 
 import { Button } from '@/components/ui/button';
 import { ExpenseForm } from './forms/ExpenseForm';
 import { ExpenseCSVImport } from './forms/ExpenseCSVImport';
-import { useExpenses, Expense, ExpenseInsert } from '../hooks/useExpenses';
+import { useExpenses, ExpenseInsert } from '../hooks/useExpenses';
 import { useClients } from '../hooks/useClients';
 import {
   AlertDialog,
@@ -27,12 +27,12 @@ const categoryIcons: Record<string, any> = {
 };
 
 const categoryLabels: Record<string, string> = {
-  travel: 'Travel',
-  software: 'Software',
-  messaging: 'Messaging',
-  contractor: 'Contractors',
-  salary: 'Salary',
-  misc: 'Miscellaneous',
+  travel: 'TRAVEL',
+  software: 'SOFTWARE',
+  messaging: 'MESSAGING',
+  contractor: 'CONTRACTOR',
+  salary: 'SALARY',
+  misc: 'MISC',
 };
 
 export const ExpensesManager = () => {
@@ -48,19 +48,22 @@ export const ExpensesManager = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-muted-foreground">Loading expenses...</div>
+      <div className="flex items-center justify-center h-64 border-2 border-foreground">
+        <div className="text-muted-foreground font-mono text-sm uppercase tracking-widest">
+          Loading...
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b-2 border-foreground pb-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Expenses</h1>
-          <p className="text-muted-foreground mt-1">
-            Track all business expenses and COGS
+          <h2 className="text-2xl font-bold uppercase tracking-tight">Expenses</h2>
+          <p className="text-sm font-mono text-muted-foreground uppercase mt-1">
+            Track business expenses & COGS
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -69,115 +72,132 @@ export const ExpensesManager = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="metric-card">
-          <p className="metric-label">Total Expenses</p>
-          <p className="metric-value mt-2 expense-text">${totalExpenses.toLocaleString()}</p>
+      {/* Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-0">
+        <div className="border-2 border-foreground border-r-0 sm:border-r-2 p-4">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Total Expenses</p>
+          <p className="text-2xl font-bold mt-2 tabular-nums text-primary">
+            ${totalExpenses.toLocaleString()}
+          </p>
         </div>
-        <div className="metric-card">
-          <p className="metric-label">Recurring Monthly</p>
-          <p className="metric-value mt-2 expense-text">${recurringExpenses.toLocaleString()}</p>
+        <div className="border-2 border-foreground border-t-0 sm:border-t-2 border-r-0 sm:border-r-2 p-4">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Recurring</p>
+          <p className="text-2xl font-bold mt-2 tabular-nums text-primary">
+            ${recurringExpenses.toLocaleString()}
+          </p>
         </div>
-        <div className="metric-card">
-          <p className="metric-label">One-time Expenses</p>
-          <p className="metric-value mt-2">${(totalExpenses - recurringExpenses).toLocaleString()}</p>
+        <div className="border-2 border-foreground border-t-0 sm:border-t-2 p-4">
+          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">One-time</p>
+          <p className="text-2xl font-bold mt-2 tabular-nums">
+            ${(totalExpenses - recurringExpenses).toLocaleString()}
+          </p>
         </div>
       </div>
 
+      {/* Table */}
       {expenses.length === 0 ? (
-        <div className="bg-card rounded-xl border border-border/50 p-12 text-center">
-          <Receipt className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">No expenses yet</h3>
-          <p className="text-muted-foreground mb-4">Start logging your business expenses.</p>
+        <div className="border-2 border-foreground p-12 text-center">
+          <Receipt className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h3 className="text-lg font-bold uppercase mb-2">No Expenses</h3>
+          <p className="text-sm font-mono text-muted-foreground uppercase mb-4">
+            Start logging business expenses
+          </p>
           <ExpenseForm clients={clients} onSubmit={addExpense} />
         </div>
       ) : (
-        <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
-          <table className="data-table">
-            <thead>
-              <tr className="bg-muted/30">
-                <th>Description</th>
-                <th>Category</th>
-                <th>Client</th>
-                <th>Date</th>
-                <th>Amount</th>
-                <th className="text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {expenses.map((expense) => {
-                const Icon = categoryIcons[expense.category] || MoreHorizontal;
-                const client = expense.client_id ? clients.find(c => c.id === expense.client_id) : null;
-                return (
-                  <tr key={expense.id}>
-                    <td>
-                      <div>
-                        <span className="font-medium text-foreground">{expense.description}</span>
-                        {expense.recurring && (
-                          <span className="ml-2 text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full">
-                            Monthly
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="inline-flex items-center gap-2">
-                        <Icon className="w-4 h-4 text-muted-foreground" />
-                        {categoryLabels[expense.category]}
-                      </span>
-                    </td>
-                    <td className="text-muted-foreground">
-                      {client ? client.name : 'Company-wide'}
-                    </td>
-                    <td className="text-muted-foreground">
-                      {format(new Date(expense.date), 'MMM d, yyyy')}
-                    </td>
-                    <td className="expense-text font-semibold">
-                      ${Number(expense.amount).toLocaleString()}
-                    </td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <ExpenseForm
-                          clients={clients}
-                          initialData={expense}
-                          onSubmit={(data) => updateExpense(expense.id, data)}
-                          trigger={
-                            <Button variant="ghost" size="icon">
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          }
-                        />
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete expense?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This will permanently delete this expense record.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteExpense(expense.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="border-2 border-foreground overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-foreground bg-muted/30">
+                  <th className="text-left p-3 text-xs font-mono uppercase tracking-widest">Description</th>
+                  <th className="text-center p-3 text-xs font-mono uppercase tracking-widest">Category</th>
+                  <th className="text-center p-3 text-xs font-mono uppercase tracking-widest">Client</th>
+                  <th className="text-center p-3 text-xs font-mono uppercase tracking-widest">Date</th>
+                  <th className="text-right p-3 text-xs font-mono uppercase tracking-widest">Amount</th>
+                  <th className="text-right p-3 text-xs font-mono uppercase tracking-widest">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {expenses.map((expense, index) => {
+                  const Icon = categoryIcons[expense.category] || MoreHorizontal;
+                  const client = expense.client_id ? clients.find(c => c.id === expense.client_id) : null;
+                  return (
+                    <tr 
+                      key={expense.id}
+                      className={index < expenses.length - 1 ? "border-b border-foreground/30" : ""}
+                    >
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold">{expense.description}</span>
+                          {expense.recurring && (
+                            <span className="text-xs font-mono uppercase bg-foreground text-background px-2 py-0.5">
+                              Monthly
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="p-3 text-center">
+                        <span className="inline-flex items-center gap-2 text-xs font-mono uppercase">
+                          <Icon className="w-4 h-4" />
+                          {categoryLabels[expense.category]}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center text-sm font-mono text-muted-foreground">
+                        {client ? client.name : '—'}
+                      </td>
+                      <td className="p-3 text-center text-sm font-mono text-muted-foreground">
+                        {format(new Date(expense.date), 'MMM d')}
+                      </td>
+                      <td className="p-3 text-right font-mono font-bold tabular-nums text-primary">
+                        ${Number(expense.amount).toLocaleString()}
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <ExpenseForm
+                            clients={clients}
+                            initialData={expense}
+                            onSubmit={(data) => updateExpense(expense.id, data)}
+                            trigger={
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-muted">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            }
+                          />
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-primary hover:text-primary-foreground">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="border-2 border-foreground rounded-none">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="uppercase tracking-wide">Delete Expense?</AlertDialogTitle>
+                                <AlertDialogDescription className="font-mono text-sm">
+                                  This will permanently delete this expense record.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="border-2 border-foreground rounded-none">
+                                  Cancel
+                                </AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteExpense(expense.id)}
+                                  className="bg-primary text-primary-foreground rounded-none"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
