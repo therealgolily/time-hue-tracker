@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format, parseISO } from 'date-fns';
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, EventCategory, EVENT_CATEGORIES } from '@/types/calendar';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,7 @@ interface EventModalProps {
   onOpenChange: (open: boolean) => void;
   selectedDate: string;
   existingEvent?: CalendarEvent;
-  onSave: (event: { title: string; startDate: string; endDate: string }) => void;
+  onSave: (event: { title: string; startDate: string; endDate: string; category: EventCategory }) => void;
   onDelete?: (id: string) => void;
 }
 
@@ -36,16 +36,19 @@ export const EventModal = ({
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [endDate, setEndDate] = useState<Date | undefined>();
+  const [category, setCategory] = useState<EventCategory>('work');
 
   useEffect(() => {
     if (existingEvent) {
       setTitle(existingEvent.title);
       setStartDate(parseISO(existingEvent.startDate));
       setEndDate(parseISO(existingEvent.endDate));
+      setCategory(existingEvent.category);
     } else {
       setTitle('');
       setStartDate(parseISO(selectedDate));
       setEndDate(parseISO(selectedDate));
+      setCategory('work');
     }
   }, [existingEvent, selectedDate, open]);
 
@@ -56,6 +59,7 @@ export const EventModal = ({
       title: title.trim(),
       startDate: format(startDate, 'yyyy-MM-dd'),
       endDate: format(endDate, 'yyyy-MM-dd'),
+      category,
     });
     onOpenChange(false);
   };
@@ -89,6 +93,32 @@ export const EventModal = ({
               className="border-2 border-foreground"
               autoFocus
             />
+          </div>
+
+          {/* Category Selection */}
+          <div className="space-y-2">
+            <Label className="text-xs font-bold uppercase tracking-widest">Category</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {EVENT_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setCategory(cat.value)}
+                  className={cn(
+                    'flex items-center gap-2 p-2 border-2 transition-all text-left',
+                    category === cat.value
+                      ? 'border-foreground'
+                      : 'border-muted hover:border-foreground/50'
+                  )}
+                >
+                  <span
+                    className="w-4 h-4 border border-foreground/20"
+                    style={{ backgroundColor: cat.color }}
+                  />
+                  <span className="text-sm font-mono uppercase tracking-wider">{cat.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

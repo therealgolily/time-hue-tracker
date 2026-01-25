@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { startOfYear, addMonths, format, parseISO } from 'date-fns';
+import { startOfYear, addMonths, format } from 'date-fns';
 import { MiniMonth } from './MiniMonth';
 import { EventModal } from './EventModal';
 import { useCalendarEvents } from '@/hooks/useCalendarEvents';
-import { CalendarEvent } from '@/types/calendar';
+import { CalendarEvent, EventCategory, EVENT_CATEGORIES } from '@/types/calendar';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -13,7 +13,7 @@ export const YearCalendar = () => {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | undefined>();
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { events, addEvent, updateEvent, deleteEvent, getEventsForDate, hasEventOnDate } =
+  const { events, addEvent, updateEvent, deleteEvent, getEventsForDate, hasEventOnDate, getCategoryColorForDate } =
     useCalendarEvents();
 
   const months = useMemo(() => {
@@ -35,7 +35,7 @@ export const YearCalendar = () => {
     setModalOpen(true);
   };
 
-  const handleSaveEvent = (eventData: { title: string; startDate: string; endDate: string }) => {
+  const handleSaveEvent = (eventData: { title: string; startDate: string; endDate: string; category: EventCategory }) => {
     if (selectedEvent) {
       updateEvent(selectedEvent.id, eventData);
     } else {
@@ -60,7 +60,23 @@ export const YearCalendar = () => {
           <ChevronLeft className="h-5 w-5" />
         </Button>
         
-        <h2 className="text-2xl md:text-4xl font-bold tracking-tight">{currentYear}</h2>
+        <div className="text-center">
+          <h2 className="text-2xl md:text-4xl font-bold tracking-tight">{currentYear}</h2>
+          {/* Category Legend */}
+          <div className="flex items-center justify-center gap-4 mt-2">
+            {EVENT_CATEGORIES.map((cat) => (
+              <div key={cat.value} className="flex items-center gap-1">
+                <span
+                  className="w-3 h-3 border border-foreground/20"
+                  style={{ backgroundColor: cat.color }}
+                />
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {cat.label}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
         
         <Button
           variant="ghost"
@@ -82,6 +98,7 @@ export const YearCalendar = () => {
               events={events}
               onDateClick={handleDateClick}
               hasEventOnDate={hasEventOnDate}
+              getCategoryColorForDate={getCategoryColorForDate}
             />
           ))}
         </div>

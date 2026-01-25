@@ -17,11 +17,12 @@ interface MiniMonthProps {
   events: CalendarEvent[];
   onDateClick: (date: string) => void;
   hasEventOnDate: (date: string) => boolean;
+  getCategoryColorForDate: (date: string) => { bg: string; text: string } | null;
 }
 
 const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-export const MiniMonth = ({ month, onDateClick, hasEventOnDate }: MiniMonthProps) => {
+export const MiniMonth = ({ month, onDateClick, hasEventOnDate, getCategoryColorForDate }: MiniMonthProps) => {
   const days = useMemo(() => {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
@@ -57,6 +58,7 @@ export const MiniMonth = ({ month, onDateClick, hasEventOnDate }: MiniMonthProps
         {days.map((day) => {
           const dateString = format(day, 'yyyy-MM-dd');
           const isCurrentMonth = isSameMonth(day, month);
+          const categoryColor = getCategoryColorForDate(dateString);
           const hasEvent = hasEventOnDate(dateString);
           const today = isToday(day);
 
@@ -69,10 +71,14 @@ export const MiniMonth = ({ month, onDateClick, hasEventOnDate }: MiniMonthProps
                 'aspect-square flex items-center justify-center text-xs font-mono transition-colors relative',
                 !isCurrentMonth && 'text-muted-foreground/30 cursor-default',
                 isCurrentMonth && !hasEvent && 'hover:bg-muted',
-                hasEvent && 'bg-primary text-primary-foreground hover:bg-primary/90',
                 today && !hasEvent && 'border-2 border-primary',
                 today && hasEvent && 'ring-2 ring-foreground ring-inset'
               )}
+              style={
+                hasEvent && categoryColor
+                  ? { backgroundColor: categoryColor.bg, color: categoryColor.text }
+                  : undefined
+              }
             >
               {format(day, 'd')}
             </button>
