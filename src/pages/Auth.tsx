@@ -56,7 +56,7 @@ const Auth = () => {
     
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -71,16 +71,33 @@ const Auth = () => {
       return;
     }
 
-    // First password verified - set partial auth and redirect to PIN screen
-    const success = await setPartialAuth();
-    
-    if (success) {
+    // Reset auth session to partial on fresh login (clear any previous 'full' state)
+    if (data.user) {
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 5 * 60 * 1000); // 5 minutes
+      
+      const { error: sessionError } = await supabase
+        .from('auth_sessions')
+        .upsert({
+          user_id: data.user.id,
+          auth_level: 'partial',
+          partial_expires_at: expiresAt.toISOString(),
+          failed_attempts: 0,
+          lockout_until: null,
+          updated_at: now.toISOString()
+        }, { onConflict: 'user_id' });
+
+      if (sessionError) {
+        console.error('Error setting partial auth:', sessionError);
+        toast({
+          title: 'Invalid credentials',
+          variant: 'destructive',
+        });
+        setLoading(false);
+        return;
+      }
+
       navigate('/pin');
-    } else {
-      toast({
-        title: 'Invalid credentials',
-        variant: 'destructive',
-      });
     }
 
     setLoading(false);
