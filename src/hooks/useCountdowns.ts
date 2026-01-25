@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Countdown } from '@/types/calendar';
 import { differenceInDays, differenceInMonths, differenceInYears, parseISO, startOfDay, addYears, addMonths } from 'date-fns';
-
-const STORAGE_KEY = 'calendar-countdowns';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface CountdownDuration {
   years: number;
@@ -13,41 +13,100 @@ export interface CountdownDuration {
 
 export const useCountdowns = () => {
   const [countdowns, setCountdowns] = useState<Countdown[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
-  // Load countdowns from localStorage on mount
+  // Load countdowns from database on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setCountdowns(JSON.parse(stored));
-      } catch {
-        console.error('Failed to parse countdowns');
-      }
+    if (!user) {
+      setCountdowns([]);
+      setLoading(false);
+      return;
     }
-  }, []);
 
-  // Save countdowns to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(countdowns));
-  }, [countdowns]);
+    const fetchCountdowns = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('countdowns')
+        .select('*')
+        .order('target_date', { ascending: true });
 
-  const addCountdown = useCallback((countdown: Omit<Countdown, 'id' | 'createdAt'>) => {
-    const newCountdown: Countdown = {
-      ...countdown,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
+      if (error) {
+        console.error('Failed to fetch countdowns:', error);
+      } else {
+        setCountdowns(data.map(countdown => ({
+          id: countdown.id,
+          title: countdown.title,
+          targetDate: countdown.target_date,
+          createdAt: countdown.created_at,
+        })));
+      }
+      setLoading(false);
     };
+
+    fetchCountdowns();
+  }, [user]);
+
+  const addCountdown = useCallback(async (countdown: Omit<Countdown, 'id' | 'createdAt'>) => {
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('countdowns')
+      .insert({
+        user_id: user.id,
+        title: countdown.title,
+        target_date: countdown.targetDate,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to add countdown:', error);
+      return null;
+    }
+
+    const newCountdown: Countdown = {
+      id: data.id,
+      title: data.title,
+      targetDate: data.target_date,
+      createdAt: data.created_at,
+    };
+
     setCountdowns(prev => [...prev, newCountdown]);
     return newCountdown;
-  }, []);
+  }, [user]);
 
-  const updateCountdown = useCallback((id: string, updates: Partial<Omit<Countdown, 'id' | 'createdAt'>>) => {
+  const updateCountdown = useCallback(async (id: string, updates: Partial<Omit<Countdown, 'id' | 'createdAt'>>) => {
+    const dbUpdates: Record<string, unknown> = {};
+    if (updates.title !== undefined) dbUpdates.title = updates.title;
+    if (updates.targetDate !== undefined) dbUpdates.target_date = updates.targetDate;
+
+    const { error } = await supabase
+      .from('countdowns')
+      .update(dbUpdates)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to update countdown:', error);
+      return;
+    }
+
     setCountdowns(prev => prev.map(countdown => 
       countdown.id === id ? { ...countdown, ...updates } : countdown
     ));
   }, []);
 
-  const deleteCountdown = useCallback((id: string) => {
+  const deleteCountdown = useCallback(async (id: string) => {
+    const { error } = await supabase
+      .from('countdowns')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Failed to delete countdown:', error);
+      return;
+    }
+
     setCountdowns(prev => prev.filter(countdown => countdown.id !== id));
   }, []);
 
@@ -103,6 +162,7 @@ export const useCountdowns = () => {
 
   return {
     countdowns: sortedCountdowns,
+    loading,
     addCountdown,
     updateCountdown,
     deleteCountdown,
