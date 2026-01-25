@@ -9,8 +9,17 @@ export interface ScenarioConfig {
   removedClientIds: string[];
   scenarioExpenses: Array<{ id: string; description: string; amount: number; recurring: boolean; isVirtual?: boolean }>;
   removedExpenseIds: string[];
+  // Real contractors from DB (can be toggled off or amounts modified)
+  scenarioContractors: Array<{ id: string; name: string; monthlyPay: number }>;
+  removedContractorIds: string[];
+  // Virtual contractors (new hires in scenario)
   additionalContractors: Array<{ name: string; pay: number }>;
-  salaryAdjustment: number;
+  // Real employees from DB (can be toggled off or amounts modified)
+  scenarioEmployees: Array<{ id: string; name: string; salary: number }>;
+  removedEmployeeIds: string[];
+  // Virtual employees (new hires in scenario)
+  additionalEmployees: Array<{ name: string; salary: number }>;
+  salaryAdjustment: number; // Deprecated but kept for backwards compatibility
   taxDeductions: Record<string, { enabled: boolean; amount: number; label: string; description: string }>;
   bankAllocations: Array<{ name: string; percentage: number; color: string }>;
 }
