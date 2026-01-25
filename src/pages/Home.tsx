@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, LogOut, Building2, Calculator } from 'lucide-react';
+import { Zap, RefreshCw, LogOut, Building2, Calculator, TrendingUp } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
@@ -30,6 +30,11 @@ const apps = [
     name: 'Debt',
     route: '/debt-calculator',
     icon: Calculator,
+  },
+  {
+    name: 'Finance',
+    route: '/finance',
+    icon: TrendingUp,
   },
 ];
 
