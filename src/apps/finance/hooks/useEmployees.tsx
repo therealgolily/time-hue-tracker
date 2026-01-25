@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
-import { businessInfo } from '../data/businessData';
 
 export interface Employee {
   id: string;
@@ -24,20 +23,11 @@ const getInitialEmployees = (): Employee[] => {
     try {
       return JSON.parse(stored);
     } catch {
-      // Invalid JSON, reset to defaults
+      // Invalid JSON, return empty
     }
   }
 
-  const defaultEmployees: Employee[] = businessInfo.employees.map((emp, index) => ({
-    id: `emp-${index + 1}`,
-    name: emp.name,
-    salary: emp.salary,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  }));
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultEmployees));
-  return defaultEmployees;
+  return [];
 };
 
 const notifyChange = () => {
