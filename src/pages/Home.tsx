@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, LogOut, Building2, Calculator, TrendingUp, CalendarDays } from 'lucide-react';
+import { Zap, RefreshCw, LogOut, Building2, Calculator, TrendingUp, CalendarDays, Clock } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
@@ -40,6 +40,11 @@ const apps = [
     name: 'Calendar',
     route: '/calendar',
     icon: CalendarDays,
+  },
+  {
+    name: 'Timeline',
+    route: '/life-timeline',
+    icon: Clock,
   },
 ];
 
