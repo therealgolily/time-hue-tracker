@@ -10,42 +10,21 @@ import { CONSISTENCY_QUOTES } from '@/data/consistencyQuotes';
 
 const STORAGE_KEY = 'home-quote-index';
 
-const apps = [
-  {
-    name: 'Personal Time Tracker',
-    route: '/personal-time-tracker',
-    icon: User,
-  },
-  {
-    name: 'Work Time Tracker',
-    route: '/work-time-tracker',
-    icon: Briefcase,
-  },
-  {
-    name: 'Journal',
-    route: '/journal',
-    icon: RefreshCw,
-  },
-  {
-    name: 'Personal Finance',
-    route: '/personal-finance',
-    icon: Calculator,
-  },
-  {
-    name: 'Business Finance',
-    route: '/business-finance',
-    icon: TrendingUp,
-  },
-  {
-    name: 'Calendar',
-    route: '/calendar',
-    icon: CalendarDays,
-  },
-  {
-    name: 'Timeline',
-    route: '/timeline',
-    icon: Clock,
-  },
+// Organized into logical groups for better visual hierarchy
+const timeApps = [
+  { name: 'Personal', route: '/personal-time-tracker', icon: User },
+  { name: 'Work', route: '/work-time-tracker', icon: Briefcase },
+];
+
+const financeApps = [
+  { name: 'Personal', route: '/personal-finance', icon: Calculator },
+  { name: 'Business', route: '/business-finance', icon: TrendingUp },
+];
+
+const utilityApps = [
+  { name: 'Journal', route: '/journal', icon: RefreshCw },
+  { name: 'Calendar', route: '/calendar', icon: CalendarDays },
+  { name: 'Timeline', route: '/timeline', icon: Clock },
 ];
 
 const Home = () => {
@@ -80,7 +59,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header - Swiss style with bold typography */}
+      {/* Header */}
       <header className="border-b-2 border-foreground">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-sm font-bold uppercase tracking-widest">Dashboard</h1>
@@ -98,9 +77,9 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Main Content - Grid-based Swiss layout */}
+      {/* Main Content */}
       <main className="flex-1 flex flex-col">
-        {/* Quote section - Large typography */}
+        {/* Quote section */}
         <div className="border-b-2 border-foreground px-6 py-12 md:py-16">
           <div className="container mx-auto max-w-4xl">
             <blockquote className="text-2xl md:text-4xl lg:text-5xl font-bold leading-tight tracking-tight">
@@ -112,22 +91,63 @@ const Home = () => {
           </div>
         </div>
 
-        {/* App Grid - Swiss grid system */}
-        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 border-b-2 border-foreground">
-          {apps.map((app, index) => (
-            <AppTile key={app.name} {...app} isLast={index === apps.length - 1} />
-          ))}
+        {/* App Grid - Organized sections */}
+        <div className="flex-1 flex flex-col">
+          {/* Time Tracking Row */}
+          <div className="border-b-2 border-foreground">
+            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
+              <div className="border-b-2 md:border-b-0 md:border-r-2 border-foreground px-6 py-4 flex items-center">
+                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Time Tracking</span>
+              </div>
+              <div className="grid grid-cols-2">
+                {timeApps.map((app, index) => (
+                  <AppTile 
+                    key={app.name + app.route} 
+                    {...app} 
+                    isLast={index === timeApps.length - 1}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Finance Row */}
+          <div className="border-b-2 border-foreground">
+            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
+              <div className="border-b-2 md:border-b-0 md:border-r-2 border-foreground px-6 py-4 flex items-center">
+                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Finance</span>
+              </div>
+              <div className="grid grid-cols-2">
+                {financeApps.map((app, index) => (
+                  <AppTile 
+                    key={app.name + app.route} 
+                    {...app} 
+                    isLast={index === financeApps.length - 1}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Utilities Row */}
+          <div className="flex-1">
+            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] h-full">
+              <div className="border-b-2 md:border-b-0 md:border-r-2 border-foreground px-6 py-4 flex items-center">
+                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Utilities</span>
+              </div>
+              <div className="grid grid-cols-3">
+                {utilityApps.map((app, index) => (
+                  <AppTile 
+                    key={app.name + app.route} 
+                    {...app} 
+                    isLast={index === utilityApps.length - 1}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </main>
-
-      {/* Footer - Minimal */}
-      <footer className="px-6 py-4">
-        <div className="container mx-auto">
-          <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground">
-            Personal Dashboard
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };
