@@ -1,12 +1,15 @@
 import { ScenarioConfig } from '../../hooks/useScenarios';
 import { Client } from '../../hooks/useClients';
 import { Expense } from '../../hooks/useExpenses';
+import { Contractor } from '../../hooks/useContractors';
 import { TAX_RATES } from '../../data/businessData';
 
 export interface ScenarioResults {
   monthlyRevenue: number;
   monthlyExpenses: number;
   monthlyContractors: number;
+  monthlySalary: number;
+  monthlyRecurringExpenses: number;
   grossProfit: number;
   adjustedSalary: number;
   taxDeductionsTotal: number;
@@ -27,6 +30,7 @@ export const calculateScenario = (
   config: ScenarioConfig,
   clients: Client[],
   expenses: Expense[],
+  contractors: Contractor[],
   baseSalary: number
 ): ScenarioResults => {
   // Calculate monthly revenue from clients
@@ -44,29 +48,36 @@ export const calculateScenario = (
     monthlyRevenue += client.monthlyRetainer;
   });
 
-  // Calculate monthly expenses
-  let monthlyExpenses = 0;
+  // Calculate monthly recurring expenses (software, misc, etc.)
+  let monthlyRecurringExpenses = 0;
   
   // Add real expenses (recurring, not removed)
   expenses.filter(e => e.recurring).forEach(expense => {
     if (config.removedExpenseIds.includes(expense.id)) return;
-    monthlyExpenses += Number(expense.amount);
+    monthlyRecurringExpenses += Number(expense.amount);
   });
 
   // Add virtual expenses
   config.scenarioExpenses.filter(e => e.isVirtual && e.recurring).forEach(expense => {
-    monthlyExpenses += expense.amount;
+    monthlyRecurringExpenses += expense.amount;
   });
 
-  // Calculate contractor costs
-  const monthlyContractors = config.additionalContractors.reduce((sum, c) => sum + c.pay, 0);
-  monthlyExpenses += monthlyContractors;
+  // Calculate contractor costs from database
+  const realContractorPay = contractors.reduce((sum, c) => sum + Number(c.monthly_pay), 0);
+  
+  // Add virtual contractors from scenario
+  const virtualContractorPay = config.additionalContractors.reduce((sum, c) => sum + c.pay, 0);
+  const monthlyContractors = realContractorPay + virtualContractorPay;
+
+  // Monthly salary (W-2)
+  const adjustedSalary = baseSalary + config.salaryAdjustment;
+  const monthlySalary = adjustedSalary / 12;
+
+  // Total monthly operating costs (matches Summary)
+  const monthlyExpenses = monthlyRecurringExpenses + monthlySalary + monthlyContractors;
 
   // Calculate gross profit
   const grossProfit = monthlyRevenue - monthlyExpenses;
-
-  // Calculate adjusted salary
-  const adjustedSalary = baseSalary + config.salaryAdjustment;
 
   // Calculate tax deductions
   const taxDeductionsTotal = Object.values(config.taxDeductions)
@@ -106,6 +117,8 @@ export const calculateScenario = (
     monthlyRevenue,
     monthlyExpenses,
     monthlyContractors,
+    monthlySalary,
+    monthlyRecurringExpenses,
     grossProfit,
     adjustedSalary,
     taxDeductionsTotal,
@@ -127,6 +140,7 @@ export const calculateScenario = (
 export const calculateBaseline = (
   clients: Client[],
   expenses: Expense[],
+  contractors: Contractor[],
   baseSalary: number
 ): ScenarioResults => {
   const emptyConfig: ScenarioConfig = {
@@ -144,5 +158,5 @@ export const calculateBaseline = (
     ],
   };
   
-  return calculateScenario(emptyConfig, clients, expenses, baseSalary);
+  return calculateScenario(emptyConfig, clients, expenses, contractors, baseSalary);
 };
