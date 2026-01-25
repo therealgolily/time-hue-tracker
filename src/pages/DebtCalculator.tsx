@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTheme } from '@/hooks/useTheme';
@@ -25,10 +25,18 @@ import {
 } from '@/apps/debt-calculator/lib/calculations';
 
 const DebtCalculatorContent = () => {
-  const { data, addCreditCard, updateCreditCard, deleteCreditCard, addScenario, deleteScenario, selectScenario } = useFinance();
+  const { data, loading, addCreditCard, updateCreditCard, deleteCreditCard, addScenario, deleteScenario, selectScenario } = useFinance();
   const [cardFormOpen, setCardFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | undefined>(undefined);
   const [scenarioFormOpen, setScenarioFormOpen] = useState(false);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   // Calculate totals
   const totalChecking = data.checkingAccounts.reduce((sum, acc) => sum + acc.balance, 0);
