@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Countdown } from '@/types/calendar';
-import { differenceInDays, parseISO, startOfDay } from 'date-fns';
+import { differenceInDays, differenceInMonths, differenceInYears, parseISO, startOfDay, addYears, addMonths } from 'date-fns';
 
 const STORAGE_KEY = 'calendar-countdowns';
+
+export interface CountdownDuration {
+  years: number;
+  months: number;
+  days: number;
+  totalDays: number;
+}
 
 export const useCountdowns = () => {
   const [countdowns, setCountdowns] = useState<Countdown[]>([]);
@@ -50,6 +57,30 @@ export const useCountdowns = () => {
     return differenceInDays(target, today);
   }, []);
 
+  const getDurationRemaining = useCallback((targetDate: string): CountdownDuration => {
+    const today = startOfDay(new Date());
+    const target = startOfDay(parseISO(targetDate));
+    
+    const totalDays = differenceInDays(target, today);
+    
+    if (totalDays <= 0) {
+      return { years: 0, months: 0, days: totalDays, totalDays };
+    }
+    
+    // Calculate years
+    const years = differenceInYears(target, today);
+    let remaining = addYears(today, years);
+    
+    // Calculate months after years
+    const months = differenceInMonths(target, remaining);
+    remaining = addMonths(remaining, months);
+    
+    // Calculate remaining days
+    const days = differenceInDays(target, remaining);
+    
+    return { years, months, days, totalDays };
+  }, []);
+
   const getCountdownStatus = useCallback((targetDate: string): 'upcoming' | 'today' | 'passed' => {
     const days = getDaysRemaining(targetDate);
     if (days > 0) return 'upcoming';
@@ -76,6 +107,7 @@ export const useCountdowns = () => {
     updateCountdown,
     deleteCountdown,
     getDaysRemaining,
+    getDurationRemaining,
     getCountdownStatus,
   };
 };
