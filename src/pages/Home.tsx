@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Zap, RefreshCw, LogOut, Building2, Calculator, TrendingUp, CalendarDays, Clock } from 'lucide-react';
+import { User, RefreshCw, LogOut, Briefcase, Calculator, TrendingUp, CalendarDays, Clock } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
@@ -14,12 +14,12 @@ const apps = [
   {
     name: 'Personal Time Tracker',
     route: '/personal-time-tracker',
-    icon: Zap,
+    icon: User,
   },
   {
     name: 'Work Time Tracker',
     route: '/work-time-tracker',
-    icon: Building2,
+    icon: Briefcase,
   },
   {
     name: 'Journal',
