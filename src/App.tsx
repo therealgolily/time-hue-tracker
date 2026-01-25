@@ -10,6 +10,7 @@ import EnergyTracker from "./pages/EnergyTracker";
 import ClientTracker from "./pages/ClientTracker";
 import Refresh from "./pages/Refresh";
 import DebtCalculator from "./pages/DebtCalculator";
+import Calendar from "./pages/Calendar";
 import NotFound from "./pages/NotFound";
 import { FinanceApp, FinanceAuth } from "@/apps/finance";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/client-tracker" element={<ProtectedRoute><ClientTracker /></ProtectedRoute>} />
           <Route path="/refresh" element={<ProtectedRoute><Refresh /></ProtectedRoute>} />
           <Route path="/debt-calculator" element={<ProtectedRoute><DebtCalculator /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
           <Route path="/finance/auth" element={<FinanceAuth />} />
           <Route path="/finance/*" element={<ProtectedRoute><FinanceApp /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
