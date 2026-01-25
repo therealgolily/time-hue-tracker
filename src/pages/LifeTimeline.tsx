@@ -19,7 +19,7 @@ const LifeTimelinePage = () => {
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
-            <h1 className="text-sm font-bold uppercase tracking-widest">Life Timeline</h1>
+            <h1 className="text-sm font-bold uppercase tracking-widest">Timeline</h1>
           </div>
           <ThemeToggle />
         </div>

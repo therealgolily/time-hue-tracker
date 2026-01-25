@@ -152,7 +152,7 @@ const ClientTracker = () => {
               >
                 <ArrowLeft className="w-5 h-5" />
               </Link>
-              <h1 className="text-sm font-bold uppercase tracking-widest">Clients</h1>
+              <h1 className="text-sm font-bold uppercase tracking-widest">Work Time Tracker</h1>
             </div>
             <div className="flex items-center gap-2">
               <LiveClock />

@@ -41,7 +41,7 @@ const RefreshPastReflection = ({ reflection, onBack }: RefreshPastReflectionProp
           <Link to="/" className="p-2 hover:bg-accent rounded-lg transition-colors">
             <Home className="h-5 w-5 text-foreground" />
           </Link>
-          <h1 className="text-xl font-semibold text-foreground">Refresh</h1>
+          <h1 className="text-xl font-semibold text-foreground">Journal</h1>
           <div className="w-9" />
         </div>
       </header>

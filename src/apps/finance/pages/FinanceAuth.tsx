@@ -16,7 +16,7 @@ interface FinanceAuthProps {
   redirectPath?: string;
 }
 
-export const FinanceAuth = ({ redirectPath = '/finance' }: FinanceAuthProps) => {
+export const FinanceAuth = ({ redirectPath = '/business-finance' }: FinanceAuthProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

@@ -28,14 +28,14 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/pin" element={<PinScreen />} />
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/energy-tracker" element={<ProtectedRoute><EnergyTracker /></ProtectedRoute>} />
-          <Route path="/client-tracker" element={<ProtectedRoute><ClientTracker /></ProtectedRoute>} />
-          <Route path="/refresh" element={<ProtectedRoute><Refresh /></ProtectedRoute>} />
-          <Route path="/debt-calculator" element={<ProtectedRoute><DebtCalculator /></ProtectedRoute>} />
+          <Route path="/personal-time-tracker" element={<ProtectedRoute><EnergyTracker /></ProtectedRoute>} />
+          <Route path="/work-time-tracker" element={<ProtectedRoute><ClientTracker /></ProtectedRoute>} />
+          <Route path="/journal" element={<ProtectedRoute><Refresh /></ProtectedRoute>} />
+          <Route path="/personal-finance" element={<ProtectedRoute><DebtCalculator /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute><Calendar /></ProtectedRoute>} />
-          <Route path="/life-timeline" element={<ProtectedRoute><LifeTimeline /></ProtectedRoute>} />
-          <Route path="/finance/auth" element={<FinanceAuth />} />
-          <Route path="/finance/*" element={<ProtectedRoute><FinanceApp /></ProtectedRoute>} />
+          <Route path="/timeline" element={<ProtectedRoute><LifeTimeline /></ProtectedRoute>} />
+          <Route path="/business-finance/auth" element={<FinanceAuth />} />
+          <Route path="/business-finance/*" element={<ProtectedRoute><FinanceApp /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

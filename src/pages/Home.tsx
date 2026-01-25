@@ -12,28 +12,28 @@ const STORAGE_KEY = 'home-quote-index';
 
 const apps = [
   {
-    name: 'Energy',
-    route: '/energy-tracker',
+    name: 'Personal Time Tracker',
+    route: '/personal-time-tracker',
     icon: Zap,
   },
   {
-    name: 'Clients',
-    route: '/client-tracker',
+    name: 'Work Time Tracker',
+    route: '/work-time-tracker',
     icon: Building2,
   },
   {
-    name: 'Refresh',
-    route: '/refresh',
+    name: 'Journal',
+    route: '/journal',
     icon: RefreshCw,
   },
   {
-    name: 'Debt',
-    route: '/debt-calculator',
+    name: 'Personal Finance',
+    route: '/personal-finance',
     icon: Calculator,
   },
   {
-    name: 'Finance',
-    route: '/finance',
+    name: 'Business Finance',
+    route: '/business-finance',
     icon: TrendingUp,
   },
   {
@@ -43,7 +43,7 @@ const apps = [
   },
   {
     name: 'Timeline',
-    route: '/life-timeline',
+    route: '/timeline',
     icon: Clock,
   },
 ];
