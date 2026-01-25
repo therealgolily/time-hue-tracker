@@ -10,6 +10,7 @@ import ClientTracker from "./pages/ClientTracker";
 import Refresh from "./pages/Refresh";
 import DebtCalculator from "./pages/DebtCalculator";
 import NotFound from "./pages/NotFound";
+import { FinanceApp, FinanceAuth } from "@/apps/finance";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,8 @@ const App = () => (
           <Route path="/client-tracker" element={<ClientTracker />} />
           <Route path="/refresh" element={<Refresh />} />
           <Route path="/debt-calculator" element={<DebtCalculator />} />
+          <Route path="/finance/auth" element={<FinanceAuth />} />
+          <Route path="/finance/*" element={<FinanceApp />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
