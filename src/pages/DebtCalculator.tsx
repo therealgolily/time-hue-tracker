@@ -15,7 +15,9 @@ import { NetWorthChart } from '@/apps/debt-calculator/components/NetWorthChart';
 import { PayoffChart } from '@/apps/debt-calculator/components/PayoffChart';
 import { ExpectedIncomeSection } from '@/apps/debt-calculator/components/ExpectedIncomeSection';
 import { OtherDebtsSection } from '@/apps/debt-calculator/components/OtherDebtsSection';
-import { CreditCard } from '@/apps/debt-calculator/types';
+import { ScenarioCard } from '@/apps/debt-calculator/components/ScenarioCard';
+import { EventBasedScenarioForm } from '@/apps/debt-calculator/components/EventBasedScenarioForm';
+import { CreditCard, PaymentScenario, ScenarioResult } from '@/apps/debt-calculator/types';
 import { 
   calculateNetIncome, 
   calculateAvailableForDebt, 
@@ -23,9 +25,10 @@ import {
 } from '@/apps/debt-calculator/lib/calculations';
 
 const DebtCalculatorContent = () => {
-  const { data, addCreditCard, updateCreditCard, deleteCreditCard } = useFinance();
+  const { data, addCreditCard, updateCreditCard, deleteCreditCard, addScenario, deleteScenario, selectScenario } = useFinance();
   const [cardFormOpen, setCardFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | undefined>(undefined);
+  const [scenarioFormOpen, setScenarioFormOpen] = useState(false);
 
   // Calculate totals
   const totalChecking = data.checkingAccounts.reduce((sum, acc) => sum + acc.balance, 0);
@@ -44,6 +47,23 @@ const DebtCalculatorContent = () => {
   const totalExpenses = data.budget.expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const availableForDebt = calculateAvailableForDebt(netIncome, totalExpenses);
 
+  // Calculate all scenario results
+  const allScenarioResults = useMemo(() => {
+    const defaultScenario: PaymentScenario = {
+      id: 'default',
+      name: 'Minimum Payments',
+      baseMonthlyPayment: data.creditCards.reduce((sum, card) => sum + card.minimumPayment, 0),
+      events: [],
+      isDefault: true,
+    };
+
+    const allScenarios = [defaultScenario, ...data.scenarios];
+    
+    return allScenarios.map(scenario => 
+      calculateEventBasedScenario(data.creditCards, scenario, availableForDebt)
+    );
+  }, [data.creditCards, data.scenarios, availableForDebt]);
+
   const scenarioResult = useMemo(() => {
     const selectedScenario = data.scenarios.find(s => s.id === data.selectedScenarioId) || {
       id: 'default',
@@ -54,6 +74,19 @@ const DebtCalculatorContent = () => {
     
     return calculateEventBasedScenario(data.creditCards, selectedScenario, availableForDebt);
   }, [data.creditCards, data.scenarios, data.selectedScenarioId, availableForDebt]);
+
+  const handleSaveScenario = (scenarioData: Omit<PaymentScenario, "id">) => {
+    addScenario(scenarioData);
+    setScenarioFormOpen(false);
+  };
+
+  const handleDeleteScenario = (id: string) => {
+    deleteScenario(id);
+  };
+
+  const handleSelectScenario = (id: string) => {
+    selectScenario(id);
+  };
 
   const handleSaveCard = (cardData: Omit<CreditCard, "id"> | CreditCard) => {
     if ('id' in cardData) {
@@ -80,11 +113,12 @@ const DebtCalculatorContent = () => {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <Tabs defaultValue="budget" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 border-2 border-foreground">
+        <TabsList className="grid w-full grid-cols-6 border-2 border-foreground">
           <TabsTrigger value="budget" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Budget</TabsTrigger>
           <TabsTrigger value="assets" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Assets</TabsTrigger>
           <TabsTrigger value="debts" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Debts</TabsTrigger>
           <TabsTrigger value="income" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Income</TabsTrigger>
+          <TabsTrigger value="scenarios" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Scenarios</TabsTrigger>
           <TabsTrigger value="overview" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
         </TabsList>
 
@@ -127,6 +161,43 @@ const DebtCalculatorContent = () => {
 
         <TabsContent value="income">
           <ExpectedIncomeSection />
+        </TabsContent>
+
+        <TabsContent value="scenarios" className="space-y-6">
+          <div className="flex items-center justify-between mb-4 border-b-2 border-foreground pb-2">
+            <h2 className="text-xl font-bold uppercase tracking-wider">Payment Scenarios</h2>
+            <Button onClick={() => setScenarioFormOpen(true)} className="border-2 border-foreground">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Scenario
+            </Button>
+          </div>
+          
+          <EventBasedScenarioForm 
+            open={scenarioFormOpen} 
+            onClose={() => setScenarioFormOpen(false)} 
+            onSave={handleSaveScenario} 
+          />
+
+          {data.creditCards.length === 0 ? (
+            <div className="border-2 border-dashed border-muted-foreground/30 p-8 text-center">
+              <p className="text-muted-foreground font-mono text-sm uppercase tracking-wider">
+                Add credit cards in the Debts tab to create payoff scenarios
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {allScenarioResults.map((result) => (
+                <ScenarioCard
+                  key={result.scenario.id}
+                  result={result}
+                  isSelected={data.selectedScenarioId === result.scenario.id}
+                  onSelect={() => handleSelectScenario(result.scenario.id)}
+                  onDelete={result.scenario.isDefault ? undefined : () => handleDeleteScenario(result.scenario.id)}
+                  totalAssets={totalAssets}
+                />
+              ))}
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
