@@ -10,7 +10,8 @@ import {
   FlaskConical,
   Building2,
   LogOut,
-  ArrowLeft
+  ArrowLeft,
+  Briefcase
 } from 'lucide-react';
 import { FinanceDashboard } from './components/FinanceDashboard';
 import { ClientsManager } from './components/ClientsManager';
@@ -20,12 +21,14 @@ import { MonthlySummary } from './components/MonthlySummary';
 import { TaxView } from './components/TaxView';
 import { BusinessProfile } from './components/BusinessProfile';
 import { ScenarioPlayground } from './components/ScenarioPlayground';
+import { ContractorsManager } from './components/ContractorsManager';
 import { useFinanceAuth } from './hooks/useFinanceAuth';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
   { id: 'clients', label: 'CLIENTS', icon: Users },
+  { id: 'contractors', label: 'CONTRACTORS', icon: Briefcase },
   { id: 'expenses', label: 'EXPENSES', icon: Receipt },
   { id: 'payments', label: 'PAYMENTS', icon: CreditCard },
   { id: 'monthly', label: 'SUMMARY', icon: PieChart },
@@ -70,6 +73,8 @@ const FinanceApp = ({
         return <FinanceDashboard />;
       case 'clients':
         return <ClientsManager />;
+      case 'contractors':
+        return <ContractorsManager />;
       case 'expenses':
         return <ExpensesManager />;
       case 'payments':
