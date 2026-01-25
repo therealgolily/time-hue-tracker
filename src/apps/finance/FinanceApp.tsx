@@ -11,7 +11,8 @@ import {
   Building2,
   LogOut,
   ArrowLeft,
-  Briefcase
+  Briefcase,
+  User
 } from 'lucide-react';
 import { FinanceDashboard } from './components/FinanceDashboard';
 import { ClientsManager } from './components/ClientsManager';
@@ -22,12 +23,14 @@ import { TaxView } from './components/TaxView';
 import { BusinessProfile } from './components/BusinessProfile';
 import { ScenarioPlayground } from './components/ScenarioPlayground';
 import { ContractorsManager } from './components/ContractorsManager';
+import { EmployeesManager } from './components/EmployeesManager';
 import { useFinanceAuth } from './hooks/useFinanceAuth';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { id: 'dashboard', label: 'DASHBOARD', icon: LayoutDashboard },
   { id: 'clients', label: 'CLIENTS', icon: Users },
+  { id: 'employees', label: 'SALARY', icon: User },
   { id: 'contractors', label: 'CONTRACTORS', icon: Briefcase },
   { id: 'expenses', label: 'EXPENSES', icon: Receipt },
   { id: 'payments', label: 'PAYMENTS', icon: CreditCard },
@@ -73,6 +76,8 @@ const FinanceApp = ({
         return <FinanceDashboard />;
       case 'clients':
         return <ClientsManager />;
+      case 'employees':
+        return <EmployeesManager />;
       case 'contractors':
         return <ContractorsManager />;
       case 'expenses':

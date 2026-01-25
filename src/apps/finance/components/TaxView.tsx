@@ -4,33 +4,50 @@ import { TAX_RATES } from '../data/businessData';
 import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
+import { useContractors } from '../hooks/useContractors';
 
 export const TaxView = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { totalSalary, loading: employeesLoading } = useEmployees();
+  const { totalMonthlyPay: contractorMonthlyPay, loading: contractorsLoading } = useContractors();
 
-  const loading = clientsLoading || expensesLoading || employeesLoading;
+  const loading = clientsLoading || expensesLoading || employeesLoading || contractorsLoading;
 
+  // Revenue
   const monthlyRevenue = clients
     .filter(c => c.status === 'active')
     .reduce((sum, c) => sum + Number(c.monthly_retainer), 0);
 
-  const monthlyExpenses = expenses
+  // All expenses: recurring + salary + contractors
+  const monthlyRecurringExpenses = expenses
     .filter(e => e.recurring)
     .reduce((sum, e) => sum + Number(e.amount), 0);
+  
+  const monthlySalary = totalSalary / 12;
+  const totalMonthlyExpenses = monthlyRecurringExpenses + monthlySalary + contractorMonthlyPay;
 
-  const monthlyProfit = monthlyRevenue - monthlyExpenses;
+  const monthlyProfit = monthlyRevenue - totalMonthlyExpenses;
   const annualProfit = monthlyProfit * 12;
   const salary = totalSalary;
 
+  // S-Corp Virginia Tax Calculations
+  // Employer FICA (business expense)
   const employerFica = salary * TAX_RATES.employerFica;
+  
+  // K-1 pass-through income (profit minus employer FICA deduction)
   const adjustedProfit = annualProfit - employerFica;
+  
+  // Total taxable income: W-2 salary + K-1 distributions
   const totalTaxableIncome = salary + adjustedProfit;
 
+  // Employee FICA (withheld from paycheck)
   const employeeFica = salary * TAX_RATES.employeeFica;
+  
+  // Income taxes on total taxable income
   const federalIncome = totalTaxableIncome * TAX_RATES.federalIncome;
-  const stateIncome = totalTaxableIncome * TAX_RATES.stateIncome;
+  const stateIncome = totalTaxableIncome * TAX_RATES.stateIncome; // Virginia 5.75%
+  
   const totalAnnualTax = employerFica + employeeFica + federalIncome + stateIncome;
 
   const taxes = {
@@ -44,6 +61,11 @@ export const TaxView = () => {
       stateIncome: Math.round(stateIncome),
     },
   };
+
+  // Self-employment tax savings calculation
+  const selfEmploymentTaxIfSoleProp = (annualProfit + salary) * TAX_RATES.selfEmployment;
+  const sCorpFicaTotal = employerFica + employeeFica;
+  const ficaSavings = Math.max(0, selfEmploymentTaxIfSoleProp - sCorpFicaTotal);
 
   const taxBreakdown = [
     {
@@ -76,11 +98,14 @@ export const TaxView = () => {
     },
   ];
 
+  const currentYear = new Date().getFullYear();
+  const nextYear = currentYear + 1;
+  
   const quarterlyPayments = [
-    { quarter: 'Q1', due: 'April 15, 2025', amount: taxes.quarterly },
-    { quarter: 'Q2', due: 'June 15, 2025', amount: taxes.quarterly },
-    { quarter: 'Q3', due: 'September 15, 2025', amount: taxes.quarterly },
-    { quarter: 'Q4', due: 'January 15, 2026', amount: taxes.quarterly },
+    { quarter: 'Q1', due: `April 15, ${currentYear}`, amount: taxes.quarterly },
+    { quarter: 'Q2', due: `June 15, ${currentYear}`, amount: taxes.quarterly },
+    { quarter: 'Q3', due: `September 15, ${currentYear}`, amount: taxes.quarterly },
+    { quarter: 'Q4', due: `January 15, ${nextYear}`, amount: taxes.quarterly },
   ];
 
   if (loading) {
@@ -91,12 +116,14 @@ export const TaxView = () => {
     );
   }
 
+  const effectiveRate = annualProfit > 0 ? ((taxes.annual / (annualProfit + salary)) * 100).toFixed(1) : '0';
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div>
         <h1 className="text-3xl font-bold text-foreground">Tax Liability</h1>
         <p className="text-muted-foreground mt-1">
-          Estimated tax obligations for S-Corp
+          Estimated tax obligations for S-Corp in Virginia
         </p>
       </div>
 
@@ -122,7 +149,7 @@ export const TaxView = () => {
         />
         <MetricCard
           title="Effective Rate"
-          value={`${annualProfit > 0 ? ((taxes.annual / annualProfit) * 100).toFixed(1) : 0}%`}
+          value={`${effectiveRate}%`}
           icon={Building}
           variant="neutral"
         />
@@ -133,11 +160,49 @@ export const TaxView = () => {
         <div>
           <h3 className="font-semibold text-foreground">S-Corp Tax Advantage</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            As an S-Corp, you can potentially save on self-employment taxes.
-            Only the salary portion (${salary.toLocaleString()}/year) is subject to FICA taxes,
-            while distributions can avoid the 15.3% self-employment tax. Consult with a CPA
-            for accurate tax planning.
+            As an S-Corp, you save on self-employment taxes. Only your salary 
+            (${salary.toLocaleString()}/year) is subject to FICA taxes (15.3% total), 
+            while your K-1 distributions (${adjustedProfit.toLocaleString()}) avoid 
+            the 15.3% self-employment tax.
+            {ficaSavings > 0 && (
+              <span className="font-semibold text-foreground">
+                {' '}Estimated annual FICA savings: ${ficaSavings.toLocaleString()}.
+              </span>
+            )}
           </p>
+        </div>
+      </div>
+
+      {/* Income Breakdown */}
+      <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-border/50">
+          <h2 className="text-xl font-semibold text-foreground">Income Breakdown (Annual)</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            How your S-Corp income flows to you
+          </p>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <div>
+              <p className="font-medium text-foreground">W-2 Salary</p>
+              <p className="text-sm text-muted-foreground">Subject to FICA taxes</p>
+            </div>
+            <p className="text-xl font-bold text-foreground">${salary.toLocaleString()}</p>
+          </div>
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
+            <div>
+              <p className="font-medium text-foreground">K-1 Pass-Through (Distributions)</p>
+              <p className="text-sm text-muted-foreground">Not subject to FICA - only income tax</p>
+            </div>
+            <p className="text-xl font-bold text-foreground">${adjustedProfit.toLocaleString()}</p>
+          </div>
+          <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <div>
+              <p className="font-medium text-foreground">Total Taxable Income</p>
+              <p className="text-sm text-muted-foreground">W-2 + K-1 for income tax purposes</p>
+            </div>
+            <p className="text-xl font-bold text-foreground">${totalTaxableIncome.toLocaleString()}</p>
+          </div>
         </div>
       </div>
 
@@ -198,7 +263,7 @@ export const TaxView = () => {
             <tbody>
               {quarterlyPayments.map((payment, index) => (
                 <tr key={payment.quarter}>
-                  <td className="font-medium text-foreground">{payment.quarter} 2025</td>
+                  <td className="font-medium text-foreground">{payment.quarter} {currentYear}</td>
                   <td className="text-muted-foreground">{payment.due}</td>
                   <td className="expense-text font-semibold">
                     ${payment.amount.toLocaleString()}
@@ -237,7 +302,7 @@ export const TaxView = () => {
           To ensure you have funds available for quarterly tax payments, set aside{' '}
           <span className="font-bold text-foreground">${taxes.monthly.toLocaleString()}</span>{' '}
           each month into a separate tax savings account. This will cover your estimated
-          federal and state tax obligations throughout the year.
+          federal and Virginia state tax obligations throughout the year.
         </p>
       </div>
     </div>
