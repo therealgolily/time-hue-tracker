@@ -15,19 +15,45 @@ export type EmployeeUpdate = Partial<EmployeeInsert>;
 const STORAGE_KEY = 'finance_employees';
 const EMPLOYEES_CHANGED_EVENT = 'finance_employees_changed';
 
+const isLikelySeedEmployeeData = (value: unknown): value is Employee[] => {
+  if (!Array.isArray(value)) return false;
+
+  // Heuristic: the old code seeded localStorage with ids like "emp-1" and a single employee
+  // (Nick Scott) at $48,000. There is currently no UI to manage employees, so this is safe
+  // to treat as demo/seed data.
+  const hasEmpIds = value.every(
+    (e) =>
+      e &&
+      typeof e === 'object' &&
+      typeof (e as any).id === 'string' &&
+      (e as any).id.startsWith('emp-')
+  );
+
+  const has48000Salary = value.some(
+    (e) => e && typeof e === 'object' && Number((e as any).salary) === 48000
+  );
+
+  return hasEmpIds && has48000Salary;
+};
+
+const parseStoredEmployees = (stored: string | null): Employee[] => {
+  if (!stored) return [];
+  try {
+    const parsed = JSON.parse(stored);
+    if (isLikelySeedEmployeeData(parsed)) {
+      localStorage.removeItem(STORAGE_KEY);
+      return [];
+    }
+    return Array.isArray(parsed) ? (parsed as Employee[]) : [];
+  } catch {
+    return [];
+  }
+};
+
 const getInitialEmployees = (): Employee[] => {
   if (typeof window === 'undefined') return [];
 
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      // Invalid JSON, return empty
-    }
-  }
-
-  return [];
+  return parseStoredEmployees(localStorage.getItem(STORAGE_KEY));
 };
 
 const notifyChange = () => {
@@ -39,14 +65,8 @@ export const useEmployees = () => {
   const [loading, setLoading] = useState(true);
 
   const syncFromStorage = useCallback(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setEmployees(JSON.parse(stored));
-      } catch {
-        // Invalid JSON, keep current state
-      }
-    }
+    const next = parseStoredEmployees(localStorage.getItem(STORAGE_KEY));
+    setEmployees(next);
   }, []);
 
   useEffect(() => {
