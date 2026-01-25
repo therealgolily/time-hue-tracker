@@ -43,7 +43,7 @@ export const CountdownModal = ({
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
 
   const currentYear = getYear(new Date());
-  const years = Array.from({ length: 20 }, (_, i) => currentYear + i);
+  const years = Array.from({ length: 2100 - currentYear + 1 }, (_, i) => currentYear + i);
 
   useEffect(() => {
     if (existingCountdown) {
