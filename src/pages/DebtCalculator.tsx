@@ -30,15 +30,7 @@ const DebtCalculatorContent = () => {
   const [editingCard, setEditingCard] = useState<CreditCard | undefined>(undefined);
   const [scenarioFormOpen, setScenarioFormOpen] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  // Calculate totals
+  // Calculate totals - moved before conditional return to fix hooks order
   const totalChecking = data.checkingAccounts.reduce((sum, acc) => sum + acc.balance, 0);
   const totalSavings = data.savingsAccounts.reduce((sum, acc) => sum + acc.balance, 0);
   const totalPhysical = data.physicalAssets.reduce((sum, asset) => sum + asset.value, 0);
@@ -55,7 +47,7 @@ const DebtCalculatorContent = () => {
   const totalExpenses = data.budget.expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const availableForDebt = calculateAvailableForDebt(netIncome, totalExpenses);
 
-  // Calculate all scenario results
+  // Calculate all scenario results - must be called before any conditional returns
   const allScenarioResults = useMemo(() => {
     const defaultScenario: PaymentScenario = {
       id: 'default',
@@ -82,6 +74,15 @@ const DebtCalculatorContent = () => {
     
     return calculateEventBasedScenario(data.creditCards, selectedScenario, availableForDebt);
   }, [data.creditCards, data.scenarios, data.selectedScenarioId, availableForDebt]);
+
+  // Show loading state AFTER all hooks have been called
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   const handleSaveScenario = (scenarioData: Omit<PaymentScenario, "id">) => {
     addScenario(scenarioData);
