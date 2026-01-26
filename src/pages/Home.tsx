@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, RefreshCw, LogOut, Briefcase, Calculator, TrendingUp, CalendarDays, Clock } from 'lucide-react';
+import { User, RefreshCw, LogOut, Briefcase, Calculator, TrendingUp, CalendarDays, Clock, CheckSquare } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
@@ -25,6 +25,7 @@ const utilityApps = [
   { name: 'Journal', route: '/journal', icon: RefreshCw },
   { name: 'Calendar', route: '/calendar', icon: CalendarDays },
   { name: 'Timeline', route: '/timeline', icon: Clock },
+  { name: 'Tasks', route: 'tasks.rosserresults.com', icon: CheckSquare, external: true },
 ];
 
 const Home = () => {
@@ -135,7 +136,7 @@ const Home = () => {
               <div className="border-b-2 md:border-b-0 md:border-r-2 border-foreground px-6 py-4 flex items-center">
                 <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Utilities</span>
               </div>
-              <div className="grid grid-cols-3">
+              <div className="grid grid-cols-4">
                 {utilityApps.map((app, index) => (
                   <AppTile 
                     key={app.name + app.route} 
