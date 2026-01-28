@@ -1,9 +1,14 @@
-import { ScenarioConfig } from '../../hooks/useScenarios';
+import { ScenarioConfig, ScenarioTaxDeduction } from '../../hooks/useScenarios';
 import { Client } from '../../hooks/useClients';
 import { Expense } from '../../hooks/useExpenses';
 import { Contractor } from '../../hooks/useContractors';
 import { Employee } from '../../hooks/useEmployees';
 import { TAX_RATES } from '../../data/businessData';
+
+// IRS rates for calculations
+const HOME_OFFICE_RATE_PER_SQFT = 5;
+const HOME_OFFICE_MAX_SQFT = 300;
+const MILEAGE_RATE_2024 = 0.67;
 
 export interface ScenarioResults {
   monthlyRevenue: number;
@@ -14,6 +19,7 @@ export interface ScenarioResults {
   grossProfit: number;
   adjustedSalary: number;
   taxDeductionsTotal: number;
+  tripExpensesTotal: number;
   taxableIncome: number;
   estimatedAnnualTax: number;
   estimatedMonthlyTax: number;
@@ -102,10 +108,46 @@ export const calculateScenario = (
   // Calculate gross profit
   const grossProfit = monthlyRevenue - monthlyExpenses;
 
-  // Calculate tax deductions
-  const taxDeductionsTotal = Object.values(config.taxDeductions || {})
-    .filter(d => d.enabled)
-    .reduce((sum, d) => sum + d.amount, 0);
+  // Calculate tax deductions with proper handling for special types
+  let taxDeductionsTotal = 0;
+  Object.entries(config.taxDeductions || {}).forEach(([key, d]) => {
+    if (!d || !d.enabled) return;
+    
+    let annualAmount: number;
+    
+    // Handle special calculation types
+    if (d.isHomeOffice) {
+      const sqft = Math.min(d.sqft || 0, HOME_OFFICE_MAX_SQFT);
+      annualAmount = sqft * HOME_OFFICE_RATE_PER_SQFT;
+    } else if (d.isMileage) {
+      annualAmount = Math.round(d.amount * MILEAGE_RATE_2024);
+    } else if (key === 'businessMeals' || key === 'travelMeals') {
+      // 50% deductible for meals
+      annualAmount = Math.round(d.amount * 0.5);
+    } else if (d.isMonthly) {
+      annualAmount = d.amount * 12;
+    } else {
+      annualAmount = d.amount;
+    }
+    
+    taxDeductionsTotal += annualAmount;
+  });
+
+  // Calculate trip expenses (with 50% on meals)
+  let tripExpensesTotal = 0;
+  const tripExp = config.tripExpenses;
+  if (tripExp?.enabled) {
+    tripExpensesTotal = 
+      tripExp.flights +
+      tripExp.lodging +
+      tripExp.groundTransport +
+      Math.round(tripExp.meals * 0.5) + // 50% deductible
+      tripExp.perDiem +
+      tripExp.otherExpenses;
+  }
+
+  // Total deductions including trips
+  const totalDeductions = taxDeductionsTotal + tripExpensesTotal;
 
   // Calculate taxes (S-Corp style)
   const annualProfit = grossProfit * 12;
@@ -116,7 +158,7 @@ export const calculateScenario = (
   const adjustedProfit = annualProfit - employerFica;
   
   // Total taxable income (salary + profit - deductions)
-  const taxableIncome = Math.max(0, adjustedSalary + adjustedProfit - taxDeductionsTotal);
+  const taxableIncome = Math.max(0, adjustedSalary + adjustedProfit - totalDeductions);
   
   // Federal and state taxes
   const federalIncome = taxableIncome * TAX_RATES.federalIncome;
@@ -145,6 +187,7 @@ export const calculateScenario = (
     grossProfit,
     adjustedSalary,
     taxDeductionsTotal,
+    tripExpensesTotal,
     taxableIncome,
     estimatedAnnualTax: Math.round(estimatedAnnualTax),
     estimatedMonthlyTax,
@@ -184,6 +227,15 @@ export const calculateBaseline = (
       { name: 'Tax Reserve', percentage: 30, color: '#666666' },
       { name: 'Owner Pay', percentage: 20, color: '#999999' },
     ],
+    tripExpenses: {
+      enabled: false,
+      flights: 0,
+      lodging: 0,
+      groundTransport: 0,
+      meals: 0,
+      perDiem: 0,
+      otherExpenses: 0,
+    },
   };
   
   return calculateScenario(emptyConfig, clients, expenses, contractors, employees);

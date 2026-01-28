@@ -1,27 +1,52 @@
 import { useState } from 'react';
-import { Plus, Trash2, DollarSign, Users, Receipt, Briefcase, PiggyBank, User } from 'lucide-react';
+import { Plus, Trash2, DollarSign, Users, Receipt, Briefcase, PiggyBank, User, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ScenarioConfig } from '../../hooks/useScenarios';
+import { ScenarioConfig, ScenarioTripExpenses } from '../../hooks/useScenarios';
 import { useClients } from '../../hooks/useClients';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useEmployees } from '../../hooks/useEmployees';
 import { useContractors } from '../../hooks/useContractors';
+import { useTripExpenses } from '../../hooks/useTripExpenses';
 import { TAX_RATES } from '../../data/businessData';
+import { getDefaultTaxDeductions, TaxDeductionsConfig } from '../TaxDeductionsManager';
 
 interface ScenarioEditorProps {
   config: ScenarioConfig;
   onChange: (config: ScenarioConfig) => void;
 }
 
-const defaultTaxDeductions: ScenarioConfig['taxDeductions'] = {
-  traditional401k: { enabled: false, amount: 0, label: 'Traditional 401(k)', description: 'Pre-tax contributions (max $23,000/yr)' },
-  healthInsurance: { enabled: false, amount: 0, label: 'Health Insurance', description: 'Monthly premium (S-Corp deductible)' },
-  hsaContribution: { enabled: false, amount: 0, label: 'HSA Contribution', description: 'Health Savings Account (max $4,150/yr individual)' },
-  sepIra: { enabled: false, amount: 0, label: 'SEP-IRA', description: 'Up to 25% of compensation' },
-  homeOffice: { enabled: false, amount: 0, label: 'Home Office', description: 'Simplified: $5/sq ft, max 300 sq ft' },
+// Convert TaxDeductionsConfig to scenario format
+const convertToScenarioTaxDeductions = (taxConfig: TaxDeductionsConfig): ScenarioConfig['taxDeductions'] => {
+  const result: ScenarioConfig['taxDeductions'] = {};
+  Object.entries(taxConfig).forEach(([key, d]) => {
+    result[key] = {
+      enabled: d.enabled,
+      amount: d.amount,
+      label: d.label,
+      description: d.description,
+      reducesFederal: d.reducesFederal,
+      reducesState: d.reducesState,
+      reducesFica: d.reducesFica,
+      isMonthly: d.isMonthly,
+      isHomeOffice: d.isHomeOffice,
+      isMileage: d.isMileage,
+      sqft: d.sqft,
+    };
+  });
+  return result;
+};
+
+const defaultTripExpenses: ScenarioTripExpenses = {
+  enabled: false,
+  flights: 0,
+  lodging: 0,
+  groundTransport: 0,
+  meals: 0,
+  perDiem: 0,
+  otherExpenses: 0,
 };
 
 const defaultBankAllocations: ScenarioConfig['bankAllocations'] = [
@@ -42,8 +67,9 @@ export const getDefaultConfig = (): ScenarioConfig => ({
   removedEmployeeIds: [],
   additionalEmployees: [],
   salaryAdjustment: 0,
-  taxDeductions: defaultTaxDeductions,
+  taxDeductions: convertToScenarioTaxDeductions(getDefaultTaxDeductions()),
   bankAllocations: defaultBankAllocations,
+  tripExpenses: defaultTripExpenses,
 });
 
 export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
@@ -51,18 +77,21 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
   const { expenses } = useExpenses();
   const { employees } = useEmployees();
   const { contractors } = useContractors();
+  const { trips: dbTrips, totals: tripTotalsFromDb } = useTripExpenses();
 
   // Merge current config with defaults for any missing fields
+  const defaultDeductions = convertToScenarioTaxDeductions(getDefaultTaxDeductions());
   const mergedConfig: ScenarioConfig = {
     ...getDefaultConfig(),
     ...config,
-    taxDeductions: { ...defaultTaxDeductions, ...config.taxDeductions },
+    taxDeductions: { ...defaultDeductions, ...config.taxDeductions },
     bankAllocations: config.bankAllocations?.length ? config.bankAllocations : defaultBankAllocations,
     scenarioContractors: config.scenarioContractors || [],
     removedContractorIds: config.removedContractorIds || [],
     scenarioEmployees: config.scenarioEmployees || [],
     removedEmployeeIds: config.removedEmployeeIds || [],
     additionalEmployees: config.additionalEmployees || [],
+    tripExpenses: config.tripExpenses || defaultTripExpenses,
   };
 
   // === Client modifications ===
@@ -322,6 +351,36 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
     });
   };
 
+  // === Trip expenses ===
+  const toggleTripExpenses = () => {
+    onChange({
+      ...mergedConfig,
+      tripExpenses: { ...mergedConfig.tripExpenses, enabled: !mergedConfig.tripExpenses.enabled },
+    });
+  };
+
+  const updateTripExpense = (field: keyof Omit<ScenarioTripExpenses, 'enabled'>, value: number) => {
+    onChange({
+      ...mergedConfig,
+      tripExpenses: { ...mergedConfig.tripExpenses, [field]: value },
+    });
+  };
+
+  const syncTripsFromDatabase = () => {
+    onChange({
+      ...mergedConfig,
+      tripExpenses: {
+        enabled: true,
+        flights: tripTotalsFromDb.flights,
+        lodging: tripTotalsFromDb.lodging,
+        groundTransport: tripTotalsFromDb.groundTransport,
+        meals: tripTotalsFromDb.meals,
+        perDiem: tripTotalsFromDb.perDiem,
+        otherExpenses: tripTotalsFromDb.otherExpenses,
+      },
+    });
+  };
+
   // === Bank allocations ===
   const updateBankAllocation = (index: number, updates: Partial<{ name: string; percentage: number }>) => {
     onChange({
@@ -575,6 +634,117 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
         </div>
       </div>
 
+      {/* Trip Expenses Section */}
+      <div className="border-2 border-foreground">
+        <div className="border-b-2 border-foreground p-3 flex items-center justify-between bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Plane className="w-4 h-4" />
+            <h3 className="text-sm font-bold uppercase tracking-widest">Business Travel</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            {dbTrips.length > 0 && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={syncTripsFromDatabase}
+                className="h-7 text-xs rounded-none border-2 border-foreground"
+              >
+                Sync from Tracker ({dbTrips.length} trips)
+              </Button>
+            )}
+            <Switch checked={mergedConfig.tripExpenses.enabled} onCheckedChange={toggleTripExpenses} />
+          </div>
+        </div>
+        <div className={`p-3 space-y-2 ${!mergedConfig.tripExpenses.enabled ? 'opacity-50 pointer-events-none' : ''}`}>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2 p-2 border border-foreground/30">
+              <div className="flex-1">
+                <p className="text-sm font-mono">Flights</p>
+              </div>
+              <Input
+                type="number"
+                value={mergedConfig.tripExpenses.flights}
+                onChange={(e) => updateTripExpense('flights', Number(e.target.value))}
+                className="w-24 h-7 text-xs font-mono rounded-none border-2"
+              />
+            </div>
+            <div className="flex items-center gap-2 p-2 border border-foreground/30">
+              <div className="flex-1">
+                <p className="text-sm font-mono">Lodging</p>
+              </div>
+              <Input
+                type="number"
+                value={mergedConfig.tripExpenses.lodging}
+                onChange={(e) => updateTripExpense('lodging', Number(e.target.value))}
+                className="w-24 h-7 text-xs font-mono rounded-none border-2"
+              />
+            </div>
+            <div className="flex items-center gap-2 p-2 border border-foreground/30">
+              <div className="flex-1">
+                <p className="text-sm font-mono">Ground Transport</p>
+              </div>
+              <Input
+                type="number"
+                value={mergedConfig.tripExpenses.groundTransport}
+                onChange={(e) => updateTripExpense('groundTransport', Number(e.target.value))}
+                className="w-24 h-7 text-xs font-mono rounded-none border-2"
+              />
+            </div>
+            <div className="flex items-center gap-2 p-2 border border-foreground/30">
+              <div className="flex-1">
+                <p className="text-sm font-mono">Meals (50%)</p>
+                <p className="text-xs text-muted-foreground">IRS 50% deductible</p>
+              </div>
+              <Input
+                type="number"
+                value={mergedConfig.tripExpenses.meals}
+                onChange={(e) => updateTripExpense('meals', Number(e.target.value))}
+                className="w-24 h-7 text-xs font-mono rounded-none border-2"
+              />
+            </div>
+            <div className="flex items-center gap-2 p-2 border border-foreground/30">
+              <div className="flex-1">
+                <p className="text-sm font-mono">Per Diem</p>
+              </div>
+              <Input
+                type="number"
+                value={mergedConfig.tripExpenses.perDiem}
+                onChange={(e) => updateTripExpense('perDiem', Number(e.target.value))}
+                className="w-24 h-7 text-xs font-mono rounded-none border-2"
+              />
+            </div>
+            <div className="flex items-center gap-2 p-2 border border-foreground/30">
+              <div className="flex-1">
+                <p className="text-sm font-mono">Other</p>
+              </div>
+              <Input
+                type="number"
+                value={mergedConfig.tripExpenses.otherExpenses}
+                onChange={(e) => updateTripExpense('otherExpenses', Number(e.target.value))}
+                className="w-24 h-7 text-xs font-mono rounded-none border-2"
+              />
+            </div>
+          </div>
+          {mergedConfig.tripExpenses.enabled && (
+            <div className="border-t border-foreground/30 pt-2 mt-2">
+              <div className="flex justify-between text-sm font-mono">
+                <span className="text-muted-foreground">Trip Deductions:</span>
+                <span className="font-bold">
+                  ${(
+                    mergedConfig.tripExpenses.flights +
+                    mergedConfig.tripExpenses.lodging +
+                    mergedConfig.tripExpenses.groundTransport +
+                    Math.round(mergedConfig.tripExpenses.meals * 0.5) +
+                    mergedConfig.tripExpenses.perDiem +
+                    mergedConfig.tripExpenses.otherExpenses
+                  ).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Tax Deductions Section */}
       <div className="border-2 border-foreground">
         <div className="border-b-2 border-foreground p-3 flex items-center justify-between bg-muted/30">
@@ -583,7 +753,7 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
             <h3 className="text-sm font-bold uppercase tracking-widest">Tax Deductions</h3>
           </div>
         </div>
-        <div className="p-3 space-y-2">
+        <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
           {Object.entries(mergedConfig.taxDeductions).map(([key, deduction]) => (
             <div key={key} className="flex items-center gap-2 p-2 border border-foreground/30">
               <Switch checked={deduction.enabled} onCheckedChange={() => toggleTaxDeduction(key)} />
@@ -596,7 +766,7 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
                 value={deduction.amount}
                 onChange={(e) => updateTaxDeductionAmount(key, Number(e.target.value))}
                 className="w-24 h-7 text-xs font-mono rounded-none border-2"
-                placeholder="Annual"
+                placeholder={deduction.isMonthly ? 'Monthly' : 'Annual'}
                 disabled={!deduction.enabled}
               />
             </div>
