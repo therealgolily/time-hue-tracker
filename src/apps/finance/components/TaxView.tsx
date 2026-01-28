@@ -221,24 +221,93 @@ export const TaxView = () => {
             </div>
             <p className="text-xl font-bold text-foreground">${adjustedProfit.toLocaleString()}</p>
           </div>
-          <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
+          <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
             <div>
-              <p className="font-medium text-foreground">Total Taxable Income (Before Deductions)</p>
-              <p className="text-sm text-muted-foreground">W-2 + K-1 for income tax purposes</p>
+              <p className="font-medium text-foreground">Gross Taxable Income</p>
+              <p className="text-sm text-muted-foreground">W-2 + K-1 before deductions</p>
             </div>
             <p className="text-xl font-bold text-foreground">${totalTaxableIncomeBeforeDeductions.toLocaleString()}</p>
           </div>
           {totalAnnualDeductions > 0 && (
-            <div className="flex items-center justify-between p-4 bg-success/10 rounded-lg border border-success/20">
-              <div>
-                <p className="font-medium text-foreground">Tax Deductions Applied</p>
-                <p className="text-sm text-muted-foreground">401(k), health insurance, HSA, etc.</p>
+            <>
+              <div className="flex items-center justify-between p-4 bg-success/10 rounded-lg border border-success/20">
+                <div>
+                  <p className="font-medium text-foreground">Pre-Tax Deductions</p>
+                  <p className="text-sm text-muted-foreground">401(k), health insurance, HSA, etc.</p>
+                </div>
+                <p className="text-xl font-bold text-success">-${totalAnnualDeductions.toLocaleString()}</p>
               </div>
-              <p className="text-xl font-bold text-success">-${totalAnnualDeductions.toLocaleString()}</p>
+              <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border-2 border-primary/30">
+                <div>
+                  <p className="font-semibold text-foreground">Federal Taxable Income</p>
+                  <p className="text-sm text-muted-foreground">After ${federalDeductions.toLocaleString()} in deductions</p>
+                </div>
+                <p className="text-2xl font-bold text-primary">${federalTaxableIncome.toLocaleString()}</p>
+              </div>
+              {stateDeductions !== federalDeductions && (
+                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
+                  <div>
+                    <p className="font-medium text-foreground">VA State Taxable Income</p>
+                    <p className="text-sm text-muted-foreground">After ${stateDeductions.toLocaleString()} in deductions</p>
+                  </div>
+                  <p className="text-xl font-bold text-foreground">${stateTaxableIncome.toLocaleString()}</p>
+                </div>
+              )}
+            </>
+          )}
+          {totalAnnualDeductions === 0 && (
+            <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border-2 border-primary/30">
+              <div>
+                <p className="font-semibold text-foreground">Total Taxable Income</p>
+                <p className="text-sm text-muted-foreground">No deductions applied</p>
+              </div>
+              <p className="text-2xl font-bold text-primary">${totalTaxableIncomeBeforeDeductions.toLocaleString()}</p>
             </div>
           )}
         </div>
       </div>
+
+      {/* Updated Tax Liability Summary */}
+      {totalAnnualDeductions > 0 && (
+        <div className="bg-card rounded-xl border-2 border-primary/30 shadow-sm overflow-hidden">
+          <div className="p-6 bg-primary/5">
+            <h2 className="text-xl font-semibold text-foreground">Updated Tax Summary</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Your tax liability with deductions applied
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="p-4 bg-muted/30 rounded-lg text-center">
+                <p className="text-sm text-muted-foreground">Original Tax</p>
+                <p className="text-xl font-bold text-muted-foreground line-through">${Math.round(totalWithoutDeductions).toLocaleString()}</p>
+              </div>
+              <div className="p-4 bg-success/10 rounded-lg text-center border border-success/30">
+                <p className="text-sm text-success">Tax Savings</p>
+                <p className="text-xl font-bold text-success">-${deductionSavings.toLocaleString()}</p>
+              </div>
+              <div className="p-4 bg-primary/10 rounded-lg text-center border-2 border-primary/30">
+                <p className="text-sm text-primary font-medium">Final Tax Liability</p>
+                <p className="text-2xl font-bold text-primary">${taxes.annual.toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="mt-4 p-4 bg-muted/20 rounded-lg">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Taxable Income (Federal):</span>
+                <span className="font-medium">${federalTaxableIncome.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-muted-foreground">Taxable Income (VA State):</span>
+                <span className="font-medium">${stateTaxableIncome.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between text-sm mt-1">
+                <span className="text-muted-foreground">FICA Taxable Salary:</span>
+                <span className="font-medium">${ficaTaxableSalary.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-border/50">
