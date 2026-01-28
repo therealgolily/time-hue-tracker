@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { Calculator, AlertTriangle, DollarSign, Calendar, Building } from 'lucide-react';
 import { MetricCard } from './MetricCard';
 import { TAX_RATES } from '../data/businessData';
@@ -5,14 +6,25 @@ import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
-import { TaxDeductionsManager, useTaxDeductionsConfig } from './TaxDeductionsManager';
+import { TaxDeductionsManager, DeductionTotals, TaxDeductionsConfig } from './TaxDeductionsManager';
 
 export const TaxView = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { totalSalary, loading: employeesLoading } = useEmployees();
   const { totalMonthlyPay: contractorMonthlyPay, loading: contractorsLoading } = useContractors();
-  const { totals: deductionTotals, loading: deductionsLoading } = useTaxDeductionsConfig();
+  
+  // Live deduction state - updated by TaxDeductionsManager callback
+  const [deductionTotals, setDeductionTotals] = useState<DeductionTotals>({
+    totalAnnual: 0,
+    federalDeductions: 0,
+    stateDeductions: 0,
+    ficaDeductions: 0,
+  });
+
+  const handleDeductionsChange = useCallback((deductions: TaxDeductionsConfig, totals: DeductionTotals) => {
+    setDeductionTotals(totals);
+  }, []);
   
   const { 
     totalAnnual: totalAnnualDeductions,
@@ -21,7 +33,7 @@ export const TaxView = () => {
     ficaDeductions,
   } = deductionTotals;
 
-  const loading = clientsLoading || expensesLoading || employeesLoading || contractorsLoading || deductionsLoading;
+  const loading = clientsLoading || expensesLoading || employeesLoading || contractorsLoading;
 
   // Revenue
   const monthlyRevenue = clients
@@ -397,7 +409,7 @@ export const TaxView = () => {
       </div>
 
       {/* Tax Deductions Manager */}
-      <TaxDeductionsManager />
+      <TaxDeductionsManager onChange={handleDeductionsChange} />
 
       {deductionSavings > 0 && (
         <div className="bg-success/10 border border-success/30 rounded-xl p-6">
