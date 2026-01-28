@@ -334,6 +334,31 @@ export const ScenarioPlayground = () => {
                   </p>
                 </div>
 
+                {/* Deductions Summary */}
+                {(scenarioResults.taxDeductionsTotal > 0 || scenarioResults.tripExpensesTotal > 0) && (
+                  <div className="border border-foreground p-3">
+                    <p className="text-xs font-mono uppercase tracking-widest text-muted-foreground mb-2">Deductions (Annual)</p>
+                    <div className="space-y-1">
+                      {scenarioResults.taxDeductionsTotal > 0 && (
+                        <div className="flex justify-between text-sm font-mono">
+                          <span>Tax Deductions</span>
+                          <span className="font-bold">${scenarioResults.taxDeductionsTotal.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {scenarioResults.tripExpensesTotal > 0 && (
+                        <div className="flex justify-between text-sm font-mono">
+                          <span>Travel Expenses</span>
+                          <span className="font-bold">${scenarioResults.tripExpensesTotal.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm font-mono border-t border-foreground/30 pt-1 mt-1">
+                        <span>Total Deductions</span>
+                        <span className="font-bold">${(scenarioResults.taxDeductionsTotal + scenarioResults.tripExpensesTotal).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Bank Allocations Preview */}
                 {scenarioResults.bankAllocations.length > 0 && (
                   <div className="border border-foreground p-3">

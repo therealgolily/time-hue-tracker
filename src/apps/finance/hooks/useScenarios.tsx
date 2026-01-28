@@ -4,6 +4,30 @@ import { useFinanceAuth } from './useFinanceAuth';
 import { useToast } from '@/hooks/use-toast';
 import { Json } from '@/integrations/supabase/types';
 
+export interface ScenarioTaxDeduction {
+  enabled: boolean;
+  amount: number;
+  label: string;
+  description: string;
+  reducesFederal?: boolean;
+  reducesState?: boolean;
+  reducesFica?: boolean;
+  isMonthly?: boolean;
+  isHomeOffice?: boolean;
+  isMileage?: boolean;
+  sqft?: number;
+}
+
+export interface ScenarioTripExpenses {
+  enabled: boolean;
+  flights: number;
+  lodging: number;
+  groundTransport: number;
+  meals: number;
+  perDiem: number;
+  otherExpenses: number;
+}
+
 export interface ScenarioConfig {
   scenarioClients: Array<{ id: string; name: string; monthlyRetainer: number; isVirtual?: boolean }>;
   removedClientIds: string[];
@@ -20,8 +44,10 @@ export interface ScenarioConfig {
   // Virtual employees (new hires in scenario)
   additionalEmployees: Array<{ name: string; salary: number }>;
   salaryAdjustment: number; // Deprecated but kept for backwards compatibility
-  taxDeductions: Record<string, { enabled: boolean; amount: number; label: string; description: string }>;
+  taxDeductions: Record<string, ScenarioTaxDeduction>;
   bankAllocations: Array<{ name: string; percentage: number; color: string }>;
+  // Trip expenses from travel tracker
+  tripExpenses: ScenarioTripExpenses;
 }
 
 export interface Scenario {
