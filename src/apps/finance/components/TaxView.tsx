@@ -5,14 +5,23 @@ import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
+import { useTaxDeductions } from '../hooks/useTaxDeductions';
+import { TaxDeductionsManager } from './TaxDeductionsManager';
 
 export const TaxView = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { totalSalary, loading: employeesLoading } = useEmployees();
   const { totalMonthlyPay: contractorMonthlyPay, loading: contractorsLoading } = useContractors();
+  const { 
+    federalDeductions, 
+    stateDeductions, 
+    ficaDeductions,
+    totalAnnualDeductions,
+    loading: deductionsLoading 
+  } = useTaxDeductions();
 
-  const loading = clientsLoading || expensesLoading || employeesLoading || contractorsLoading;
+  const loading = clientsLoading || expensesLoading || employeesLoading || contractorsLoading || deductionsLoading;
 
   // Revenue
   const monthlyRevenue = clients
@@ -32,21 +41,26 @@ export const TaxView = () => {
   const salary = totalSalary;
 
   // S-Corp Virginia Tax Calculations
-  // Employer FICA (business expense)
-  const employerFica = salary * TAX_RATES.employerFica;
+  // Employer FICA (business expense) - reduced by FICA deductions (like HSA via payroll)
+  const ficaTaxableSalary = Math.max(0, salary - ficaDeductions);
+  const employerFica = ficaTaxableSalary * TAX_RATES.employerFica;
   
   // K-1 pass-through income (profit minus employer FICA deduction)
   const adjustedProfit = annualProfit - employerFica;
   
   // Total taxable income: W-2 salary + K-1 distributions
-  const totalTaxableIncome = salary + adjustedProfit;
-
-  // Employee FICA (withheld from paycheck)
-  const employeeFica = salary * TAX_RATES.employeeFica;
+  const totalTaxableIncomeBeforeDeductions = salary + adjustedProfit;
   
-  // Income taxes on total taxable income
-  const federalIncome = totalTaxableIncome * TAX_RATES.federalIncome;
-  const stateIncome = totalTaxableIncome * TAX_RATES.stateIncome; // Virginia 5.75%
+  // Apply deductions to taxable income
+  const federalTaxableIncome = Math.max(0, totalTaxableIncomeBeforeDeductions - federalDeductions);
+  const stateTaxableIncome = Math.max(0, totalTaxableIncomeBeforeDeductions - stateDeductions);
+
+  // Employee FICA (withheld from paycheck) - also reduced by FICA deductions
+  const employeeFica = ficaTaxableSalary * TAX_RATES.employeeFica;
+  
+  // Income taxes on reduced taxable income
+  const federalIncome = federalTaxableIncome * TAX_RATES.federalIncome;
+  const stateIncome = stateTaxableIncome * TAX_RATES.stateIncome; // Virginia 5.75%
   
   const totalAnnualTax = employerFica + employeeFica + federalIncome + stateIncome;
 
@@ -61,6 +75,17 @@ export const TaxView = () => {
       stateIncome: Math.round(stateIncome),
     },
   };
+
+  // Calculate tax savings from deductions
+  const taxWithoutDeductions = {
+    federalIncome: totalTaxableIncomeBeforeDeductions * TAX_RATES.federalIncome,
+    stateIncome: totalTaxableIncomeBeforeDeductions * TAX_RATES.stateIncome,
+    employerFica: salary * TAX_RATES.employerFica,
+    employeeFica: salary * TAX_RATES.employeeFica,
+  };
+  const totalWithoutDeductions = taxWithoutDeductions.federalIncome + taxWithoutDeductions.stateIncome + 
+    taxWithoutDeductions.employerFica + taxWithoutDeductions.employeeFica;
+  const deductionSavings = Math.round(totalWithoutDeductions - totalAnnualTax);
 
   // Self-employment tax savings calculation
   const selfEmploymentTaxIfSoleProp = (annualProfit + salary) * TAX_RATES.selfEmployment;
@@ -85,16 +110,16 @@ export const TaxView = () => {
     {
       name: 'Federal Income Tax',
       rate: '22%',
-      base: `$${totalTaxableIncome.toLocaleString()} taxable income`,
+      base: `$${federalTaxableIncome.toLocaleString()} taxable income${federalDeductions > 0 ? ` (after $${federalDeductions.toLocaleString()} deductions)` : ''}`,
       amount: taxes.breakdown.federalIncome,
-      description: 'On W-2 salary + K-1 pass-through income (profit)',
+      description: 'On W-2 salary + K-1 pass-through income, minus deductions',
     },
     {
       name: 'Virginia State Tax',
       rate: '5.75%',
-      base: `$${totalTaxableIncome.toLocaleString()} taxable income`,
+      base: `$${stateTaxableIncome.toLocaleString()} taxable income${stateDeductions > 0 ? ` (after $${stateDeductions.toLocaleString()} deductions)` : ''}`,
       amount: taxes.breakdown.stateIncome,
-      description: 'Virginia tax on W-2 salary + K-1 pass-through income',
+      description: 'Virginia tax on W-2 salary + K-1, minus deductions',
     },
   ];
 
@@ -198,11 +223,20 @@ export const TaxView = () => {
           </div>
           <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/20">
             <div>
-              <p className="font-medium text-foreground">Total Taxable Income</p>
+              <p className="font-medium text-foreground">Total Taxable Income (Before Deductions)</p>
               <p className="text-sm text-muted-foreground">W-2 + K-1 for income tax purposes</p>
             </div>
-            <p className="text-xl font-bold text-foreground">${totalTaxableIncome.toLocaleString()}</p>
+            <p className="text-xl font-bold text-foreground">${totalTaxableIncomeBeforeDeductions.toLocaleString()}</p>
           </div>
+          {totalAnnualDeductions > 0 && (
+            <div className="flex items-center justify-between p-4 bg-success/10 rounded-lg border border-success/20">
+              <div>
+                <p className="font-medium text-foreground">Tax Deductions Applied</p>
+                <p className="text-sm text-muted-foreground">401(k), health insurance, HSA, etc.</p>
+              </div>
+              <p className="text-xl font-bold text-success">-${totalAnnualDeductions.toLocaleString()}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -292,6 +326,23 @@ export const TaxView = () => {
           </table>
         </div>
       </div>
+
+      {/* Tax Deductions Manager */}
+      <TaxDeductionsManager />
+
+      {deductionSavings > 0 && (
+        <div className="bg-success/10 border border-success/30 rounded-xl p-6">
+          <h3 className="font-semibold text-foreground flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-success" />
+            Tax Savings from Deductions
+          </h3>
+          <p className="text-muted-foreground mt-2">
+            Your pre-tax deductions are saving you approximately{' '}
+            <span className="font-bold text-success">${deductionSavings.toLocaleString()}</span>{' '}
+            in taxes annually by reducing your taxable income.
+          </p>
+        </div>
+      )}
 
       <div className="bg-success/10 border border-success/30 rounded-xl p-6">
         <h3 className="font-semibold text-foreground flex items-center gap-2">

@@ -498,6 +498,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_deductions: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          id: string
+          name: string
+          reduces_federal: boolean
+          reduces_fica: boolean
+          reduces_state: boolean
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          reduces_federal?: boolean
+          reduces_fica?: boolean
+          reduces_state?: boolean
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          reduces_federal?: boolean
+          reduces_fica?: boolean
+          reduces_state?: boolean
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       time_entries: {
         Row: {
           category: string
