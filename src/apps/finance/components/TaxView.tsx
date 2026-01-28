@@ -8,6 +8,7 @@ import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
 import { TaxDeductionsManager, DeductionTotals, TaxDeductionsConfig } from './TaxDeductionsManager';
 import { TripExpenseTracker } from './TripExpenseTracker';
+import { TripTotals } from '../hooks/useTripExpenses';
 
 export const TaxView = () => {
   const { clients, loading: clientsLoading } = useClients();
@@ -23,8 +24,15 @@ export const TaxView = () => {
     ficaDeductions: 0,
   });
 
+  // Trip totals for auto-populating travel deductions
+  const [tripTotals, setTripTotals] = useState<TripTotals | null>(null);
+
   const handleDeductionsChange = useCallback((deductions: TaxDeductionsConfig, totals: DeductionTotals) => {
     setDeductionTotals(totals);
+  }, []);
+
+  const handleTripTotalsChange = useCallback((totals: TripTotals) => {
+    setTripTotals(totals);
   }, []);
   
   const { 
@@ -410,10 +418,13 @@ export const TaxView = () => {
       </div>
 
       {/* Business Travel Tracker */}
-      <TripExpenseTracker />
+      <TripExpenseTracker onTotalsChange={handleTripTotalsChange} />
 
       {/* Tax Deductions Manager */}
-      <TaxDeductionsManager onChange={handleDeductionsChange} />
+      <TaxDeductionsManager 
+        onChange={handleDeductionsChange} 
+        tripTotals={tripTotals}
+      />
 
       {deductionSavings > 0 && (
         <div className="bg-success/10 border border-success/30 rounded-xl p-6">

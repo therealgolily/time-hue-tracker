@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, PiggyBank, Heart, Shield, Building, Car, GraduationCap, Briefcase, Phone, Utensils, FileText, Calculator, Plane } from 'lucide-react';
+import { DollarSign, PiggyBank, Heart, Shield, Building, Car, GraduationCap, Briefcase, Phone, Utensils, FileText, Calculator, Plane, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { TripTotals } from '../hooks/useTripExpenses';
 
 // Define the structure for tax deductions (matches scenario pattern)
 export interface TaxDeductionConfig {
@@ -364,6 +365,7 @@ const getCategoryIcon = (key: string) => {
 
 interface TaxDeductionsManagerProps {
   onChange?: (deductions: TaxDeductionsConfig, totals: DeductionTotals) => void;
+  tripTotals?: TripTotals | null;
 }
 
 export interface DeductionTotals {
@@ -525,7 +527,7 @@ export const useTaxDeductionsConfig = () => {
   };
 };
 
-export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {}) => {
+export const TaxDeductionsManager = ({ onChange, tripTotals }: TaxDeductionsManagerProps = {}) => {
   const { deductions, loading, toggleDeduction, updateAmount, updateSqft, totals } = useTaxDeductionsConfig();
 
   // Notify parent of changes immediately on any deduction state change
@@ -534,6 +536,33 @@ export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {
       onChange(deductions, totals);
     }
   }, [deductions, totals, onChange, loading]);
+
+  // Auto-sync trip totals to travel deductions when tripTotals change
+  useEffect(() => {
+    if (!tripTotals || tripTotals.tripCount === 0) return;
+
+    // Map trip totals to deduction keys
+    const updates: { key: string; amount: number }[] = [
+      { key: 'travelFlights', amount: tripTotals.flights },
+      { key: 'travelLodging', amount: tripTotals.lodging },
+      { key: 'travelGroundTransport', amount: tripTotals.groundTransport },
+      { key: 'travelMeals', amount: tripTotals.meals },
+      { key: 'travelPerDiem', amount: tripTotals.perDiem },
+    ];
+
+    // Auto-enable and update travel deductions with trip totals
+    updates.forEach(({ key, amount }) => {
+      if (amount > 0 && deductions[key]) {
+        // Only update if amount differs or not enabled
+        if (deductions[key].amount !== amount || !deductions[key].enabled) {
+          updateAmount(key, amount);
+          if (!deductions[key].enabled) {
+            toggleDeduction(key);
+          }
+        }
+      }
+    });
+  }, [tripTotals]); // Only run when tripTotals changes
 
   if (loading) {
     return (
@@ -544,6 +573,19 @@ export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {
   }
 
   const enabledCount = Object.values(deductions).filter(d => d.enabled).length;
+
+  // Check if a deduction is auto-synced from trips
+  const isTripSynced = (key: string): boolean => {
+    if (!tripTotals || tripTotals.tripCount === 0) return false;
+    const syncMap: Record<string, number> = {
+      travelFlights: tripTotals.flights,
+      travelLodging: tripTotals.lodging,
+      travelGroundTransport: tripTotals.groundTransport,
+      travelMeals: tripTotals.meals,
+      travelPerDiem: tripTotals.perDiem,
+    };
+    return key in syncMap && syncMap[key] > 0;
+  };
 
   // Group deductions by category
   const categories = {
@@ -628,9 +670,26 @@ export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {
                         <Icon className={`w-4 h-4 ${deduction.enabled ? 'text-success' : 'text-muted-foreground'}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${deduction.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
-                          {deduction.label}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className={`text-sm font-medium ${deduction.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
+                            {deduction.label}
+                          </p>
+                          {isTripSynced(key) && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <span className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                    <Link2 className="w-3 h-3" />
+                                    Synced
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Auto-populated from Trip Tracker</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground truncate">{deduction.description}</p>
                         {deduction.enabled && (
                           <div className="flex gap-2 mt-1">
