@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Plane, Plus, Trash2, Edit2, X, Check, MapPin, Calendar, DollarSign, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -237,11 +237,22 @@ const TripForm = ({
   );
 };
 
-export const TripExpenseTracker = () => {
+interface TripExpenseTrackerProps {
+  onTotalsChange?: (totals: ReturnType<typeof useTripExpenses>['totals']) => void;
+}
+
+export const TripExpenseTracker = ({ onTotalsChange }: TripExpenseTrackerProps) => {
   const { trips, loading, addTrip, updateTrip, deleteTrip, totals } = useTripExpenses();
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<TripExpense | null>(null);
   const [isExpanded, setIsExpanded] = useState(true);
+
+  // Notify parent of totals changes
+  useEffect(() => {
+    if (onTotalsChange && !loading) {
+      onTotalsChange(totals);
+    }
+  }, [totals, onTotalsChange, loading]);
 
   const handleAddTrip = async (data: TripExpenseInput) => {
     await addTrip(data);
