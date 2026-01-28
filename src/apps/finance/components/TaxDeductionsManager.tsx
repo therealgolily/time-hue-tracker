@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Trash2, Edit2, Percent, Shield, Building, Heart, PiggyBank, HelpCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Percent, Shield, Building, Heart, PiggyBank, HelpCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,64 @@ const CATEGORY_OPTIONS = [
   { value: 'hsa', label: 'HSA / FSA', icon: Shield },
   { value: 'ira', label: 'Traditional IRA', icon: PiggyBank },
   { value: 'other', label: 'Other', icon: HelpCircle },
+];
+
+// 2024 IRS limits for common deductions
+const DEDUCTION_PRESETS: TaxDeductionInsert[] = [
+  {
+    name: '401(k) Max (2024)',
+    type: 'annual',
+    amount: 23000,
+    category: 'retirement_401k',
+    reduces_federal: true,
+    reduces_state: true,
+    reduces_fica: false,
+  },
+  {
+    name: '401(k) Catch-up (50+)',
+    type: 'annual',
+    amount: 30500, // 23000 + 7500
+    category: 'retirement_401k',
+    reduces_federal: true,
+    reduces_state: true,
+    reduces_fica: false,
+  },
+  {
+    name: 'HSA Max - Individual (2024)',
+    type: 'annual',
+    amount: 4150,
+    category: 'hsa',
+    reduces_federal: true,
+    reduces_state: true,
+    reduces_fica: true, // HSA via payroll reduces FICA
+  },
+  {
+    name: 'HSA Max - Family (2024)',
+    type: 'annual',
+    amount: 8300,
+    category: 'hsa',
+    reduces_federal: true,
+    reduces_state: true,
+    reduces_fica: true,
+  },
+  {
+    name: 'Traditional IRA Max (2024)',
+    type: 'annual',
+    amount: 7000,
+    category: 'ira',
+    reduces_federal: true,
+    reduces_state: true,
+    reduces_fica: false,
+  },
+  {
+    name: 'Health Insurance Premium',
+    type: 'monthly',
+    amount: 500,
+    category: 'health_insurance',
+    reduces_federal: true,
+    reduces_state: true,
+    reduces_fica: true, // Typically via Section 125 cafeteria plan
+  },
 ];
 
 const getCategoryIcon = (category: string) => {
@@ -194,9 +252,27 @@ export const TaxDeductionsManager = () => {
   
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingDeduction, setEditingDeduction] = useState<TaxDeduction | null>(null);
+  const [addingPreset, setAddingPreset] = useState<string | null>(null);
 
   const handleAdd = async (data: TaxDeductionInsert) => {
     await addDeduction(data);
+  };
+
+  const handleAddPreset = async (preset: TaxDeductionInsert) => {
+    setAddingPreset(preset.name);
+    try {
+      await addDeduction(preset);
+    } finally {
+      setAddingPreset(null);
+    }
+  };
+
+  // Check which presets are already added (by name similarity)
+  const isPresetAdded = (presetName: string) => {
+    return deductions.some(d => 
+      d.name.toLowerCase().includes(presetName.toLowerCase().split(' ')[0]) ||
+      presetName.toLowerCase().includes(d.name.toLowerCase().split(' ')[0])
+    );
   };
 
   const handleUpdate = async (data: TaxDeductionInsert) => {
@@ -239,11 +315,44 @@ export const TaxDeductionsManager = () => {
         </Dialog>
       </div>
 
+      {/* Quick Add Presets */}
+      <div className="p-4 border-b border-border/50 bg-muted/20">
+        <div className="flex items-center gap-2 mb-3">
+          <Zap className="w-4 h-4 text-warning" />
+          <p className="text-sm font-medium text-foreground">Quick Add (2024 IRS Limits)</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {DEDUCTION_PRESETS.map((preset) => {
+            const Icon = getCategoryIcon(preset.category);
+            const isAdded = isPresetAdded(preset.name);
+            const isLoading = addingPreset === preset.name;
+            
+            return (
+              <Button
+                key={preset.name}
+                variant={isAdded ? "secondary" : "outline"}
+                size="sm"
+                disabled={isAdded || isLoading}
+                onClick={() => handleAddPreset(preset)}
+                className="gap-2 text-xs"
+              >
+                <Icon className="w-3 h-3" />
+                {preset.name}
+                <span className="text-muted-foreground">
+                  ${preset.type === 'monthly' ? `${preset.amount}/mo` : preset.amount.toLocaleString()}
+                </span>
+                {isAdded && <span className="text-success">✓</span>}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+
       {deductions.length === 0 ? (
         <div className="p-8 text-center text-muted-foreground">
           <PiggyBank className="w-12 h-12 mx-auto mb-3 opacity-50" />
           <p>No tax deductions added yet.</p>
-          <p className="text-sm mt-1">Add 401(k), health insurance, HSA, or other pre-tax deductions.</p>
+          <p className="text-sm mt-1">Use the quick-add buttons above or add a custom deduction.</p>
         </div>
       ) : (
         <>
