@@ -243,12 +243,12 @@ export const useTaxDeductionsConfig = () => {
 export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {}) => {
   const { deductions, loading, toggleDeduction, updateAmount, totals } = useTaxDeductionsConfig();
 
-  // Notify parent of changes
+  // Notify parent of changes immediately on any deduction state change
   useEffect(() => {
-    if (onChange) {
+    if (onChange && !loading) {
       onChange(deductions, totals);
     }
-  }, [deductions, totals, onChange]);
+  }, [deductions, totals, onChange, loading]);
 
   if (loading) {
     return (
