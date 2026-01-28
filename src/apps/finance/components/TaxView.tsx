@@ -5,21 +5,21 @@ import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
-import { useTaxDeductions } from '../hooks/useTaxDeductions';
-import { TaxDeductionsManager } from './TaxDeductionsManager';
+import { TaxDeductionsManager, useTaxDeductionsConfig } from './TaxDeductionsManager';
 
 export const TaxView = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { totalSalary, loading: employeesLoading } = useEmployees();
   const { totalMonthlyPay: contractorMonthlyPay, loading: contractorsLoading } = useContractors();
+  const { totals: deductionTotals, loading: deductionsLoading } = useTaxDeductionsConfig();
+  
   const { 
-    federalDeductions, 
-    stateDeductions, 
+    totalAnnual: totalAnnualDeductions,
+    federalDeductions,
+    stateDeductions,
     ficaDeductions,
-    totalAnnualDeductions,
-    loading: deductionsLoading 
-  } = useTaxDeductions();
+  } = deductionTotals;
 
   const loading = clientsLoading || expensesLoading || employeesLoading || contractorsLoading || deductionsLoading;
 
