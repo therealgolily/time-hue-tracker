@@ -1,286 +1,254 @@
-import { useState } from 'react';
-import { Plus, Trash2, Edit2, Percent, Shield, Building, Heart, PiggyBank, HelpCircle, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { DollarSign, PiggyBank, Heart, Shield, Building, HelpCircle, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useTaxDeductions, TaxDeductionInsert, TaxDeduction } from '../hooks/useTaxDeductions';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
-const CATEGORY_OPTIONS = [
-  { value: 'retirement_401k', label: '401(k) / 403(b)', icon: PiggyBank },
-  { value: 'health_insurance', label: 'Health Insurance', icon: Heart },
-  { value: 'hsa', label: 'HSA / FSA', icon: Shield },
-  { value: 'ira', label: 'Traditional IRA', icon: PiggyBank },
-  { value: 'other', label: 'Other', icon: HelpCircle },
-];
-
-// 2024 IRS limits for common deductions
-const DEDUCTION_PRESETS: TaxDeductionInsert[] = [
-  {
-    name: '401(k) Max (2024)',
-    type: 'annual',
-    amount: 23000,
-    category: 'retirement_401k',
-    reduces_federal: true,
-    reduces_state: true,
-    reduces_fica: false,
-  },
-  {
-    name: '401(k) Catch-up (50+)',
-    type: 'annual',
-    amount: 30500, // 23000 + 7500
-    category: 'retirement_401k',
-    reduces_federal: true,
-    reduces_state: true,
-    reduces_fica: false,
-  },
-  {
-    name: 'HSA Max - Individual (2024)',
-    type: 'annual',
-    amount: 4150,
-    category: 'hsa',
-    reduces_federal: true,
-    reduces_state: true,
-    reduces_fica: true, // HSA via payroll reduces FICA
-  },
-  {
-    name: 'HSA Max - Family (2024)',
-    type: 'annual',
-    amount: 8300,
-    category: 'hsa',
-    reduces_federal: true,
-    reduces_state: true,
-    reduces_fica: true,
-  },
-  {
-    name: 'Traditional IRA Max (2024)',
-    type: 'annual',
-    amount: 7000,
-    category: 'ira',
-    reduces_federal: true,
-    reduces_state: true,
-    reduces_fica: false,
-  },
-  {
-    name: 'Health Insurance Premium',
-    type: 'monthly',
-    amount: 500,
-    category: 'health_insurance',
-    reduces_federal: true,
-    reduces_state: true,
-    reduces_fica: true, // Typically via Section 125 cafeteria plan
-  },
-];
-
-const getCategoryIcon = (category: string) => {
-  const option = CATEGORY_OPTIONS.find(o => o.value === category);
-  return option?.icon || HelpCircle;
-};
-
-const getCategoryLabel = (category: string) => {
-  const option = CATEGORY_OPTIONS.find(o => o.value === category);
-  return option?.label || 'Other';
-};
-
-interface DeductionFormProps {
-  onSubmit: (data: TaxDeductionInsert) => Promise<void>;
-  initialData?: TaxDeduction;
-  onClose: () => void;
+// Define the structure for tax deductions (matches scenario pattern)
+export interface TaxDeductionConfig {
+  enabled: boolean;
+  amount: number;
+  label: string;
+  description: string;
+  reducesFederal: boolean;
+  reducesState: boolean;
+  reducesFica: boolean;
 }
 
-const DeductionForm = ({ onSubmit, initialData, onClose }: DeductionFormProps) => {
-  const [formData, setFormData] = useState<TaxDeductionInsert>({
-    name: initialData?.name || '',
-    type: initialData?.type || 'annual',
-    amount: initialData?.amount || 0,
-    category: initialData?.category || 'retirement_401k',
-    reduces_federal: initialData?.reduces_federal ?? true,
-    reduces_state: initialData?.reduces_state ?? true,
-    reduces_fica: initialData?.reduces_fica ?? false,
-  });
-  const [submitting, setSubmitting] = useState(false);
+export interface TaxDeductionsConfig {
+  [key: string]: TaxDeductionConfig;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await onSubmit(formData);
-      onClose();
-    } finally {
-      setSubmitting(false);
-    }
-  };
+// Default tax deductions with 2024 IRS limits as placeholders
+export const getDefaultTaxDeductions = (): TaxDeductionsConfig => ({
+  traditional401k: {
+    enabled: false,
+    amount: 23000,
+    label: '401(k) / 403(b)',
+    description: 'Pre-tax contributions (2024 max: $23,000, or $30,500 if 50+)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+  healthInsurance: {
+    enabled: false,
+    amount: 500,
+    label: 'Health Insurance Premium',
+    description: 'Monthly premium via S-Corp (enter monthly amount)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: true,
+  },
+  hsaContribution: {
+    enabled: false,
+    amount: 4150,
+    label: 'HSA Contribution',
+    description: 'Health Savings Account (2024 max: $4,150 individual, $8,300 family)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: true,
+  },
+  traditionalIra: {
+    enabled: false,
+    amount: 7000,
+    label: 'Traditional IRA',
+    description: 'Pre-tax IRA (2024 max: $7,000, or $8,000 if 50+)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+  sepIra: {
+    enabled: false,
+    amount: 0,
+    label: 'SEP-IRA',
+    description: 'Up to 25% of net self-employment income (max $69,000)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+  dentalVision: {
+    enabled: false,
+    amount: 100,
+    label: 'Dental & Vision',
+    description: 'Monthly premium (enter monthly amount)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: true,
+  },
+  fsa: {
+    enabled: false,
+    amount: 3200,
+    label: 'FSA (Flexible Spending)',
+    description: 'Healthcare FSA (2024 max: $3,200)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: true,
+  },
+  dependentCareFsa: {
+    enabled: false,
+    amount: 5000,
+    label: 'Dependent Care FSA',
+    description: 'Dependent care expenses (max: $5,000/year)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: true,
+  },
+});
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="name">Deduction Name</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-          placeholder="e.g., 401(k) Contribution"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="category">Category</Label>
-          <Select
-            value={formData.category}
-            onValueChange={(value: any) => setFormData(prev => ({ ...prev, category: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CATEGORY_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="type">Frequency</Label>
-          <Select
-            value={formData.type}
-            onValueChange={(value: 'annual' | 'monthly') => setFormData(prev => ({ ...prev, type: value }))}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="annual">Annual</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="amount">Amount ({formData.type === 'monthly' ? 'per month' : 'per year'})</Label>
-        <Input
-          id="amount"
-          type="number"
-          min="0"
-          step="0.01"
-          value={formData.amount}
-          onChange={(e) => setFormData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
-          required
-        />
-        {formData.type === 'monthly' && formData.amount > 0 && (
-          <p className="text-xs text-muted-foreground">
-            = ${(formData.amount * 12).toLocaleString()} annually
-          </p>
-        )}
-      </div>
-
-      <div className="space-y-4 pt-4 border-t border-border">
-        <p className="text-sm font-medium text-foreground">Reduces Taxable Income For:</p>
-        
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Building className="w-4 h-4 text-muted-foreground" />
-            <Label htmlFor="reduces_federal" className="font-normal">Federal Income Tax</Label>
-          </div>
-          <Switch
-            id="reduces_federal"
-            checked={formData.reduces_federal}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, reduces_federal: checked }))}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Building className="w-4 h-4 text-muted-foreground" />
-            <Label htmlFor="reduces_state" className="font-normal">Virginia State Tax</Label>
-          </div>
-          <Switch
-            id="reduces_state"
-            checked={formData.reduces_state}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, reduces_state: checked }))}
-          />
-        </div>
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Percent className="w-4 h-4 text-muted-foreground" />
-            <Label htmlFor="reduces_fica" className="font-normal">FICA (Social Security/Medicare)</Label>
-          </div>
-          <Switch
-            id="reduces_fica"
-            checked={formData.reduces_fica}
-            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, reduces_fica: checked }))}
-          />
-        </div>
-        
-        <p className="text-xs text-muted-foreground">
-          Note: Most deductions (401k, health insurance) reduce income tax but not FICA.
-          HSA contributions through payroll may reduce FICA.
-        </p>
-      </div>
-
-      <div className="flex justify-end gap-3 pt-4">
-        <Button type="button" variant="outline" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? 'Saving...' : initialData ? 'Update' : 'Add Deduction'}
-        </Button>
-      </div>
-    </form>
-  );
+const getCategoryIcon = (key: string) => {
+  if (key.includes('401k') || key.includes('ira') || key.includes('Ira')) return PiggyBank;
+  if (key.includes('health') || key.includes('Health') || key.includes('dental') || key.includes('Dental')) return Heart;
+  if (key.includes('hsa') || key.includes('fsa') || key.includes('Fsa')) return Shield;
+  return DollarSign;
 };
 
-export const TaxDeductionsManager = () => {
-  const { 
-    deductions, 
-    loading, 
-    addDeduction, 
-    updateDeduction, 
-    deleteDeduction,
-    totalAnnualDeductions,
-    federalDeductions,
-    stateDeductions,
-  } = useTaxDeductions();
-  
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [editingDeduction, setEditingDeduction] = useState<TaxDeduction | null>(null);
-  const [addingPreset, setAddingPreset] = useState<string | null>(null);
+interface TaxDeductionsManagerProps {
+  onChange?: (deductions: TaxDeductionsConfig, totals: DeductionTotals) => void;
+}
 
-  const handleAdd = async (data: TaxDeductionInsert) => {
-    await addDeduction(data);
-  };
+export interface DeductionTotals {
+  totalAnnual: number;
+  federalDeductions: number;
+  stateDeductions: number;
+  ficaDeductions: number;
+}
 
-  const handleAddPreset = async (preset: TaxDeductionInsert) => {
-    setAddingPreset(preset.name);
+export const useTaxDeductionsConfig = () => {
+  const [deductions, setDeductions] = useState<TaxDeductionsConfig>(getDefaultTaxDeductions());
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  // Load from database
+  useEffect(() => {
+    const loadDeductions = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('tax_deductions')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('name', '__config__')
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          // Parse stored config and merge with defaults
+          try {
+            const storedConfig = JSON.parse(data.category) as TaxDeductionsConfig;
+            setDeductions({ ...getDefaultTaxDeductions(), ...storedConfig });
+          } catch {
+            setDeductions(getDefaultTaxDeductions());
+          }
+        }
+      } catch (error) {
+        console.error('Error loading tax deductions config:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDeductions();
+  }, []);
+
+  // Save to database
+  const saveDeductions = async (newDeductions: TaxDeductionsConfig) => {
     try {
-      await addDeduction(preset);
-    } finally {
-      setAddingPreset(null);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('tax_deductions')
+        .upsert({
+          user_id: user.id,
+          name: '__config__',
+          type: 'annual',
+          amount: 0,
+          category: JSON.stringify(newDeductions),
+          reduces_federal: true,
+          reduces_state: true,
+          reduces_fica: false,
+        }, {
+          onConflict: 'user_id,name',
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving tax deductions config:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save tax deductions',
+        variant: 'destructive',
+      });
     }
   };
 
-  // Check which presets are already added (by name similarity)
-  const isPresetAdded = (presetName: string) => {
-    return deductions.some(d => 
-      d.name.toLowerCase().includes(presetName.toLowerCase().split(' ')[0]) ||
-      presetName.toLowerCase().includes(d.name.toLowerCase().split(' ')[0])
-    );
+  const toggleDeduction = (key: string) => {
+    const newDeductions = {
+      ...deductions,
+      [key]: { ...deductions[key], enabled: !deductions[key].enabled },
+    };
+    setDeductions(newDeductions);
+    saveDeductions(newDeductions);
   };
 
-  const handleUpdate = async (data: TaxDeductionInsert) => {
-    if (editingDeduction) {
-      await updateDeduction(editingDeduction.id, data);
-      setEditingDeduction(null);
-    }
+  const updateAmount = (key: string, amount: number) => {
+    const newDeductions = {
+      ...deductions,
+      [key]: { ...deductions[key], amount },
+    };
+    setDeductions(newDeductions);
+    saveDeductions(newDeductions);
   };
+
+  // Calculate totals
+  const calculateTotals = (): DeductionTotals => {
+    let totalAnnual = 0;
+    let federalDeductions = 0;
+    let stateDeductions = 0;
+    let ficaDeductions = 0;
+
+    Object.entries(deductions).forEach(([key, d]) => {
+      if (!d.enabled) return;
+      
+      // Health insurance and dental are monthly, others are annual
+      const isMonthly = key === 'healthInsurance' || key === 'dentalVision';
+      const annualAmount = isMonthly ? d.amount * 12 : d.amount;
+
+      totalAnnual += annualAmount;
+      if (d.reducesFederal) federalDeductions += annualAmount;
+      if (d.reducesState) stateDeductions += annualAmount;
+      if (d.reducesFica) ficaDeductions += annualAmount;
+    });
+
+    return { totalAnnual, federalDeductions, stateDeductions, ficaDeductions };
+  };
+
+  return {
+    deductions,
+    loading,
+    toggleDeduction,
+    updateAmount,
+    totals: calculateTotals(),
+  };
+};
+
+export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {}) => {
+  const { deductions, loading, toggleDeduction, updateAmount, totals } = useTaxDeductionsConfig();
+
+  // Notify parent of changes
+  useEffect(() => {
+    if (onChange) {
+      onChange(deductions, totals);
+    }
+  }, [deductions, totals, onChange]);
 
   if (loading) {
     return (
@@ -290,178 +258,117 @@ export const TaxDeductionsManager = () => {
     );
   }
 
+  const enabledCount = Object.values(deductions).filter(d => d.enabled).length;
+
   return (
     <div className="bg-card rounded-xl border border-border/50 shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-border/50 flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-foreground">Tax Deductions</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Pre-tax deductions that reduce your taxable income
-          </p>
-        </div>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="gap-2">
-              <Plus className="w-4 h-4" />
-              Add Deduction
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Tax Deduction</DialogTitle>
-            </DialogHeader>
-            <DeductionForm onSubmit={handleAdd} onClose={() => setIsAddOpen(false)} />
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Quick Add Presets */}
-      <div className="p-4 border-b border-border/50 bg-muted/20">
-        <div className="flex items-center gap-2 mb-3">
-          <Zap className="w-4 h-4 text-warning" />
-          <p className="text-sm font-medium text-foreground">Quick Add (2024 IRS Limits)</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {DEDUCTION_PRESETS.map((preset) => {
-            const Icon = getCategoryIcon(preset.category);
-            const isAdded = isPresetAdded(preset.name);
-            const isLoading = addingPreset === preset.name;
-            
-            return (
-              <Button
-                key={preset.name}
-                variant={isAdded ? "secondary" : "outline"}
-                size="sm"
-                disabled={isAdded || isLoading}
-                onClick={() => handleAddPreset(preset)}
-                className="gap-2 text-xs"
-              >
-                <Icon className="w-3 h-3" />
-                {preset.name}
-                <span className="text-muted-foreground">
-                  ${preset.type === 'monthly' ? `${preset.amount}/mo` : preset.amount.toLocaleString()}
-                </span>
-                {isAdded && <span className="text-success">✓</span>}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
-
-      {deductions.length === 0 ? (
-        <div className="p-8 text-center text-muted-foreground">
-          <PiggyBank className="w-12 h-12 mx-auto mb-3 opacity-50" />
-          <p>No tax deductions added yet.</p>
-          <p className="text-sm mt-1">Use the quick-add buttons above or add a custom deduction.</p>
-        </div>
-      ) : (
-        <>
-          <div className="p-6 space-y-3">
-            {deductions.map((deduction) => {
-              const Icon = getCategoryIcon(deduction.category);
-              const annualAmount = deduction.type === 'monthly' 
-                ? Number(deduction.amount) * 12 
-                : Number(deduction.amount);
-
-              return (
-                <div
-                  key={deduction.id}
-                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                      <Icon className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-foreground">{deduction.name}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                        <span>{getCategoryLabel(deduction.category)}</span>
-                        <span>•</span>
-                        <span>
-                          ${Number(deduction.amount).toLocaleString()}/{deduction.type === 'monthly' ? 'mo' : 'yr'}
-                        </span>
-                        {deduction.type === 'monthly' && (
-                          <>
-                            <span>•</span>
-                            <span>${annualAmount.toLocaleString()}/yr</span>
-                          </>
-                        )}
-                      </div>
-                      <div className="flex gap-2 mt-1">
-                        {deduction.reduces_federal && (
-                          <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded">
-                            Federal
-                          </span>
-                        )}
-                        {deduction.reduces_state && (
-                          <span className="text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded">
-                            State
-                          </span>
-                        )}
-                        {deduction.reduces_fica && (
-                          <span className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded">
-                            FICA
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold text-success mr-4">
-                      -${annualAmount.toLocaleString()}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setEditingDeduction(deduction)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteDeduction(deduction.id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+      <div className="p-6 border-b border-border/50">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Tax Deductions</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Toggle deductions on/off and enter your amounts (2024 IRS limits shown)
+            </p>
           </div>
+          {enabledCount > 0 && (
+            <div className="text-right">
+              <p className="text-2xl font-bold text-success">-${totals.totalAnnual.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">{enabledCount} active</p>
+            </div>
+          )}
+        </div>
+      </div>
 
-          <div className="p-6 bg-success/10 border-t border-success/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-semibold text-foreground">Total Annual Deductions</p>
-                <p className="text-sm text-muted-foreground">
-                  Reduces Federal by ${federalDeductions.toLocaleString()} • 
-                  State by ${stateDeductions.toLocaleString()}
-                </p>
+      <div className="p-4 space-y-2">
+        {Object.entries(deductions).map(([key, deduction]) => {
+          const Icon = getCategoryIcon(key);
+          const isMonthly = key === 'healthInsurance' || key === 'dentalVision';
+          const annualAmount = isMonthly ? deduction.amount * 12 : deduction.amount;
+
+          return (
+            <div
+              key={key}
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                deduction.enabled 
+                  ? 'bg-success/5 border-success/30' 
+                  : 'bg-muted/20 border-border/50 opacity-60'
+              }`}
+            >
+              <Switch
+                checked={deduction.enabled}
+                onCheckedChange={() => toggleDeduction(key)}
+              />
+              <div className="p-2 bg-muted/50 rounded-lg">
+                <Icon className={`w-4 h-4 ${deduction.enabled ? 'text-success' : 'text-muted-foreground'}`} />
               </div>
-              <p className="text-2xl font-bold text-success">
-                -${totalAnnualDeductions.toLocaleString()}
+              <div className="flex-1 min-w-0">
+                <p className={`text-sm font-medium ${deduction.enabled ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {deduction.label}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">{deduction.description}</p>
+                {deduction.enabled && (
+                  <div className="flex gap-2 mt-1">
+                    {deduction.reducesFederal && (
+                      <span className="text-xs bg-blue-500/10 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded">
+                        Fed
+                      </span>
+                    )}
+                    {deduction.reducesState && (
+                      <span className="text-xs bg-purple-500/10 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded">
+                        VA
+                      </span>
+                    )}
+                    {deduction.reducesFica && (
+                      <span className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-1.5 py-0.5 rounded">
+                        FICA
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    value={deduction.amount}
+                    onChange={(e) => updateAmount(key, Number(e.target.value) || 0)}
+                    className="w-24 h-8 text-sm font-mono pl-5 pr-2"
+                    disabled={!deduction.enabled}
+                    min={0}
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground w-8">
+                  {isMonthly ? '/mo' : '/yr'}
+                </span>
+              </div>
+              {deduction.enabled && isMonthly && (
+                <span className="text-xs text-muted-foreground">
+                  = ${annualAmount.toLocaleString()}/yr
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {totals.totalAnnual > 0 && (
+        <div className="p-4 bg-success/10 border-t border-success/20">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-foreground">Total Annual Tax Deductions</p>
+              <p className="text-xs text-muted-foreground">
+                Federal: -${totals.federalDeductions.toLocaleString()} • 
+                State: -${totals.stateDeductions.toLocaleString()} • 
+                FICA: -${totals.ficaDeductions.toLocaleString()}
               </p>
             </div>
+            <p className="text-2xl font-bold text-success">
+              -${totals.totalAnnual.toLocaleString()}
+            </p>
           </div>
-        </>
+        </div>
       )}
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingDeduction} onOpenChange={(open) => !open && setEditingDeduction(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Tax Deduction</DialogTitle>
-          </DialogHeader>
-          {editingDeduction && (
-            <DeductionForm 
-              onSubmit={handleUpdate} 
-              initialData={editingDeduction}
-              onClose={() => setEditingDeduction(null)} 
-            />
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
