@@ -7,6 +7,7 @@ import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
 import { TaxDeductionsManager, DeductionTotals, TaxDeductionsConfig } from './TaxDeductionsManager';
+import { TripExpenseTracker } from './TripExpenseTracker';
 
 export const TaxView = () => {
   const { clients, loading: clientsLoading } = useClients();
@@ -407,6 +408,9 @@ export const TaxView = () => {
           </table>
         </div>
       </div>
+
+      {/* Business Travel Tracker */}
+      <TripExpenseTracker />
 
       {/* Tax Deductions Manager */}
       <TaxDeductionsManager onChange={handleDeductionsChange} />
