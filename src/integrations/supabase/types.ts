@@ -585,6 +585,63 @@ export type Database = {
         }
         Relationships: []
       }
+      trip_expenses: {
+        Row: {
+          client_name: string | null
+          created_at: string
+          end_date: string
+          flights: number
+          ground_transport: number
+          id: string
+          lodging: number
+          meals: number
+          notes: string | null
+          other_expenses: number
+          per_diem: number
+          purpose: string | null
+          start_date: string
+          trip_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_name?: string | null
+          created_at?: string
+          end_date: string
+          flights?: number
+          ground_transport?: number
+          id?: string
+          lodging?: number
+          meals?: number
+          notes?: string | null
+          other_expenses?: number
+          per_diem?: number
+          purpose?: string | null
+          start_date: string
+          trip_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_name?: string | null
+          created_at?: string
+          end_date?: string
+          flights?: number
+          ground_transport?: number
+          id?: string
+          lodging?: number
+          meals?: number
+          notes?: string | null
+          other_expenses?: number
+          per_diem?: number
+          purpose?: string | null
+          start_date?: string
+          trip_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
