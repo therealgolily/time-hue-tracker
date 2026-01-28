@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DollarSign, PiggyBank, Heart, Shield, Building, Car, GraduationCap, Briefcase, Phone, Utensils, FileText, Calculator } from 'lucide-react';
+import { DollarSign, PiggyBank, Heart, Shield, Building, Car, GraduationCap, Briefcase, Phone, Utensils, FileText, Calculator, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -167,6 +167,53 @@ export const getDefaultTaxDeductions = (): TaxDeductionsConfig => ({
     reducesFica: false,
   },
 
+  // === BUSINESS TRAVEL ===
+  travelFlights: {
+    enabled: false,
+    amount: 0,
+    label: 'Flights & Airfare',
+    description: 'Annual flights for client visits, conferences, onboarding',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+  travelLodging: {
+    enabled: false,
+    amount: 0,
+    label: 'Hotels & Lodging',
+    description: 'Overnight stays for business travel',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+  travelGroundTransport: {
+    enabled: false,
+    amount: 0,
+    label: 'Ground Transportation',
+    description: 'Rental cars, Uber/Lyft, taxis, parking for business travel',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+  travelMeals: {
+    enabled: false,
+    amount: 0,
+    label: 'Travel Meals (50%)',
+    description: 'Meals while traveling for business (50% deductible)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+  travelPerDiem: {
+    enabled: false,
+    amount: 0,
+    label: 'Per Diem Allowance',
+    description: 'Annual per diem for travel days (if using standard rates)',
+    reducesFederal: true,
+    reducesState: true,
+    reducesFica: false,
+  },
+
   // === PROFESSIONAL SERVICES ===
   accountingFees: {
     enabled: false,
@@ -305,6 +352,7 @@ const getCategoryIcon = (key: string) => {
   if (key.includes('hsa') || key.includes('fsa') || key.includes('Fsa')) return Shield;
   if (key.includes('homeOffice')) return Building;
   if (key.includes('mileage') || key.includes('vehicle') || key.includes('Vehicle')) return Car;
+  if (key.startsWith('travel')) return Plane;
   if (key.includes('professional') || key.includes('education') || key.includes('Education')) return GraduationCap;
   if (key.includes('accounting') || key.includes('legal')) return FileText;
   if (key.includes('Insurance') || key.includes('insurance')) return Shield;
@@ -447,7 +495,7 @@ export const useTaxDeductionsConfig = () => {
       } else if (d.isMileage) {
         // Mileage: 67 cents per mile
         annualAmount = Math.round(d.amount * MILEAGE_RATE_2024);
-      } else if (key === 'businessMeals') {
+      } else if (key === 'businessMeals' || key === 'travelMeals') {
         // Meals are 50% deductible
         annualAmount = Math.round(d.amount * 0.5);
       } else if (d.isMonthly) {
@@ -502,7 +550,8 @@ export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {
     'Retirement': ['traditional401k', 'sepIra', 'traditionalIra'],
     'Health & Insurance': ['healthInsurance', 'hsaContribution', 'dentalVision', 'fsa', 'dependentCareFsa', 'lifeInsurance', 'disabilityInsurance'],
     'Home Office': ['homeOffice'],
-    'Vehicle & Travel': ['businessMileage', 'vehicleExpenses'],
+    'Vehicle & Mileage': ['businessMileage', 'vehicleExpenses'],
+    'Business Travel': ['travelFlights', 'travelLodging', 'travelGroundTransport', 'travelMeals', 'travelPerDiem'],
     'Professional Services': ['accountingFees', 'legalFees', 'professionalDevelopment', 'professionalDues'],
     'Business Insurance': ['businessInsurance'],
     'Technology & Office': ['cellPhone', 'internet', 'equipmentDepreciation', 'officeSupplies'],
@@ -517,7 +566,7 @@ export const TaxDeductionsManager = ({ onChange }: TaxDeductionsManagerProps = {
       return sqft * HOME_OFFICE_RATE_PER_SQFT;
     } else if (d.isMileage) {
       return Math.round(d.amount * MILEAGE_RATE_2024);
-    } else if (key === 'businessMeals') {
+    } else if (key === 'businessMeals' || key === 'travelMeals') {
       return Math.round(d.amount * 0.5);
     } else if (d.isMonthly) {
       return d.amount * 12;
