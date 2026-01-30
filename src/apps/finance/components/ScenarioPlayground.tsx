@@ -334,6 +334,15 @@ export const ScenarioPlayground = () => {
                   </p>
                 </div>
 
+                {/* Expected Payments */}
+                {scenarioResults.expectedPaymentsTotal > 0 && (
+                  <div className="border border-chart-4 bg-chart-4/10 p-3">
+                    <p className="text-xs font-mono uppercase tracking-widest text-chart-4 mb-1">Expected Payments</p>
+                    <p className="text-lg font-bold tabular-nums">${scenarioResults.expectedPaymentsTotal.toLocaleString()}</p>
+                    <p className="text-xs font-mono text-muted-foreground">Added to annual revenue</p>
+                  </div>
+                )}
+
                 {/* Deductions Summary */}
                 {(scenarioResults.taxDeductionsTotal > 0 || scenarioResults.tripExpensesTotal > 0) && (
                   <div className="border border-foreground p-3">

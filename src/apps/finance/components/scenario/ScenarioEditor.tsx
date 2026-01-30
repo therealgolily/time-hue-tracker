@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Plus, Trash2, DollarSign, Users, Receipt, Briefcase, PiggyBank, User, Plane } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { Plus, Trash2, DollarSign, Users, Receipt, Briefcase, PiggyBank, User, Plane, Clock, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ScenarioConfig, ScenarioTripExpenses } from '../../hooks/useScenarios';
+import { ScenarioConfig, ScenarioTripExpenses, ScenarioExpectedPayment } from '../../hooks/useScenarios';
 import { useClients } from '../../hooks/useClients';
 import { useExpenses } from '../../hooks/useExpenses';
 import { useEmployees } from '../../hooks/useEmployees';
 import { useContractors } from '../../hooks/useContractors';
 import { useTripExpenses } from '../../hooks/useTripExpenses';
+import { usePayments } from '../../hooks/usePayments';
 import { TAX_RATES } from '../../data/businessData';
 import { getDefaultTaxDeductions, TaxDeductionsConfig } from '../TaxDeductionsManager';
 
@@ -49,6 +51,11 @@ const defaultTripExpenses: ScenarioTripExpenses = {
   otherExpenses: 0,
 };
 
+const defaultExpectedPayments: ScenarioConfig['expectedPayments'] = {
+  enabled: false,
+  payments: [],
+};
+
 const defaultBankAllocations: ScenarioConfig['bankAllocations'] = [
   { name: 'Operating', percentage: 50, color: '#000000' },
   { name: 'Tax Reserve', percentage: 30, color: '#666666' },
@@ -70,6 +77,7 @@ export const getDefaultConfig = (): ScenarioConfig => ({
   taxDeductions: convertToScenarioTaxDeductions(getDefaultTaxDeductions()),
   bankAllocations: defaultBankAllocations,
   tripExpenses: defaultTripExpenses,
+  expectedPayments: defaultExpectedPayments,
 });
 
 export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
@@ -78,6 +86,10 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
   const { employees } = useEmployees();
   const { contractors } = useContractors();
   const { trips: dbTrips, totals: tripTotalsFromDb } = useTripExpenses();
+  const { payments: dbPayments } = usePayments();
+
+  // Get pending payments from database
+  const pendingPayments = dbPayments.filter(p => p.status === 'pending');
 
   // Merge current config with defaults for any missing fields
   const defaultDeductions = convertToScenarioTaxDeductions(getDefaultTaxDeductions());
@@ -92,6 +104,7 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
     removedEmployeeIds: config.removedEmployeeIds || [],
     additionalEmployees: config.additionalEmployees || [],
     tripExpenses: config.tripExpenses || defaultTripExpenses,
+    expectedPayments: config.expectedPayments || defaultExpectedPayments,
   };
 
   // === Client modifications ===
@@ -381,7 +394,79 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
     });
   };
 
-  // === Bank allocations ===
+  // === Expected Payments ===
+  const toggleExpectedPayments = () => {
+    onChange({
+      ...mergedConfig,
+      expectedPayments: { 
+        ...mergedConfig.expectedPayments, 
+        enabled: !mergedConfig.expectedPayments.enabled 
+      },
+    });
+  };
+
+  const syncExpectedPaymentsFromDb = () => {
+    const paymentsFromDb: ScenarioExpectedPayment[] = pendingPayments.map(p => {
+      const client = clients.find(c => c.id === p.client_id);
+      return {
+        id: p.id,
+        clientName: client?.name || 'Unknown',
+        amount: Number(p.amount),
+        description: p.description || '',
+        date: p.date,
+        isFromDb: true,
+      };
+    });
+    onChange({
+      ...mergedConfig,
+      expectedPayments: {
+        enabled: true,
+        payments: paymentsFromDb,
+      },
+    });
+  };
+
+  const addVirtualExpectedPayment = () => {
+    const newPayment: ScenarioExpectedPayment = {
+      id: `virtual-${Date.now()}`,
+      clientName: 'New Client',
+      amount: 0,
+      description: '',
+      date: new Date().toISOString().split('T')[0],
+      isFromDb: false,
+    };
+    onChange({
+      ...mergedConfig,
+      expectedPayments: {
+        ...mergedConfig.expectedPayments,
+        enabled: true,
+        payments: [...mergedConfig.expectedPayments.payments, newPayment],
+      },
+    });
+  };
+
+  const updateExpectedPayment = (id: string, updates: Partial<ScenarioExpectedPayment>) => {
+    onChange({
+      ...mergedConfig,
+      expectedPayments: {
+        ...mergedConfig.expectedPayments,
+        payments: mergedConfig.expectedPayments.payments.map(p =>
+          p.id === id ? { ...p, ...updates } : p
+        ),
+      },
+    });
+  };
+
+  const removeExpectedPayment = (id: string) => {
+    onChange({
+      ...mergedConfig,
+      expectedPayments: {
+        ...mergedConfig.expectedPayments,
+        payments: mergedConfig.expectedPayments.payments.filter(p => p.id !== id),
+      },
+    });
+  };
+
   const updateBankAllocation = (index: number, updates: Partial<{ name: string; percentage: number }>) => {
     onChange({
       ...mergedConfig,
@@ -745,7 +830,103 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
         </div>
       </div>
 
-      {/* Tax Deductions Section */}
+      {/* Expected Payments Section */}
+      <div className="border-2 border-foreground">
+        <div className="border-b-2 border-foreground p-3 flex items-center justify-between bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            <h3 className="text-sm font-bold uppercase tracking-widest">Expected Payments</h3>
+          </div>
+          <div className="flex items-center gap-2">
+            {pendingPayments.length > 0 && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={syncExpectedPaymentsFromDb} 
+                className="h-7 text-xs rounded-none border-2 border-foreground"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" /> Sync ({pendingPayments.length})
+              </Button>
+            )}
+            <Button 
+              size="sm" 
+              variant="outline" 
+              onClick={addVirtualExpectedPayment} 
+              className="h-7 text-xs rounded-none border-2 border-foreground"
+            >
+              <Plus className="w-3 h-3 mr-1" /> Add
+            </Button>
+            <Switch checked={mergedConfig.expectedPayments.enabled} onCheckedChange={toggleExpectedPayments} />
+          </div>
+        </div>
+        <div className={`p-3 space-y-2 ${!mergedConfig.expectedPayments.enabled ? 'opacity-50' : ''}`}>
+          {mergedConfig.expectedPayments.payments.length === 0 ? (
+            <p className="text-xs font-mono text-muted-foreground uppercase text-center py-2">
+              {pendingPayments.length > 0 
+                ? `Sync ${pendingPayments.length} expected payment(s) from Payments tab`
+                : 'No expected payments - add one or sync from Payments tab'
+              }
+            </p>
+          ) : (
+            <>
+              {mergedConfig.expectedPayments.payments.map(payment => (
+                <div key={payment.id} className="flex items-center gap-2 p-2 border border-foreground/30">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={payment.clientName}
+                        onChange={(e) => updateExpectedPayment(payment.id, { clientName: e.target.value })}
+                        className="flex-1 h-7 text-xs font-mono rounded-none border-2"
+                        placeholder="Client name"
+                        disabled={!mergedConfig.expectedPayments.enabled}
+                      />
+                      <Input
+                        type="number"
+                        value={payment.amount}
+                        onChange={(e) => updateExpectedPayment(payment.id, { amount: Number(e.target.value) })}
+                        className="w-24 h-7 text-xs font-mono rounded-none border-2"
+                        placeholder="Amount"
+                        disabled={!mergedConfig.expectedPayments.enabled}
+                      />
+                    </div>
+                    {payment.description && (
+                      <p className="text-xs text-muted-foreground mt-1 truncate">{payment.description}</p>
+                    )}
+                    {payment.date && (
+                      <p className="text-xs text-muted-foreground">
+                        Expected: {format(parseISO(payment.date), 'MMM d, yyyy')}
+                      </p>
+                    )}
+                  </div>
+                  {payment.isFromDb && (
+                    <span className="text-xs font-mono text-chart-4 uppercase">DB</span>
+                  )}
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={() => removeExpectedPayment(payment.id)} 
+                    className="h-7 w-7 p-0"
+                    disabled={!mergedConfig.expectedPayments.enabled}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </>
+          )}
+          {mergedConfig.expectedPayments.enabled && mergedConfig.expectedPayments.payments.length > 0 && (
+            <div className="border-t border-foreground/30 pt-2 mt-2">
+              <div className="flex justify-between text-sm font-mono">
+                <span className="text-muted-foreground">Total Expected:</span>
+                <span className="font-bold text-chart-4">
+                  ${mergedConfig.expectedPayments.payments.reduce((sum, p) => sum + p.amount, 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="border-2 border-foreground">
         <div className="border-b-2 border-foreground p-3 flex items-center justify-between bg-muted/30">
           <div className="flex items-center gap-2">

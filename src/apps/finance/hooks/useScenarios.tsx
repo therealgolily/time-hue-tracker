@@ -28,6 +28,15 @@ export interface ScenarioTripExpenses {
   otherExpenses: number;
 }
 
+export interface ScenarioExpectedPayment {
+  id: string;
+  clientName: string;
+  amount: number;
+  description: string;
+  date: string;
+  isFromDb?: boolean;
+}
+
 export interface ScenarioConfig {
   scenarioClients: Array<{ id: string; name: string; monthlyRetainer: number; isVirtual?: boolean }>;
   removedClientIds: string[];
@@ -48,6 +57,11 @@ export interface ScenarioConfig {
   bankAllocations: Array<{ name: string; percentage: number; color: string }>;
   // Trip expenses from travel tracker
   tripExpenses: ScenarioTripExpenses;
+  // Expected one-time payments
+  expectedPayments: {
+    enabled: boolean;
+    payments: ScenarioExpectedPayment[];
+  };
 }
 
 export interface Scenario {
