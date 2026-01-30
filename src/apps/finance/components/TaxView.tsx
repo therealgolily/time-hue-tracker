@@ -1,93 +1,43 @@
-import { useState, useCallback } from 'react';
 import { Calculator, AlertTriangle, DollarSign, Calendar, Building } from 'lucide-react';
 import { MetricCard } from './MetricCard';
 import { TAX_RATES } from '../data/businessData';
-import { useClients } from '../hooks/useClients';
-import { useExpenses } from '../hooks/useExpenses';
-import { useEmployees } from '../hooks/useEmployees';
-import { useContractors } from '../hooks/useContractors';
-import { TaxDeductionsManager, DeductionTotals, TaxDeductionsConfig } from './TaxDeductionsManager';
-import { useTripExpenses } from '../hooks/useTripExpenses';
+import { TaxDeductionsManager } from './TaxDeductionsManager';
+import { useTaxCalculations } from '../hooks/useTaxCalculations';
 
 export const TaxView = () => {
-  const { clients, loading: clientsLoading } = useClients();
-  const { expenses, loading: expensesLoading } = useExpenses();
-  const { totalSalary, loading: employeesLoading } = useEmployees();
-  const { totalMonthlyPay: contractorMonthlyPay, loading: contractorsLoading } = useContractors();
-  const { totals: tripTotals } = useTripExpenses();
-  
-  // Live deduction state - updated by TaxDeductionsManager callback
-  const [deductionTotals, setDeductionTotals] = useState<DeductionTotals>({
-    totalAnnual: 0,
-    federalDeductions: 0,
-    stateDeductions: 0,
-    ficaDeductions: 0,
-  });
+  // Use centralized tax calculations
+  const {
+    taxes: taxCalc,
+    loading,
+    deductionTotals,
+    deductions,
+    tripTotals,
+    rawData,
+  } = useTaxCalculations();
 
-  const handleDeductionsChange = useCallback((deductions: TaxDeductionsConfig, totals: DeductionTotals) => {
-    setDeductionTotals(totals);
-  }, []);
-  
-  const { 
+  const { totalSalary } = rawData;
+  const salary = totalSalary;
+
+  const {
     totalAnnual: totalAnnualDeductions,
     federalDeductions,
     stateDeductions,
     ficaDeductions,
   } = deductionTotals;
 
-  const loading = clientsLoading || expensesLoading || employeesLoading || contractorsLoading;
-
-  // Revenue
-  const monthlyRevenue = clients
-    .filter(c => c.status === 'active')
-    .reduce((sum, c) => sum + Number(c.monthly_retainer), 0);
-
-  // All expenses: recurring + salary + contractors
-  const monthlyRecurringExpenses = expenses
-    .filter(e => e.recurring)
-    .reduce((sum, e) => sum + Number(e.amount), 0);
-  
-  const monthlySalary = totalSalary / 12;
-  const totalMonthlyExpenses = monthlyRecurringExpenses + monthlySalary + contractorMonthlyPay;
-
-  const monthlyProfit = monthlyRevenue - totalMonthlyExpenses;
-  const annualProfit = monthlyProfit * 12;
-  const salary = totalSalary;
-
-  // S-Corp Virginia Tax Calculations
-  // Employer FICA (business expense) - reduced by FICA deductions (like HSA via payroll)
-  const ficaTaxableSalary = Math.max(0, salary - ficaDeductions);
-  const employerFica = ficaTaxableSalary * TAX_RATES.employerFica;
-  
-  // K-1 pass-through income (profit minus employer FICA deduction)
-  const adjustedProfit = annualProfit - employerFica;
-  
-  // Total taxable income: W-2 salary + K-1 distributions
+  // Use values from centralized calculations
+  const annualProfit = taxCalc.annualGrossProfit;
+  const adjustedProfit = taxCalc.k1Income;
   const totalTaxableIncomeBeforeDeductions = salary + adjustedProfit;
-  
-  // Apply deductions to taxable income
-  const federalTaxableIncome = Math.max(0, totalTaxableIncomeBeforeDeductions - federalDeductions);
-  const stateTaxableIncome = Math.max(0, totalTaxableIncomeBeforeDeductions - stateDeductions);
-
-  // Employee FICA (withheld from paycheck) - also reduced by FICA deductions
-  const employeeFica = ficaTaxableSalary * TAX_RATES.employeeFica;
-  
-  // Income taxes on reduced taxable income
-  const federalIncome = federalTaxableIncome * TAX_RATES.federalIncome;
-  const stateIncome = stateTaxableIncome * TAX_RATES.stateIncome; // Virginia 5.75%
-  
-  const totalAnnualTax = employerFica + employeeFica + federalIncome + stateIncome;
+  const federalTaxableIncome = taxCalc.annualTaxableIncomeFederal;
+  const stateTaxableIncome = taxCalc.annualTaxableIncomeState;
+  const ficaTaxableSalary = Math.max(0, salary - ficaDeductions);
 
   const taxes = {
-    annual: Math.round(totalAnnualTax),
-    quarterly: Math.round(totalAnnualTax / 4),
-    monthly: Math.round(totalAnnualTax / 12),
-    breakdown: {
-      employerFica: Math.round(employerFica),
-      employeeFica: Math.round(employeeFica),
-      federalIncome: Math.round(federalIncome),
-      stateIncome: Math.round(stateIncome),
-    },
+    annual: taxCalc.annualTax,
+    quarterly: Math.round(taxCalc.annualTax / 4),
+    monthly: taxCalc.monthlyTaxReserve,
+    breakdown: taxCalc.taxBreakdown,
   };
 
   // Calculate tax savings from deductions
@@ -97,13 +47,13 @@ export const TaxView = () => {
     employerFica: salary * TAX_RATES.employerFica,
     employeeFica: salary * TAX_RATES.employeeFica,
   };
-  const totalWithoutDeductions = taxWithoutDeductions.federalIncome + taxWithoutDeductions.stateIncome + 
+  const totalWithoutDeductions = taxWithoutDeductions.federalIncome + taxWithoutDeductions.stateIncome +
     taxWithoutDeductions.employerFica + taxWithoutDeductions.employeeFica;
-  const deductionSavings = Math.round(totalWithoutDeductions - totalAnnualTax);
+  const deductionSavings = Math.round(totalWithoutDeductions - taxCalc.annualTax);
 
   // Self-employment tax savings calculation
   const selfEmploymentTaxIfSoleProp = (annualProfit + salary) * TAX_RATES.selfEmployment;
-  const sCorpFicaTotal = employerFica + employeeFica;
+  const sCorpFicaTotal = taxes.breakdown.employerFica + taxes.breakdown.employeeFica;
   const ficaSavings = Math.max(0, selfEmploymentTaxIfSoleProp - sCorpFicaTotal);
 
   const taxBreakdown = [
@@ -411,8 +361,7 @@ export const TaxView = () => {
       </div>
 
       {/* Tax Deductions Manager */}
-      <TaxDeductionsManager 
-        onChange={handleDeductionsChange} 
+      <TaxDeductionsManager
         tripTotals={tripTotals}
       />
 
