@@ -71,12 +71,15 @@ export const MonthlySummary = () => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const monthlyData = months.map((month) => ({
+  const currentMonthIndex = new Date().getMonth();
+
+  const monthlyData = months.map((month, index) => ({
     month,
     revenue: monthlyRevenue,
     expenses: totalMonthlyExpenses,
     profit: grossProfit,
     taxReserve: taxes.monthly,
+    isCurrent: index === currentMonthIndex,
   }));
 
   if (loading) {
@@ -265,11 +268,11 @@ export const MonthlySummary = () => {
               </tr>
             </thead>
             <tbody>
-              {monthlyData.map((data, index) => (
-                <tr key={data.month} className={index === 0 ? 'bg-primary/5' : ''}>
+              {monthlyData.map((data) => (
+                <tr key={data.month} className={data.isCurrent ? 'bg-primary/5' : ''}>
                   <td className="font-medium text-foreground">
                     {data.month}
-                    {index === 0 && (
+                    {data.isCurrent && (
                       <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full">
                         Current
                       </span>

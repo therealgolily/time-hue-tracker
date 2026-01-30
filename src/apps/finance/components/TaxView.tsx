@@ -139,13 +139,17 @@ export const TaxView = () => {
 
   const currentYear = new Date().getFullYear();
   const nextYear = currentYear + 1;
-  
+  const today = new Date();
+
   const quarterlyPayments = [
-    { quarter: 'Q1', due: `April 15, ${currentYear}`, amount: taxes.quarterly },
-    { quarter: 'Q2', due: `June 15, ${currentYear}`, amount: taxes.quarterly },
-    { quarter: 'Q3', due: `September 15, ${currentYear}`, amount: taxes.quarterly },
-    { quarter: 'Q4', due: `January 15, ${nextYear}`, amount: taxes.quarterly },
+    { quarter: 'Q1', due: `April 15, ${currentYear}`, dueDate: new Date(currentYear, 3, 15), amount: taxes.quarterly },
+    { quarter: 'Q2', due: `June 15, ${currentYear}`, dueDate: new Date(currentYear, 5, 15), amount: taxes.quarterly },
+    { quarter: 'Q3', due: `September 15, ${currentYear}`, dueDate: new Date(currentYear, 8, 15), amount: taxes.quarterly },
+    { quarter: 'Q4', due: `January 15, ${nextYear}`, dueDate: new Date(nextYear, 0, 15), amount: taxes.quarterly },
   ];
+
+  // Find the next upcoming payment (first one with due date in the future)
+  const nextUpcomingIndex = quarterlyPayments.findIndex(p => p.dueDate > today);
 
   if (loading) {
     return (
@@ -378,25 +382,33 @@ export const TaxView = () => {
               </tr>
             </thead>
             <tbody>
-              {quarterlyPayments.map((payment, index) => (
-                <tr key={payment.quarter}>
-                  <td className="font-medium text-foreground">{payment.quarter} {currentYear}</td>
-                  <td className="text-muted-foreground">{payment.due}</td>
-                  <td className="expense-text font-semibold">
-                    ${payment.amount.toLocaleString()}
-                  </td>
-                  <td>
-                    {index === 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-sm">
-                        <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
-                        <span className="text-warning font-medium">Upcoming</span>
-                      </span>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">Scheduled</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {quarterlyPayments.map((payment, index) => {
+                const isPast = payment.dueDate < today;
+                const isUpcoming = index === nextUpcomingIndex;
+                const isScheduled = !isPast && !isUpcoming;
+
+                return (
+                  <tr key={payment.quarter}>
+                    <td className="font-medium text-foreground">{payment.quarter} {payment.quarter === 'Q4' ? nextYear : currentYear}</td>
+                    <td className="text-muted-foreground">{payment.due}</td>
+                    <td className="expense-text font-semibold">
+                      ${payment.amount.toLocaleString()}
+                    </td>
+                    <td>
+                      {isPast ? (
+                        <span className="text-sm text-muted-foreground">Past</span>
+                      ) : isUpcoming ? (
+                        <span className="inline-flex items-center gap-1.5 text-sm">
+                          <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+                          <span className="text-warning font-medium">Upcoming</span>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">Scheduled</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
             <tfoot>
               <tr className="bg-muted/30 font-semibold">

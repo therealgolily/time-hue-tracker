@@ -35,7 +35,7 @@ export const ExpenseForm = ({ onSubmit, clients, initialData, trigger }: Expense
       amount: parseFloat(formData.amount) || 0,
       category: formData.category as Expense['category'],
       client_id: formData.client_id || null,
-      date: new Date().toISOString().split('T')[0],
+      date: initialData?.date || new Date().toISOString().split('T')[0],
       recurring: formData.recurring,
     };
     const result = await onSubmit(data);
