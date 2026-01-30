@@ -1,8 +1,9 @@
-import { ScenarioConfig, ScenarioTaxDeduction } from '../../hooks/useScenarios';
+import { ScenarioConfig, ScenarioTaxDeduction, ScenarioExpectedPayment } from '../../hooks/useScenarios';
 import { Client } from '../../hooks/useClients';
 import { Expense } from '../../hooks/useExpenses';
 import { Contractor } from '../../hooks/useContractors';
 import { Employee } from '../../hooks/useEmployees';
+import { Payment } from '../../hooks/usePayments';
 import { TAX_RATES } from '../../data/businessData';
 
 // IRS rates for calculations
@@ -20,6 +21,7 @@ export interface ScenarioResults {
   adjustedSalary: number;
   taxDeductionsTotal: number;
   tripExpensesTotal: number;
+  expectedPaymentsTotal: number;
   taxableIncome: number;
   estimatedAnnualTax: number;
   estimatedMonthlyTax: number;
@@ -146,11 +148,19 @@ export const calculateScenario = (
       tripExp.otherExpenses;
   }
 
+  // Calculate expected payments total
+  let expectedPaymentsTotal = 0;
+  const expPayments = config.expectedPayments;
+  if (expPayments?.enabled && expPayments.payments?.length > 0) {
+    expectedPaymentsTotal = expPayments.payments.reduce((sum, p) => sum + p.amount, 0);
+  }
+
   // Total deductions including trips
   const totalDeductions = taxDeductionsTotal + tripExpensesTotal;
 
   // Calculate taxes (S-Corp style)
-  const annualProfit = grossProfit * 12;
+  // Include expected payments as additional annual revenue
+  const annualProfit = (grossProfit * 12) + expectedPaymentsTotal;
   const employerFica = adjustedSalary * TAX_RATES.employerFica;
   const employeeFica = adjustedSalary * TAX_RATES.employeeFica;
   
@@ -188,6 +198,7 @@ export const calculateScenario = (
     adjustedSalary,
     taxDeductionsTotal,
     tripExpensesTotal,
+    expectedPaymentsTotal,
     taxableIncome,
     estimatedAnnualTax: Math.round(estimatedAnnualTax),
     estimatedMonthlyTax,
@@ -235,6 +246,10 @@ export const calculateBaseline = (
       meals: 0,
       perDiem: 0,
       otherExpenses: 0,
+    },
+    expectedPayments: {
+      enabled: false,
+      payments: [],
     },
   };
   
