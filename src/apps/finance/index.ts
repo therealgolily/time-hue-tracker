@@ -43,6 +43,7 @@ export { MonthlySummary } from './components/MonthlySummary';
 export { TaxView } from './components/TaxView';
 export { BusinessProfile } from './components/BusinessProfile';
 export { ScenarioPlayground } from './components/ScenarioPlayground';
+export { TripExpenseTracker } from './components/TripExpenseTracker';
 export { MetricCard } from './components/MetricCard';
 
 // Data & Constants
