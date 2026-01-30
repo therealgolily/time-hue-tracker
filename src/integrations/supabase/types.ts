@@ -388,10 +388,12 @@ export type Database = {
           client_id: string | null
           created_at: string
           date: string
+          description: string | null
           id: string
           notes: string | null
           payment_method: string
           reference_number: string | null
+          status: string
           user_id: string
         }
         Insert: {
@@ -399,10 +401,12 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           date?: string
+          description?: string | null
           id?: string
           notes?: string | null
           payment_method?: string
           reference_number?: string | null
+          status?: string
           user_id: string
         }
         Update: {
@@ -410,10 +414,12 @@ export type Database = {
           client_id?: string | null
           created_at?: string
           date?: string
+          description?: string | null
           id?: string
           notes?: string | null
           payment_method?: string
           reference_number?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: [

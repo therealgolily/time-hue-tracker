@@ -12,6 +12,8 @@ export interface Payment {
   payment_method: 'check' | 'direct_deposit' | 'quickbooks' | 'stripe';
   reference_number: string | null;
   notes: string | null;
+  status: 'received' | 'pending';
+  description: string | null;
   created_at: string;
 }
 
