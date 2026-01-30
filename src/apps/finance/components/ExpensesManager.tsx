@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Receipt, Edit, Trash2, Plane, Monitor, MessageSquare, Users, Building, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExpenseForm } from './forms/ExpenseForm';
@@ -147,7 +147,7 @@ export const ExpensesManager = () => {
                         {client ? client.name : '—'}
                       </td>
                       <td className="p-3 text-center text-sm font-mono text-muted-foreground">
-                        {format(new Date(expense.date), 'MMM d')}
+                        {format(parseISO(expense.date), 'MMM d')}
                       </td>
                       <td className="p-3 text-right font-mono font-bold tabular-nums text-primary">
                         ${Number(expense.amount).toLocaleString()}
