@@ -148,7 +148,7 @@ export const PaymentsManager = () => {
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const thisMonthReceived = receivedPayments.filter(p => {
-    const paymentDate = new Date(p.date);
+    const paymentDate = parseISO(p.date);
     return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
   });
   const thisMonthTotal = thisMonthReceived.reduce((sum, p) => sum + Number(p.amount), 0);

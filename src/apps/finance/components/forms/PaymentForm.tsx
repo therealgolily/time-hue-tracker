@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,7 +28,7 @@ export const PaymentForm = ({ onSubmit, clients, initialData, trigger, defaultSt
     amount: initialData?.amount?.toString() || '',
     payment_method: initialData?.payment_method || 'check',
     status: initialData?.status || defaultStatus,
-    date: initialData?.date ? new Date(initialData.date) : new Date(),
+    date: initialData?.date ? parseISO(initialData.date) : new Date(),
     description: initialData?.description || '',
     reference_number: initialData?.reference_number || '',
   });

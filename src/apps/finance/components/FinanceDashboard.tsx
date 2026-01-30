@@ -5,7 +5,7 @@ import { useExpenses } from '../hooks/useExpenses';
 import { usePayments } from '../hooks/usePayments';
 import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { TAX_RATES } from '../data/businessData';
 
 const paymentMethodLabels: Record<string, string> = {
@@ -60,11 +60,12 @@ export const FinanceDashboard = () => {
   const annualTax = employerFica + employeeFica + federalTax + stateTax;
   const estimatedMonthlyTax = Math.max(0, Math.round(annualTax / 12));
 
-  // Current month payments
+  // Current month payments (only count received, not pending)
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const thisMonthPayments = payments.filter(p => {
-    const paymentDate = new Date(p.date);
+    if (p.status === 'pending') return false;
+    const paymentDate = parseISO(p.date);
     return paymentDate.getMonth() === currentMonth && paymentDate.getFullYear() === currentYear;
   });
   const thisMonthTotal = thisMonthPayments.reduce((sum, p) => sum + Number(p.amount), 0);
