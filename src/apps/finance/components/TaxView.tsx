@@ -7,14 +7,14 @@ import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
 import { TaxDeductionsManager, DeductionTotals, TaxDeductionsConfig } from './TaxDeductionsManager';
-import { TripExpenseTracker } from './TripExpenseTracker';
-import { TripTotals } from '../hooks/useTripExpenses';
+import { useTripExpenses } from '../hooks/useTripExpenses';
 
 export const TaxView = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { totalSalary, loading: employeesLoading } = useEmployees();
   const { totalMonthlyPay: contractorMonthlyPay, loading: contractorsLoading } = useContractors();
+  const { totals: tripTotals } = useTripExpenses();
   
   // Live deduction state - updated by TaxDeductionsManager callback
   const [deductionTotals, setDeductionTotals] = useState<DeductionTotals>({
@@ -24,15 +24,8 @@ export const TaxView = () => {
     ficaDeductions: 0,
   });
 
-  // Trip totals for auto-populating travel deductions
-  const [tripTotals, setTripTotals] = useState<TripTotals | null>(null);
-
   const handleDeductionsChange = useCallback((deductions: TaxDeductionsConfig, totals: DeductionTotals) => {
     setDeductionTotals(totals);
-  }, []);
-
-  const handleTripTotalsChange = useCallback((totals: TripTotals) => {
-    setTripTotals(totals);
   }, []);
   
   const { 
@@ -416,9 +409,6 @@ export const TaxView = () => {
           </table>
         </div>
       </div>
-
-      {/* Business Travel Tracker */}
-      <TripExpenseTracker onTotalsChange={handleTripTotalsChange} />
 
       {/* Tax Deductions Manager */}
       <TaxDeductionsManager 
