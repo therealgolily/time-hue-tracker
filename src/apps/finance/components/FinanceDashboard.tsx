@@ -3,10 +3,9 @@ import { MetricCard } from './MetricCard';
 import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { usePayments } from '../hooks/usePayments';
-import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
+import { useTaxCalculations } from '../hooks/useTaxCalculations';
 import { format, parseISO } from 'date-fns';
-import { TAX_RATES } from '../data/businessData';
 
 const paymentMethodLabels: Record<string, string> = {
   check: 'CHECK',
@@ -19,46 +18,22 @@ export const FinanceDashboard = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { payments, loading: paymentsLoading } = usePayments();
-  const { totalSalary, loading: employeesLoading } = useEmployees();
-  const { totalMonthlyPay: contractorMonthlyPay, loading: contractorsLoading } = useContractors();
+  const { contractors, loading: contractorsLoading } = useContractors();
 
-  const loading = clientsLoading || expensesLoading || paymentsLoading || employeesLoading || contractorsLoading;
+  // Use centralized tax calculations (includes deductions)
+  const { taxes: taxCalc, loading: taxLoading, deductionTotals, rawData } = useTaxCalculations();
+  const { totalSalary, contractorMonthlyPay } = rawData;
 
-  // Revenue from active client retainers
-  const monthlyRetainerRevenue = clients
-    .filter(c => c.status === 'active')
-    .reduce((sum, c) => sum + Number(c.monthly_retainer), 0);
-  
-  // Recurring software/misc expenses
-  const recurringExpenses = expenses
-    .filter(e => e.recurring)
-    .reduce((sum, e) => sum + Number(e.amount), 0);
+  const loading = clientsLoading || expensesLoading || paymentsLoading || contractorsLoading || taxLoading;
 
-  // Monthly salary (annual / 12)
+  // Use values from centralized calculations
+  const monthlyRetainerRevenue = taxCalc.monthlyRevenue;
+  const recurringExpenses = taxCalc.monthlyExpenses - (totalSalary / 12) - contractorMonthlyPay;
   const monthlySalary = totalSalary / 12;
-
-  // Total monthly operating costs: expenses + salary + contractors
-  const totalMonthlyOperatingCosts = recurringExpenses + monthlySalary + contractorMonthlyPay;
-
-  // Gross profit before taxes
-  const monthlyGrossProfit = monthlyRetainerRevenue - totalMonthlyOperatingCosts;
-
-  // Employer FICA on salary (business expense)
-  const monthlyEmployerFica = (totalSalary * TAX_RATES.employerFica) / 12;
-  
-  // Net profit after employer FICA
-  const monthlyNetBeforeTaxes = monthlyGrossProfit - monthlyEmployerFica;
-
-  // Tax calculations for S-Corp Virginia
-  const annualGrossProfit = monthlyGrossProfit * 12;
-  const employerFica = totalSalary * TAX_RATES.employerFica;
-  const adjustedProfit = annualGrossProfit - employerFica; // Pass-through K-1 income
-  const totalTaxableIncome = totalSalary + adjustedProfit; // W-2 + K-1
-  const employeeFica = totalSalary * TAX_RATES.employeeFica;
-  const federalTax = totalTaxableIncome * TAX_RATES.federalIncome;
-  const stateTax = totalTaxableIncome * TAX_RATES.stateIncome;
-  const annualTax = employerFica + employeeFica + federalTax + stateTax;
-  const estimatedMonthlyTax = Math.max(0, Math.round(annualTax / 12));
+  const totalMonthlyOperatingCosts = taxCalc.monthlyExpenses;
+  const monthlyGrossProfit = taxCalc.monthlyGrossProfit;
+  const monthlyEmployerFica = taxCalc.monthlyEmployerFica;
+  const estimatedMonthlyTax = taxCalc.monthlyTaxReserve;
 
   // Current month payments (only count received, not pending)
   const currentMonth = new Date().getMonth();

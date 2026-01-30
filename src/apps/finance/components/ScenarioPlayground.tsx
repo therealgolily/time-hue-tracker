@@ -32,9 +32,10 @@ import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
+import { useTaxCalculations } from '../hooks/useTaxCalculations';
 import { ScenarioEditor, getDefaultConfig } from './scenario/ScenarioEditor';
 import { ScenarioComparison } from './scenario/ScenarioComparison';
-import { calculateScenario, calculateBaseline, ScenarioResults } from './scenario/ScenarioCalculator';
+import { calculateScenario, ScenarioResults } from './scenario/ScenarioCalculator';
 
 export const ScenarioPlayground = () => {
   const { scenarios, isLoading, saveScenario, updateScenario, deleteScenario } = useScenarios();
@@ -42,6 +43,9 @@ export const ScenarioPlayground = () => {
   const { expenses } = useExpenses();
   const { employees } = useEmployees();
   const { contractors } = useContractors();
+
+  // Get centralized tax calculations (with saved deductions) for accurate baseline
+  const { taxes: centralizedTaxes, deductionTotals } = useTaxCalculations();
 
   const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
   const [draftConfig, setDraftConfig] = useState<ScenarioConfig>(getDefaultConfig());
@@ -52,8 +56,27 @@ export const ScenarioPlayground = () => {
   const [compareScenarioId, setCompareScenarioId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'editor' | 'compare'>('editor');
 
-  // Calculate baseline and scenario results
-  const baseline = calculateBaseline(clients, expenses, contractors, employees);
+  // Calculate baseline using centralized calculations (includes saved deductions)
+  // This ensures the baseline matches what's shown in Dashboard and TaxView
+  const baseline: ScenarioResults = {
+    monthlyRevenue: centralizedTaxes.monthlyRevenue,
+    monthlyExpenses: centralizedTaxes.monthlyExpenses,
+    monthlyContractors: 0, // Not tracked separately in centralized
+    monthlySalary: centralizedTaxes.monthlyExpenses - (centralizedTaxes.monthlyExpenses - centralizedTaxes.monthlyGrossProfit - centralizedTaxes.monthlyRevenue), // Derived
+    monthlyRecurringExpenses: 0, // Not tracked separately
+    grossProfit: centralizedTaxes.monthlyGrossProfit,
+    adjustedSalary: centralizedTaxes.annualTax > 0 ? centralizedTaxes.taxBreakdown.employerFica / 0.0765 : 0, // Derived from FICA
+    taxDeductionsTotal: deductionTotals.totalAnnual,
+    tripExpensesTotal: 0, // Included in deductions
+    expectedPaymentsTotal: 0,
+    taxableIncome: centralizedTaxes.annualTaxableIncome,
+    estimatedAnnualTax: centralizedTaxes.annualTax,
+    estimatedMonthlyTax: centralizedTaxes.monthlyTaxReserve,
+    netProfit: centralizedTaxes.monthlyNetProfit,
+    bankAllocations: [],
+    taxBreakdown: centralizedTaxes.taxBreakdown,
+  };
+
   const scenarioResults = calculateScenario(draftConfig, clients, expenses, contractors, employees);
 
   // Load a saved scenario

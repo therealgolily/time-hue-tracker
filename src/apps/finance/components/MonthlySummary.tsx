@@ -1,70 +1,37 @@
 import { PieChart, TrendingUp, TrendingDown, DollarSign, ArrowRight, Users, User, Briefcase } from 'lucide-react';
 import { format } from 'date-fns';
-import { TAX_RATES } from '../data/businessData';
 import { useClients } from '../hooks/useClients';
 import { useExpenses } from '../hooks/useExpenses';
 import { usePayments } from '../hooks/usePayments';
-import { useEmployees } from '../hooks/useEmployees';
 import { useContractors } from '../hooks/useContractors';
+import { useTaxCalculations } from '../hooks/useTaxCalculations';
 
 export const MonthlySummary = () => {
   const { clients, loading: clientsLoading } = useClients();
   const { expenses, loading: expensesLoading } = useExpenses();
   const { payments, loading: paymentsLoading } = usePayments();
-  const { totalSalary, loading: employeesLoading } = useEmployees();
-  const { totalMonthlyPay: contractorMonthlyPay, contractors, loading: contractorsLoading } = useContractors();
+  const { contractors, loading: contractorsLoading } = useContractors();
 
-  const loading = clientsLoading || expensesLoading || paymentsLoading || employeesLoading || contractorsLoading;
+  // Use centralized tax calculations (includes deductions)
+  const { taxes: taxCalc, loading: taxLoading, deductionTotals, rawData } = useTaxCalculations();
+  const { totalSalary, contractorMonthlyPay } = rawData;
 
-  // Revenue from active clients
-  const monthlyRevenue = clients
-    .filter((c) => c.status === 'active')
-    .reduce((sum, c) => sum + Number(c.monthly_retainer), 0);
+  const loading = clientsLoading || expensesLoading || paymentsLoading || contractorsLoading || taxLoading;
 
-  // Recurring software/misc expenses only
-  const monthlyRecurringExpenses = expenses
-    .filter((e) => e.recurring)
-    .reduce((sum, e) => sum + Number(e.amount), 0);
-
-  // Monthly salary (W-2)
+  // Use values from centralized calculations
+  const monthlyRevenue = taxCalc.monthlyRevenue;
+  const monthlyRecurringExpenses = taxCalc.monthlyExpenses - (totalSalary / 12) - contractorMonthlyPay;
   const monthlySalary = totalSalary / 12;
-
-  // Total monthly operating costs
-  const totalMonthlyExpenses = monthlyRecurringExpenses + monthlySalary + contractorMonthlyPay;
-
-  // Gross profit before taxes
-  const grossProfit = monthlyRevenue - totalMonthlyExpenses;
-
-  // S-Corp Virginia Tax Calculations
-  const annualGrossProfit = grossProfit * 12;
-  const employerFica = totalSalary * TAX_RATES.employerFica; // Business expense
-  const monthlyEmployerFica = employerFica / 12;
-  
-  // K-1 pass-through income (after employer FICA deduction)
-  const adjustedProfit = annualGrossProfit - employerFica;
-  
-  // Total taxable income: W-2 salary + K-1 distributions
-  const totalTaxableIncome = totalSalary + adjustedProfit;
-  
-  // Employee FICA (withheld from paycheck)
-  const employeeFica = totalSalary * TAX_RATES.employeeFica;
-  
-  // Income taxes
-  const federalIncome = totalTaxableIncome * TAX_RATES.federalIncome;
-  const stateIncome = totalTaxableIncome * TAX_RATES.stateIncome; // Virginia 5.75%
-  
-  const totalAnnualTax = employerFica + employeeFica + federalIncome + stateIncome;
+  const totalMonthlyExpenses = taxCalc.monthlyExpenses;
+  const grossProfit = taxCalc.monthlyGrossProfit;
 
   const taxes = {
-    annual: Math.max(0, Math.round(totalAnnualTax)),
-    monthly: Math.max(0, Math.round(totalAnnualTax / 12)),
+    annual: taxCalc.annualTax,
+    monthly: taxCalc.monthlyTaxReserve,
   };
 
   // Net available after tax reserve
-  const netProfit = grossProfit - taxes.monthly;
-
-  // Net after employer FICA (true business profit)
-  const trueBizProfit = grossProfit - monthlyEmployerFica;
+  const netProfit = taxCalc.monthlyNetProfit;
 
   const months = [
     'January', 'February', 'March', 'April', 'May', 'June',
