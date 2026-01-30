@@ -349,7 +349,6 @@ export const calculateEventBasedScenario = (
 
     let totalNewPurchases = 0;
     let monthInterest = 0;
-    let monthPrincipal = 0;
 
     // Apply interest and purchases
     for (const card of cardBalances) {
@@ -378,7 +377,6 @@ export const calculateEventBasedScenario = (
       const payment = Math.min(minPayment, remainingPayment);
       card.currentBalance -= payment;
       remainingPayment -= payment;
-      monthPrincipal += payment;
 
       if (card.currentBalance <= 0) {
         card.paidOff = true;
@@ -396,7 +394,6 @@ export const calculateEventBasedScenario = (
         const extraPayment = Math.min(remainingPayment, card.currentBalance);
         card.currentBalance -= extraPayment;
         remainingPayment -= extraPayment;
-        monthPrincipal += extraPayment;
         appliedPayment = true;
 
         if (card.currentBalance <= 0) {
@@ -410,10 +407,18 @@ export const calculateEventBasedScenario = (
     const endingBalance = cardBalances.reduce((sum, card) => sum + (card.paidOff ? 0 : card.currentBalance), 0);
     totalInterest += monthInterest;
 
+    // Calculate actual payment made (intended payment minus any unused amount)
+    const actualPayment = thisMonthPayment - remainingPayment;
+
+    // Calculate principal correctly: the actual reduction in debt balance
+    // Principal = Starting Balance + New Purchases - Ending Balance
+    // This is equivalent to: (Total Payment Made) - Interest
+    const monthPrincipal = startingBalance + totalNewPurchases - endingBalance;
+
     monthlyBreakdown.push({
       month,
       startingBalance,
-      payment: thisMonthPayment,
+      payment: actualPayment,
       interest: monthInterest,
       principal: monthPrincipal,
       newPurchases: totalNewPurchases,
