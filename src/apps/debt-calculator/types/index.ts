@@ -138,10 +138,34 @@ export interface PlannedAssetSale {
   month: number;
 }
 
+// Saved payoff calculator scenarios
+export type SavedPayoffStrategy = "snowball" | "avalanche" | "simultaneous";
+export type SavedPayoffMode = "target-date" | "fixed-payment";
+export type SavedPayoffFrequency = "monthly" | "biweekly" | "weekly";
+
+export interface SavedPayoffScenario {
+  id: string;
+  name: string;
+  createdAt: Date;
+  selectedCardIds: string[];
+  mode: SavedPayoffMode;
+  strategy: SavedPayoffStrategy;
+  frequency: SavedPayoffFrequency;
+  // For target-date mode
+  targetDate?: Date;
+  // For fixed-payment mode
+  fixedPaymentAmount?: number;
+  // Computed results at time of save
+  totalInterest: number;
+  totalMonths: number;
+  payoffDate: Date;
+}
+
 export interface FinanceData {
   creditCards: CreditCard[];
   budget: Budget;
   scenarios: PaymentScenario[];
+  savedPayoffScenarios: SavedPayoffScenario[];
   selectedScenarioId: string | null;
   checkingAccounts: CheckingAccount[];
   savingsAccounts: SavingsAccount[];

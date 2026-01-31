@@ -39,6 +39,17 @@ const migrateData = (data: any): FinanceData => {
   data.physicalAssets = data.physicalAssets ?? [];
   data.expectedIncome = data.expectedIncome ?? [];
   data.otherDebts = data.otherDebts ?? [];
+  data.savedPayoffScenarios = data.savedPayoffScenarios ?? [];
+  
+  // Migration: Convert saved payoff scenario date strings to Date objects
+  if (data.savedPayoffScenarios) {
+    data.savedPayoffScenarios = data.savedPayoffScenarios.map((scenario: any) => ({
+      ...scenario,
+      createdAt: new Date(scenario.createdAt),
+      targetDate: scenario.targetDate ? new Date(scenario.targetDate) : undefined,
+      payoffDate: new Date(scenario.payoffDate),
+    }));
+  }
   
   // Migration: Convert old scenarios to new format
   if (data.scenarios) {
@@ -160,5 +171,6 @@ export const getInitialData = (): FinanceData => {
     physicalAssets: [],
     expectedIncome: [],
     otherDebts: [],
+    savedPayoffScenarios: [],
   };
 };
