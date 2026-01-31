@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Edit, Trash2, DollarSign, Wallet, Home } from "lucide-react";
+import { Plus, Edit, Trash2, DollarSign, Wallet, Home, TrendingUp, PiggyBank } from "lucide-react";
 import { useFinance } from "../context/FinanceContext";
 import { CheckingAccount, SavingsAccount, PhysicalAsset } from "../types";
+import { formatCurrency } from "../lib/calculations";
 
 export const AssetSection = () => {
   const {
@@ -33,9 +34,29 @@ export const AssetSection = () => {
   const [savingsForm, setSavingsForm] = useState({ name: "", balance: "" });
   const [assetForm, setAssetForm] = useState({ name: "", value: "" });
 
-  const totalChecking = data.checkingAccounts.reduce((sum, acc) => sum + acc.balance, 0);
-  const totalSavings = data.savingsAccounts.reduce((sum, acc) => sum + acc.balance, 0);
-  const totalPhysical = data.physicalAssets.reduce((sum, asset) => sum + asset.value, 0);
+  const totals = useMemo(() => {
+    const totalChecking = data.checkingAccounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalSavings = data.savingsAccounts.reduce((sum, acc) => sum + acc.balance, 0);
+    const totalPhysical = data.physicalAssets.reduce((sum, asset) => sum + asset.value, 0);
+    const totalLiquid = totalChecking + totalSavings;
+    const totalAssets = totalLiquid + totalPhysical;
+    
+    // Calculate total debt for net worth
+    const totalCreditCardDebt = data.creditCards.reduce((sum, card) => sum + card.balance, 0);
+    const totalOtherDebt = data.otherDebts.reduce((sum, debt) => sum + debt.amount, 0);
+    const totalDebt = totalCreditCardDebt + totalOtherDebt;
+    const netWorth = totalAssets - totalDebt;
+
+    return {
+      totalChecking,
+      totalSavings,
+      totalPhysical,
+      totalLiquid,
+      totalAssets,
+      totalDebt,
+      netWorth,
+    };
+  }, [data.checkingAccounts, data.savingsAccounts, data.physicalAssets, data.creditCards, data.otherDebts]);
 
   const handleSaveChecking = () => {
     if (editingChecking) {
@@ -108,121 +129,215 @@ export const AssetSection = () => {
 
   return (
     <div className="space-y-6">
+      {/* Assets Overview Summary */}
+      <Card className="border-2 border-foreground bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Net Worth</p>
+              <p className={`text-4xl font-bold mt-1 ${totals.netWorth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+                {formatCurrency(totals.netWorth)}
+              </p>
+            </div>
+            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <TrendingUp className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          
+          {/* Breakdown Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-foreground/20">
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Total Assets</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(totals.totalAssets)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Total Debt</p>
+              <p className="text-lg font-bold text-destructive">{formatCurrency(totals.totalDebt)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Liquid Cash</p>
+              <p className="text-lg font-bold">{formatCurrency(totals.totalLiquid)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Physical Assets</p>
+              <p className="text-lg font-bold">{formatCurrency(totals.totalPhysical)}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Asset Breakdown Cards */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="border-2 border-foreground">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Checking</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  {formatCurrency(totals.totalChecking)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {data.checkingAccounts.length} account{data.checkingAccounts.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <Wallet className="h-6 w-6 text-muted-foreground" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-foreground">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Savings</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  {formatCurrency(totals.totalSavings)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {data.savingsAccounts.length} account{data.savingsAccounts.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <PiggyBank className="h-6 w-6 text-muted-foreground" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-foreground">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Physical</p>
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  {formatCurrency(totals.totalPhysical)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {data.physicalAssets.length} asset{data.physicalAssets.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <Home className="h-6 w-6 text-muted-foreground" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Checking Accounts */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <Wallet className="h-6 w-6" />
-              Checking Accounts
-            </h2>
-            <p className="text-muted-foreground">
-              Total: <span className="font-semibold text-positive">${totalChecking.toFixed(2)}</span>
-            </p>
-          </div>
-          <Button onClick={() => { setEditingChecking(null); setCheckingForm({ name: "", balance: "" }); setCheckingFormOpen(true); }}>
+        <div className="flex items-center justify-between mb-4 border-b-2 border-foreground pb-2">
+          <h2 className="text-lg font-bold uppercase tracking-wider flex items-center gap-2">
+            <Wallet className="h-5 w-5" />
+            Checking Accounts
+          </h2>
+          <Button onClick={() => { setEditingChecking(null); setCheckingForm({ name: "", balance: "" }); setCheckingFormOpen(true); }} size="sm" className="border-2 border-foreground">
             <Plus className="mr-2 h-4 w-4" />
             Add Account
           </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data.checkingAccounts.map((account) => (
-            <Card key={account.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{account.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-positive mb-3">${account.balance.toFixed(2)}</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openEditChecking(account)}>
+        {data.checkingAccounts.length > 0 ? (
+          <div className="space-y-2">
+            {data.checkingAccounts.map((account) => (
+              <div key={account.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <span className="font-medium">{account.name}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(account.balance)}</span>
+                  <Button variant="ghost" size="icon" onClick={() => openEditChecking(account)} className="h-8 w-8">
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => deleteCheckingAccount(account.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => deleteCheckingAccount(account.id)} className="h-8 w-8 text-destructive hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Card className="border-2 border-dashed border-muted-foreground/30">
+            <CardContent className="py-6 text-center">
+              <p className="text-muted-foreground">No checking accounts added yet.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Savings Accounts */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <DollarSign className="h-6 w-6" />
-              Savings Accounts
-            </h2>
-            <p className="text-muted-foreground">
-              Total: <span className="font-semibold text-positive">${totalSavings.toFixed(2)}</span>
-            </p>
-          </div>
-          <Button onClick={() => { setEditingSavings(null); setSavingsForm({ name: "", balance: "" }); setSavingsFormOpen(true); }}>
+        <div className="flex items-center justify-between mb-4 border-b-2 border-foreground pb-2">
+          <h2 className="text-lg font-bold uppercase tracking-wider flex items-center gap-2">
+            <PiggyBank className="h-5 w-5" />
+            Savings Accounts
+          </h2>
+          <Button onClick={() => { setEditingSavings(null); setSavingsForm({ name: "", balance: "" }); setSavingsFormOpen(true); }} size="sm" className="border-2 border-foreground">
             <Plus className="mr-2 h-4 w-4" />
             Add Account
           </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data.savingsAccounts.map((account) => (
-            <Card key={account.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{account.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-positive mb-3">${account.balance.toFixed(2)}</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openEditSavings(account)}>
+        {data.savingsAccounts.length > 0 ? (
+          <div className="space-y-2">
+            {data.savingsAccounts.map((account) => (
+              <div key={account.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <span className="font-medium">{account.name}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(account.balance)}</span>
+                  <Button variant="ghost" size="icon" onClick={() => openEditSavings(account)} className="h-8 w-8">
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => deleteSavingsAccount(account.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => deleteSavingsAccount(account.id)} className="h-8 w-8 text-destructive hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Card className="border-2 border-dashed border-muted-foreground/30">
+            <CardContent className="py-6 text-center">
+              <p className="text-muted-foreground">No savings accounts added yet.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Physical Assets */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-2xl font-semibold flex items-center gap-2">
-              <Home className="h-6 w-6" />
-              Physical Assets
-            </h2>
-            <p className="text-muted-foreground">
-              Total: <span className="font-semibold text-positive">${totalPhysical.toFixed(2)}</span>
-            </p>
-          </div>
-          <Button onClick={() => { setEditingAsset(null); setAssetForm({ name: "", value: "" }); setAssetFormOpen(true); }}>
+        <div className="flex items-center justify-between mb-4 border-b-2 border-foreground pb-2">
+          <h2 className="text-lg font-bold uppercase tracking-wider flex items-center gap-2">
+            <Home className="h-5 w-5" />
+            Physical Assets
+          </h2>
+          <Button onClick={() => { setEditingAsset(null); setAssetForm({ name: "", value: "" }); setAssetFormOpen(true); }} size="sm" className="border-2 border-foreground">
             <Plus className="mr-2 h-4 w-4" />
             Add Asset
           </Button>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data.physicalAssets.map((asset) => (
-            <Card key={asset.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">{asset.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold text-positive mb-3">${asset.value.toFixed(2)}</p>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openEditAsset(asset)}>
+        {data.physicalAssets.length > 0 ? (
+          <div className="space-y-2">
+            {data.physicalAssets.map((asset) => (
+              <div key={asset.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <span className="font-medium">{asset.name}</span>
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(asset.value)}</span>
+                  <Button variant="ghost" size="icon" onClick={() => openEditAsset(asset)} className="h-8 w-8">
                     <Edit className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => deletePhysicalAsset(asset.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => deletePhysicalAsset(asset.id)} className="h-8 w-8 text-destructive hover:text-destructive">
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <Card className="border-2 border-dashed border-muted-foreground/30">
+            <CardContent className="py-6 text-center">
+              <p className="text-muted-foreground">No physical assets added yet.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Checking Form Dialog */}
