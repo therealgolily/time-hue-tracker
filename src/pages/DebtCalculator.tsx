@@ -14,6 +14,7 @@ import { CreditCardItem } from '@/apps/debt-calculator/components/CreditCardItem
 
 import { OtherDebtsSection } from '@/apps/debt-calculator/components/OtherDebtsSection';
 import { MonthlyObligations } from '@/apps/debt-calculator/components/MonthlyObligations';
+import { DebtPayoffCalculator } from '@/apps/debt-calculator/components/DebtPayoffCalculator';
 import { CreditCard } from '@/apps/debt-calculator/types';
 
 const DebtCalculatorContent = () => {
@@ -106,6 +107,7 @@ const DebtCalculatorContent = () => {
             </div>
           </div>
           <OtherDebtsSection />
+          <DebtPayoffCalculator />
         </TabsContent>
 
 
