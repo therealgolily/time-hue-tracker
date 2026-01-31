@@ -38,10 +38,18 @@ export const MonthlyObligations: React.FC = () => {
   const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>(undefined);
 
+  // Helper to check if expense is monthly (treats missing recurringFrequency as monthly for backwards compat)
+  const isMonthlyExpense = (exp: Expense) => {
+    if (!exp.isRecurring) return false;
+    // If no recurringFrequency set, treat as monthly (legacy data)
+    if (!exp.recurringFrequency) return true;
+    return exp.recurringFrequency === "monthly";
+  };
+
   // Calculate totals
   const totals = useMemo(() => {
     const monthlyExpenses = data.budget.expenses
-      .filter(exp => exp.isRecurring && exp.recurringFrequency === "monthly")
+      .filter(isMonthlyExpense)
       .reduce((sum, exp) => sum + exp.amount, 0);
     
     const creditCardMinimums = data.creditCards.reduce((sum, card) => sum + card.minimumPayment, 0);
@@ -66,7 +74,7 @@ export const MonthlyObligations: React.FC = () => {
   // Group expenses by category
   const expensesByCategory = useMemo(() => {
     return data.budget.expenses
-      .filter(exp => exp.isRecurring && exp.recurringFrequency === "monthly")
+      .filter(isMonthlyExpense)
       .reduce((acc, exp) => {
         const cat = exp.category || "Other";
         if (!acc[cat]) acc[cat] = [];
