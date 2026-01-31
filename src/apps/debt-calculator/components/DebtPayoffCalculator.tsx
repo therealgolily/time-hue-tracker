@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { format, differenceInDays, differenceInWeeks, differenceInMonths, addMonths } from "date-fns";
+import { format, differenceInMonths, addMonths } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -7,13 +7,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Calculator, CalendarIcon, TrendingDown, Target, DollarSign, Clock } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Calculator, CalendarIcon, TrendingDown, Target, Clock, Snowflake, Flame, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFinance } from "../context/FinanceContext";
 import { formatCurrency } from "../lib/calculations";
 import { CreditCard } from "../types";
 
 type PaymentFrequency = "monthly" | "biweekly" | "weekly";
+type PayoffStrategy = "snowball" | "avalanche" | "simultaneous";
 
 interface PayoffResult {
   cardId: string;
@@ -26,13 +28,38 @@ interface PayoffResult {
   payoffDate: Date;
   minimumPayment: number;
   extraNeeded: number;
+  payoffOrder?: number;
+  monthsToPayoff?: number;
 }
 
 interface CalculatorState {
   selectedCardIds: string[];
   targetDate: Date | undefined;
   frequency: PaymentFrequency;
+  strategy: PayoffStrategy;
 }
+
+// Calculate months to pay off a single card with given monthly payment
+const calculateMonthsToPayoff = (
+  balance: number,
+  apr: number,
+  monthlyPayment: number
+): number => {
+  if (balance <= 0 || monthlyPayment <= 0) return 0;
+  
+  const monthlyRate = apr / 100 / 12;
+  
+  if (monthlyRate === 0) {
+    return Math.ceil(balance / monthlyPayment);
+  }
+  
+  // n = -log(1 - (r * PV / P)) / log(1 + r)
+  const ratio = 1 - (monthlyRate * balance / monthlyPayment);
+  if (ratio <= 0) return Infinity; // Payment too low to ever pay off
+  
+  const months = -Math.log(ratio) / Math.log(1 + monthlyRate);
+  return Math.ceil(months);
+};
 
 // Calculate required payment to pay off balance by target date
 const calculateRequiredPayment = (
@@ -103,12 +130,251 @@ const getFrequencyMultiplier = (frequency: PaymentFrequency): number => {
   }
 };
 
+const strategyInfo: Record<PayoffStrategy, { name: string; description: string; icon: React.ReactNode }> = {
+  snowball: {
+    name: "Debt Snowball",
+    description: "Pay smallest balance first for quick wins & motivation",
+    icon: <Snowflake className="h-5 w-5" />,
+  },
+  avalanche: {
+    name: "Debt Avalanche",
+    description: "Pay highest interest rate first to save the most money",
+    icon: <Flame className="h-5 w-5" />,
+  },
+  simultaneous: {
+    name: "Simultaneous",
+    description: "Pay all debts proportionally at the same time",
+    icon: <Layers className="h-5 w-5" />,
+  },
+};
+
+// Calculate payoff plan based on strategy
+const calculateStrategyPayoff = (
+  cards: CreditCard[],
+  targetDate: Date,
+  today: Date,
+  strategy: PayoffStrategy,
+  frequency: PaymentFrequency
+): { results: PayoffResult[]; totalMonthlyPayment: number } => {
+  const monthsToPayoff = Math.max(1, differenceInMonths(targetDate, today));
+  
+  if (strategy === "simultaneous") {
+    // Original behavior - pay all cards proportionally
+    const results = cards.map(card => {
+      const requiredMonthlyPayment = calculateRequiredPayment(card.balance, card.apr, monthsToPayoff);
+      const totalInterest = calculateTotalInterest(card.balance, card.apr, requiredMonthlyPayment, monthsToPayoff);
+      const frequencyPayment = convertPaymentFrequency(requiredMonthlyPayment, frequency);
+      const paymentsCount = Math.ceil(monthsToPayoff * getFrequencyMultiplier(frequency));
+
+      return {
+        cardId: card.id,
+        cardName: card.name,
+        currentBalance: card.balance,
+        apr: card.apr,
+        requiredPayment: frequencyPayment,
+        totalPayments: paymentsCount,
+        totalInterest,
+        payoffDate: targetDate,
+        minimumPayment: card.minimumPayment,
+        extraNeeded: Math.max(0, requiredMonthlyPayment - card.minimumPayment),
+        monthsToPayoff,
+      };
+    });
+
+    const totalMonthlyPayment = results.reduce((sum, r) => {
+      const monthly = r.requiredPayment / getFrequencyMultiplier(frequency);
+      return sum + monthly;
+    }, 0);
+
+    return { results, totalMonthlyPayment };
+  }
+
+  // For snowball/avalanche - we need to calculate the required total monthly payment
+  // to pay off all debts by the target date, allocating extra to priority debts
+  
+  // Sort cards by strategy
+  const sortedCards = [...cards].sort((a, b) => {
+    if (strategy === "snowball") {
+      return a.balance - b.balance; // Smallest balance first
+    } else {
+      return b.apr - a.apr; // Highest APR first
+    }
+  });
+
+  // First, calculate total required monthly payment to hit target date
+  // We'll use binary search to find the right total payment
+  const totalBalance = cards.reduce((sum, c) => sum + c.balance, 0);
+  const totalMinimums = cards.reduce((sum, c) => sum + c.minimumPayment, 0);
+  
+  // Calculate if minimums alone can pay off by target date
+  let testPayment = totalMinimums;
+  let low = totalMinimums;
+  let high = totalBalance / monthsToPayoff * 2; // Upper bound estimate
+  
+  // Binary search for the right total payment
+  for (let i = 0; i < 50; i++) {
+    const mid = (low + high) / 2;
+    const monthsNeeded = simulatePayoff(sortedCards, mid, strategy);
+    
+    if (monthsNeeded <= monthsToPayoff) {
+      high = mid;
+      testPayment = mid;
+    } else {
+      low = mid;
+    }
+    
+    if (high - low < 0.01) break;
+  }
+
+  const totalMonthlyPayment = Math.ceil(testPayment * 100) / 100;
+
+  // Now simulate the payoff to get per-card details
+  const { cardResults } = simulatePayoffDetailed(sortedCards, totalMonthlyPayment, strategy, today, frequency);
+
+  return { results: cardResults, totalMonthlyPayment };
+};
+
+// Simulate payoff and return months needed
+const simulatePayoff = (
+  sortedCards: CreditCard[],
+  totalMonthlyPayment: number,
+  strategy: PayoffStrategy
+): number => {
+  const balances = sortedCards.map(c => c.balance);
+  const minimums = sortedCards.map(c => c.minimumPayment);
+  const aprs = sortedCards.map(c => c.apr);
+  
+  let month = 0;
+  const maxMonths = 600; // 50 year cap
+  
+  while (balances.some(b => b > 0.01) && month < maxMonths) {
+    month++;
+    
+    // Calculate minimums for active cards
+    let availableExtra = totalMonthlyPayment;
+    const activeIndices: number[] = [];
+    
+    for (let i = 0; i < balances.length; i++) {
+      if (balances[i] > 0) {
+        activeIndices.push(i);
+        availableExtra -= minimums[i];
+      }
+    }
+    
+    // Apply interest and minimum payments
+    for (const i of activeIndices) {
+      const monthlyRate = aprs[i] / 100 / 12;
+      balances[i] = balances[i] * (1 + monthlyRate) - minimums[i];
+    }
+    
+    // Apply extra to priority card
+    if (availableExtra > 0 && activeIndices.length > 0) {
+      const priorityIndex = activeIndices[0]; // First in sorted order
+      balances[priorityIndex] -= availableExtra;
+    }
+    
+    // Clean up negative balances
+    for (let i = 0; i < balances.length; i++) {
+      if (balances[i] < 0) balances[i] = 0;
+    }
+  }
+  
+  return month;
+};
+
+// Detailed simulation for results
+const simulatePayoffDetailed = (
+  sortedCards: CreditCard[],
+  totalMonthlyPayment: number,
+  strategy: PayoffStrategy,
+  today: Date,
+  frequency: PaymentFrequency
+): { cardResults: PayoffResult[] } => {
+  const balances = sortedCards.map(c => c.balance);
+  const minimums = sortedCards.map(c => c.minimumPayment);
+  const aprs = sortedCards.map(c => c.apr);
+  const interests: number[] = sortedCards.map(() => 0);
+  const payoffMonths: number[] = sortedCards.map(() => 0);
+  const avgPayments: number[] = sortedCards.map(() => 0);
+  const paymentCounts: number[] = sortedCards.map(() => 0);
+  
+  let month = 0;
+  const maxMonths = 600;
+  let payoffOrder = 1;
+  const orders: number[] = sortedCards.map(() => 0);
+  
+  while (balances.some(b => b > 0.01) && month < maxMonths) {
+    month++;
+    
+    // Calculate minimums for active cards
+    let availableExtra = totalMonthlyPayment;
+    const activeIndices: number[] = [];
+    
+    for (let i = 0; i < balances.length; i++) {
+      if (balances[i] > 0.01) {
+        activeIndices.push(i);
+        availableExtra -= minimums[i];
+      }
+    }
+    
+    // Apply interest and track payments
+    for (const i of activeIndices) {
+      const monthlyRate = aprs[i] / 100 / 12;
+      const interest = balances[i] * monthlyRate;
+      interests[i] += interest;
+      balances[i] = balances[i] + interest - minimums[i];
+      avgPayments[i] += minimums[i];
+      paymentCounts[i]++;
+    }
+    
+    // Apply extra to priority card
+    if (availableExtra > 0 && activeIndices.length > 0) {
+      const priorityIndex = activeIndices[0];
+      balances[priorityIndex] -= availableExtra;
+      avgPayments[priorityIndex] += availableExtra;
+    }
+    
+    // Check for newly paid off cards
+    for (let i = 0; i < balances.length; i++) {
+      if (balances[i] <= 0.01 && payoffMonths[i] === 0) {
+        payoffMonths[i] = month;
+        orders[i] = payoffOrder++;
+        balances[i] = 0;
+      }
+    }
+  }
+  
+  const cardResults: PayoffResult[] = sortedCards.map((card, i) => {
+    const months = payoffMonths[i] || month;
+    const avgMonthly = paymentCounts[i] > 0 ? avgPayments[i] / paymentCounts[i] : minimums[i];
+    const frequencyPayment = convertPaymentFrequency(avgMonthly, frequency);
+    
+    return {
+      cardId: card.id,
+      cardName: card.name,
+      currentBalance: card.balance,
+      apr: card.apr,
+      requiredPayment: frequencyPayment,
+      totalPayments: Math.ceil(months * getFrequencyMultiplier(frequency)),
+      totalInterest: interests[i],
+      payoffDate: addMonths(today, months),
+      minimumPayment: card.minimumPayment,
+      extraNeeded: Math.max(0, avgMonthly - card.minimumPayment),
+      payoffOrder: orders[i],
+      monthsToPayoff: months,
+    };
+  });
+  
+  return { cardResults };
+};
+
 export const DebtPayoffCalculator: React.FC = () => {
   const { data } = useFinance();
   const [state, setState] = useState<CalculatorState>({
     selectedCardIds: [],
     targetDate: undefined,
     frequency: "monthly",
+    strategy: "avalanche",
   });
 
   const today = new Date();
@@ -122,69 +388,44 @@ export const DebtPayoffCalculator: React.FC = () => {
     { label: "5 years", date: addMonths(today, 60) },
   ], []);
 
-  // Calculate results for each selected card
-  const results = useMemo((): PayoffResult[] => {
-    if (!state.targetDate || state.selectedCardIds.length === 0) return [];
+  // Get selected cards
+  const selectedCards = useMemo(() => {
+    return data.creditCards.filter(c => state.selectedCardIds.includes(c.id));
+  }, [data.creditCards, state.selectedCardIds]);
 
-    const monthsToPayoff = Math.max(1, differenceInMonths(state.targetDate, today));
+  // Calculate results based on strategy
+  const { results, totalMonthlyPayment } = useMemo(() => {
+    if (!state.targetDate || state.selectedCardIds.length === 0) {
+      return { results: [], totalMonthlyPayment: 0 };
+    }
 
-    return state.selectedCardIds.map(cardId => {
-      const card = data.creditCards.find(c => c.id === cardId);
-      if (!card) return null;
-
-      const requiredMonthlyPayment = calculateRequiredPayment(
-        card.balance,
-        card.apr,
-        monthsToPayoff
-      );
-
-      const totalInterest = calculateTotalInterest(
-        card.balance,
-        card.apr,
-        requiredMonthlyPayment,
-        monthsToPayoff
-      );
-
-      const frequencyPayment = convertPaymentFrequency(requiredMonthlyPayment, state.frequency);
-      const paymentsCount = Math.ceil(monthsToPayoff * getFrequencyMultiplier(state.frequency));
-
-      return {
-        cardId: card.id,
-        cardName: card.name,
-        currentBalance: card.balance,
-        apr: card.apr,
-        requiredPayment: frequencyPayment,
-        totalPayments: paymentsCount,
-        totalInterest,
-        payoffDate: state.targetDate,
-        minimumPayment: card.minimumPayment,
-        extraNeeded: Math.max(0, requiredMonthlyPayment - card.minimumPayment),
-      };
-    }).filter(Boolean) as PayoffResult[];
-  }, [state.selectedCardIds, state.targetDate, state.frequency, data.creditCards]);
+    return calculateStrategyPayoff(
+      selectedCards,
+      state.targetDate,
+      today,
+      state.strategy,
+      state.frequency
+    );
+  }, [state.selectedCardIds, state.targetDate, state.frequency, state.strategy, selectedCards]);
 
   // Calculate totals
   const totals = useMemo(() => {
     if (results.length === 0) return null;
 
     const totalBalance = results.reduce((sum, r) => sum + r.currentBalance, 0);
-    const totalPaymentPerPeriod = results.reduce((sum, r) => sum + r.requiredPayment, 0);
+    const totalPaymentPerPeriod = convertPaymentFrequency(totalMonthlyPayment, state.frequency);
     const totalInterest = results.reduce((sum, r) => sum + r.totalInterest, 0);
     const totalMinimums = results.reduce((sum, r) => sum + r.minimumPayment, 0);
-    const monthlyEquivalent = results.reduce((sum, r) => {
-      const monthly = r.requiredPayment / getFrequencyMultiplier(state.frequency) * getFrequencyMultiplier("monthly");
-      return sum + monthly;
-    }, 0);
 
     return {
       totalBalance,
       totalPaymentPerPeriod,
       totalInterest,
       totalMinimums,
-      extraNeeded: Math.max(0, monthlyEquivalent - totalMinimums),
-      monthlyEquivalent,
+      extraNeeded: Math.max(0, totalMonthlyPayment - totalMinimums),
+      monthlyEquivalent: totalMonthlyPayment,
     };
-  }, [results, state.frequency]);
+  }, [results, state.frequency, totalMonthlyPayment]);
 
   const toggleCard = (cardId: string) => {
     setState(prev => ({
@@ -209,6 +450,14 @@ export const DebtPayoffCalculator: React.FC = () => {
     }));
   };
 
+  // Sort results for display based on strategy
+  const sortedResults = useMemo(() => {
+    if (state.strategy === "simultaneous") {
+      return results;
+    }
+    return [...results].sort((a, b) => (a.payoffOrder || 0) - (b.payoffOrder || 0));
+  }, [results, state.strategy]);
+
   return (
     <div className="space-y-6">
       <Card className="border-2 border-foreground">
@@ -221,6 +470,43 @@ export const DebtPayoffCalculator: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
+          {/* Strategy Selection */}
+          <div className="space-y-3">
+            <Label className="text-sm font-mono uppercase tracking-wider">Payoff Strategy</Label>
+            <RadioGroup
+              value={state.strategy}
+              onValueChange={(value) => setState(prev => ({ ...prev, strategy: value as PayoffStrategy }))}
+              className="grid gap-3"
+            >
+              {(Object.keys(strategyInfo) as PayoffStrategy[]).map((key) => {
+                const info = strategyInfo[key];
+                return (
+                  <div
+                    key={key}
+                    className={cn(
+                      "flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors",
+                      state.strategy === key
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:border-foreground/50"
+                    )}
+                    onClick={() => setState(prev => ({ ...prev, strategy: key }))}
+                  >
+                    <RadioGroupItem value={key} id={key} className="mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-primary">{info.icon}</span>
+                        <label htmlFor={key} className="font-bold cursor-pointer">
+                          {info.name}
+                        </label>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{info.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </RadioGroup>
+          </div>
+
           {/* Card Selection */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -340,6 +626,9 @@ export const DebtPayoffCalculator: React.FC = () => {
                   <p className="text-4xl font-bold text-primary mt-1">
                     {formatCurrency(totals.totalPaymentPerPeriod)}
                   </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Using {strategyInfo[state.strategy].name} strategy
+                  </p>
                 </div>
                 <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <Target className="h-8 w-8 text-primary" />
@@ -381,21 +670,28 @@ export const DebtPayoffCalculator: React.FC = () => {
           <Card className="border-2 border-foreground">
             <CardHeader className="border-b-2 border-foreground pb-4">
               <CardTitle className="text-lg font-bold uppercase tracking-wider">
-                Payment Breakdown by Card
+                {state.strategy === "simultaneous" ? "Payment Breakdown by Card" : "Payoff Order"}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-3">
-                {results.map(result => (
+                {sortedResults.map((result, index) => (
                   <div
                     key={result.cardId}
                     className="p-4 bg-muted/50 rounded-lg space-y-3"
                   >
                     <div className="flex items-center justify-between">
-                      <div>
-                        <span className="font-bold">{result.cardName}</span>
-                        <div className="text-xs text-muted-foreground">
-                          {result.apr}% APR • Balance: {formatCurrency(result.currentBalance)}
+                      <div className="flex items-center gap-3">
+                        {state.strategy !== "simultaneous" && (
+                          <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm">
+                            {result.payoffOrder || index + 1}
+                          </div>
+                        )}
+                        <div>
+                          <span className="font-bold">{result.cardName}</span>
+                          <div className="text-xs text-muted-foreground">
+                            {result.apr}% APR • Balance: {formatCurrency(result.currentBalance)}
+                          </div>
                         </div>
                       </div>
                       <div className="text-right">
@@ -403,19 +699,31 @@ export const DebtPayoffCalculator: React.FC = () => {
                           {formatCurrency(result.requiredPayment)}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          per {state.frequency === "biweekly" ? "2 weeks" : state.frequency === "weekly" ? "week" : "month"}
+                          avg per {state.frequency === "biweekly" ? "2 weeks" : state.frequency === "weekly" ? "week" : "month"}
                         </p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 pt-3 border-t border-foreground/10 text-sm">
                       <div>
-                        <p className="text-[10px] font-mono uppercase text-muted-foreground">Current Min</p>
-                        <p className="font-medium">{formatCurrency(result.minimumPayment)}/mo</p>
+                        <p className="text-[10px] font-mono uppercase text-muted-foreground">
+                          {state.strategy === "simultaneous" ? "Current Min" : "Paid Off In"}
+                        </p>
+                        <p className="font-medium">
+                          {state.strategy === "simultaneous" 
+                            ? `${formatCurrency(result.minimumPayment)}/mo`
+                            : `${result.monthsToPayoff} months`}
+                        </p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-mono uppercase text-muted-foreground">Extra Needed</p>
-                        <p className="font-medium text-primary">+{formatCurrency(result.extraNeeded)}/mo</p>
+                        <p className="text-[10px] font-mono uppercase text-muted-foreground">
+                          {state.strategy === "simultaneous" ? "Extra Needed" : "Payoff Date"}
+                        </p>
+                        <p className="font-medium text-primary">
+                          {state.strategy === "simultaneous"
+                            ? `+${formatCurrency(result.extraNeeded)}/mo`
+                            : format(result.payoffDate, "MMM yyyy")}
+                        </p>
                       </div>
                       <div>
                         <p className="text-[10px] font-mono uppercase text-muted-foreground">Interest Cost</p>
