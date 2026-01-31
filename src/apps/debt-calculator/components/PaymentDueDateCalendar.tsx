@@ -202,6 +202,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
               const hasItems = itemsOnDay.length > 0;
               const isDayToday = isToday(day);
               const dayNumber = parseInt(format(day, "d"));
+              const dayTotal = itemsOnDay.reduce((sum, item) => sum + item.amount, 0);
 
               return (
                 <TooltipProvider key={dateKey}>
@@ -223,24 +224,29 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                           {format(day, "d")}
                         </span>
                         {hasItems && (
-                          <div className="flex flex-wrap justify-center gap-0.5 mt-1">
-                            {itemsOnDay.slice(0, 4).map(item => (
-                              <div
-                                key={`${item.type}-${item.id}`}
-                                className={cn(
-                                  "w-2 h-2 rounded-full cursor-pointer hover:scale-125 transition-transform",
-                                  item.type === 'card' ? "bg-destructive" : "bg-expense"
-                                )}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleItemClick(item);
-                                }}
-                              />
-                            ))}
-                            {itemsOnDay.length > 4 && (
-                              <span className="text-[10px] text-muted-foreground">+{itemsOnDay.length - 4}</span>
-                            )}
-                          </div>
+                          <>
+                            <span className="text-[10px] font-bold text-foreground mt-0.5 leading-none">
+                              ${dayTotal >= 1000 ? `${(dayTotal / 1000).toFixed(1)}k` : dayTotal.toFixed(0)}
+                            </span>
+                            <div className="flex flex-wrap justify-center gap-0.5 mt-0.5">
+                              {itemsOnDay.slice(0, 3).map(item => (
+                                <div
+                                  key={`${item.type}-${item.id}`}
+                                  className={cn(
+                                    "w-1.5 h-1.5 rounded-full cursor-pointer hover:scale-125 transition-transform",
+                                    item.type === 'card' ? "bg-destructive" : "bg-expense"
+                                  )}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleItemClick(item);
+                                  }}
+                                />
+                              ))}
+                              {itemsOnDay.length > 3 && (
+                                <span className="text-[8px] text-muted-foreground">+{itemsOnDay.length - 3}</span>
+                              )}
+                            </div>
+                          </>
                         )}
                         {!hasItems && (
                           <Plus className="h-3 w-3 text-muted-foreground/30 mt-1 opacity-0 group-hover:opacity-100" />
