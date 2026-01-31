@@ -3,12 +3,13 @@ import { format, differenceInMonths, addMonths } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Calculator, CalendarIcon, TrendingDown, Target, Clock, Snowflake, Flame, Layers } from "lucide-react";
+import { Calculator, CalendarIcon, TrendingDown, Target, Clock, Snowflake, Flame, Layers, DollarSign, Calendar as CalendarCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFinance } from "../context/FinanceContext";
 import { formatCurrency } from "../lib/calculations";
@@ -16,6 +17,7 @@ import { CreditCard } from "../types";
 
 type PaymentFrequency = "monthly" | "biweekly" | "weekly";
 type PayoffStrategy = "snowball" | "avalanche" | "simultaneous";
+type CalculationMode = "target-date" | "fixed-payment";
 
 interface PayoffResult {
   cardId: string;
@@ -37,29 +39,9 @@ interface CalculatorState {
   targetDate: Date | undefined;
   frequency: PaymentFrequency;
   strategy: PayoffStrategy;
+  calculationMode: CalculationMode;
+  fixedPaymentAmount: string;
 }
-
-// Calculate months to pay off a single card with given monthly payment
-const calculateMonthsToPayoff = (
-  balance: number,
-  apr: number,
-  monthlyPayment: number
-): number => {
-  if (balance <= 0 || monthlyPayment <= 0) return 0;
-  
-  const monthlyRate = apr / 100 / 12;
-  
-  if (monthlyRate === 0) {
-    return Math.ceil(balance / monthlyPayment);
-  }
-  
-  // n = -log(1 - (r * PV / P)) / log(1 + r)
-  const ratio = 1 - (monthlyRate * balance / monthlyPayment);
-  if (ratio <= 0) return Infinity; // Payment too low to ever pay off
-  
-  const months = -Math.log(ratio) / Math.log(1 + monthlyRate);
-  return Math.ceil(months);
-};
 
 // Calculate required payment to pay off balance by target date
 const calculateRequiredPayment = (
@@ -78,7 +60,7 @@ const calculateRequiredPayment = (
   // PMT formula: P = (r * PV) / (1 - (1 + r)^-n)
   const payment = (monthlyRate * balance) / (1 - Math.pow(1 + monthlyRate, -monthsToPayoff));
   
-  return Math.ceil(payment * 100) / 100; // Round up to nearest cent
+  return Math.ceil(payment * 100) / 100;
 };
 
 // Calculate total interest paid over the payoff period
@@ -111,6 +93,19 @@ const convertPaymentFrequency = (monthlyPayment: number, frequency: PaymentFrequ
     case "monthly":
     default:
       return monthlyPayment;
+  }
+};
+
+// Convert frequency payment to monthly equivalent
+const convertToMonthly = (payment: number, frequency: PaymentFrequency): number => {
+  switch (frequency) {
+    case "weekly":
+      return payment * 52 / 12;
+    case "biweekly":
+      return payment * 26 / 12;
+    case "monthly":
+    default:
+      return payment;
   }
 };
 
@@ -148,8 +143,21 @@ const strategyInfo: Record<PayoffStrategy, { name: string; description: string; 
   },
 };
 
-// Calculate payoff plan based on strategy
-const calculateStrategyPayoff = (
+const modeInfo: Record<CalculationMode, { name: string; description: string; icon: React.ReactNode }> = {
+  "target-date": {
+    name: "Target Date",
+    description: "I want to be debt-free by a specific date",
+    icon: <CalendarCheck className="h-5 w-5" />,
+  },
+  "fixed-payment": {
+    name: "Fixed Payment",
+    description: "I can pay a specific amount each period",
+    icon: <DollarSign className="h-5 w-5" />,
+  },
+};
+
+// Calculate payoff plan based on strategy for TARGET DATE mode
+const calculateStrategyPayoffByDate = (
   cards: CreditCard[],
   targetDate: Date,
   today: Date,
@@ -159,7 +167,6 @@ const calculateStrategyPayoff = (
   const monthsToPayoff = Math.max(1, differenceInMonths(targetDate, today));
   
   if (strategy === "simultaneous") {
-    // Original behavior - pay all cards proportionally
     const results = cards.map(card => {
       const requiredMonthlyPayment = calculateRequiredPayment(card.balance, card.apr, monthsToPayoff);
       const totalInterest = calculateTotalInterest(card.balance, card.apr, requiredMonthlyPayment, monthsToPayoff);
@@ -189,32 +196,25 @@ const calculateStrategyPayoff = (
     return { results, totalMonthlyPayment };
   }
 
-  // For snowball/avalanche - we need to calculate the required total monthly payment
-  // to pay off all debts by the target date, allocating extra to priority debts
-  
-  // Sort cards by strategy
+  // For snowball/avalanche
   const sortedCards = [...cards].sort((a, b) => {
     if (strategy === "snowball") {
-      return a.balance - b.balance; // Smallest balance first
+      return a.balance - b.balance;
     } else {
-      return b.apr - a.apr; // Highest APR first
+      return b.apr - a.apr;
     }
   });
 
-  // First, calculate total required monthly payment to hit target date
-  // We'll use binary search to find the right total payment
   const totalBalance = cards.reduce((sum, c) => sum + c.balance, 0);
   const totalMinimums = cards.reduce((sum, c) => sum + c.minimumPayment, 0);
   
-  // Calculate if minimums alone can pay off by target date
   let testPayment = totalMinimums;
   let low = totalMinimums;
-  let high = totalBalance / monthsToPayoff * 2; // Upper bound estimate
+  let high = totalBalance / monthsToPayoff * 2;
   
-  // Binary search for the right total payment
   for (let i = 0; i < 50; i++) {
     const mid = (low + high) / 2;
-    const monthsNeeded = simulatePayoff(sortedCards, mid, strategy);
+    const monthsNeeded = simulatePayoff(sortedCards, mid);
     
     if (monthsNeeded <= monthsToPayoff) {
       high = mid;
@@ -227,30 +227,120 @@ const calculateStrategyPayoff = (
   }
 
   const totalMonthlyPayment = Math.ceil(testPayment * 100) / 100;
-
-  // Now simulate the payoff to get per-card details
-  const { cardResults } = simulatePayoffDetailed(sortedCards, totalMonthlyPayment, strategy, today, frequency);
+  const { cardResults } = simulatePayoffDetailed(sortedCards, totalMonthlyPayment, today, frequency);
 
   return { results: cardResults, totalMonthlyPayment };
+};
+
+// Calculate payoff plan based on strategy for FIXED PAYMENT mode
+const calculateStrategyPayoffByPayment = (
+  cards: CreditCard[],
+  monthlyPayment: number,
+  today: Date,
+  strategy: PayoffStrategy,
+  frequency: PaymentFrequency
+): { results: PayoffResult[]; finalPayoffDate: Date; totalMonths: number } => {
+  const totalMinimums = cards.reduce((sum, c) => sum + c.minimumPayment, 0);
+  
+  // Check if payment is sufficient
+  if (monthlyPayment < totalMinimums) {
+    return { results: [], finalPayoffDate: today, totalMonths: 0 };
+  }
+  
+  if (strategy === "simultaneous") {
+    // Distribute payment proportionally by balance
+    const totalBalance = cards.reduce((sum, c) => sum + c.balance, 0);
+    
+    const results = cards.map(card => {
+      const proportion = card.balance / totalBalance;
+      const cardMonthlyPayment = monthlyPayment * proportion;
+      const months = simulateSingleCardPayoff(card.balance, card.apr, cardMonthlyPayment);
+      const totalInterest = calculateTotalInterest(card.balance, card.apr, cardMonthlyPayment, months);
+      const frequencyPayment = convertPaymentFrequency(cardMonthlyPayment, frequency);
+
+      return {
+        cardId: card.id,
+        cardName: card.name,
+        currentBalance: card.balance,
+        apr: card.apr,
+        requiredPayment: frequencyPayment,
+        totalPayments: Math.ceil(months * getFrequencyMultiplier(frequency)),
+        totalInterest,
+        payoffDate: addMonths(today, months),
+        minimumPayment: card.minimumPayment,
+        extraNeeded: Math.max(0, cardMonthlyPayment - card.minimumPayment),
+        monthsToPayoff: months,
+      };
+    });
+
+    const maxMonths = Math.max(...results.map(r => r.monthsToPayoff || 0));
+    return { 
+      results, 
+      finalPayoffDate: addMonths(today, maxMonths),
+      totalMonths: maxMonths 
+    };
+  }
+
+  // For snowball/avalanche
+  const sortedCards = [...cards].sort((a, b) => {
+    if (strategy === "snowball") {
+      return a.balance - b.balance;
+    } else {
+      return b.apr - a.apr;
+    }
+  });
+
+  const { cardResults, totalMonths } = simulatePayoffDetailed(sortedCards, monthlyPayment, today, frequency);
+
+  return { 
+    results: cardResults, 
+    finalPayoffDate: addMonths(today, totalMonths),
+    totalMonths 
+  };
+};
+
+// Simulate single card payoff
+const simulateSingleCardPayoff = (
+  balance: number,
+  apr: number,
+  monthlyPayment: number
+): number => {
+  if (balance <= 0 || monthlyPayment <= 0) return 0;
+  
+  const monthlyRate = apr / 100 / 12;
+  let remainingBalance = balance;
+  let month = 0;
+  const maxMonths = 600;
+  
+  while (remainingBalance > 0.01 && month < maxMonths) {
+    month++;
+    const interest = remainingBalance * monthlyRate;
+    remainingBalance = remainingBalance + interest - monthlyPayment;
+    
+    // Check if payment is too low to ever pay off
+    if (interest >= monthlyPayment && month > 1) {
+      return Infinity;
+    }
+  }
+  
+  return month;
 };
 
 // Simulate payoff and return months needed
 const simulatePayoff = (
   sortedCards: CreditCard[],
-  totalMonthlyPayment: number,
-  strategy: PayoffStrategy
+  totalMonthlyPayment: number
 ): number => {
   const balances = sortedCards.map(c => c.balance);
   const minimums = sortedCards.map(c => c.minimumPayment);
   const aprs = sortedCards.map(c => c.apr);
   
   let month = 0;
-  const maxMonths = 600; // 50 year cap
+  const maxMonths = 600;
   
   while (balances.some(b => b > 0.01) && month < maxMonths) {
     month++;
     
-    // Calculate minimums for active cards
     let availableExtra = totalMonthlyPayment;
     const activeIndices: number[] = [];
     
@@ -261,19 +351,16 @@ const simulatePayoff = (
       }
     }
     
-    // Apply interest and minimum payments
     for (const i of activeIndices) {
       const monthlyRate = aprs[i] / 100 / 12;
       balances[i] = balances[i] * (1 + monthlyRate) - minimums[i];
     }
     
-    // Apply extra to priority card
     if (availableExtra > 0 && activeIndices.length > 0) {
-      const priorityIndex = activeIndices[0]; // First in sorted order
+      const priorityIndex = activeIndices[0];
       balances[priorityIndex] -= availableExtra;
     }
     
-    // Clean up negative balances
     for (let i = 0; i < balances.length; i++) {
       if (balances[i] < 0) balances[i] = 0;
     }
@@ -286,10 +373,9 @@ const simulatePayoff = (
 const simulatePayoffDetailed = (
   sortedCards: CreditCard[],
   totalMonthlyPayment: number,
-  strategy: PayoffStrategy,
   today: Date,
   frequency: PaymentFrequency
-): { cardResults: PayoffResult[] } => {
+): { cardResults: PayoffResult[]; totalMonths: number } => {
   const balances = sortedCards.map(c => c.balance);
   const minimums = sortedCards.map(c => c.minimumPayment);
   const aprs = sortedCards.map(c => c.apr);
@@ -306,7 +392,6 @@ const simulatePayoffDetailed = (
   while (balances.some(b => b > 0.01) && month < maxMonths) {
     month++;
     
-    // Calculate minimums for active cards
     let availableExtra = totalMonthlyPayment;
     const activeIndices: number[] = [];
     
@@ -317,7 +402,6 @@ const simulatePayoffDetailed = (
       }
     }
     
-    // Apply interest and track payments
     for (const i of activeIndices) {
       const monthlyRate = aprs[i] / 100 / 12;
       const interest = balances[i] * monthlyRate;
@@ -327,14 +411,12 @@ const simulatePayoffDetailed = (
       paymentCounts[i]++;
     }
     
-    // Apply extra to priority card
     if (availableExtra > 0 && activeIndices.length > 0) {
       const priorityIndex = activeIndices[0];
       balances[priorityIndex] -= availableExtra;
       avgPayments[priorityIndex] += availableExtra;
     }
     
-    // Check for newly paid off cards
     for (let i = 0; i < balances.length; i++) {
       if (balances[i] <= 0.01 && payoffMonths[i] === 0) {
         payoffMonths[i] = month;
@@ -365,7 +447,7 @@ const simulatePayoffDetailed = (
     };
   });
   
-  return { cardResults };
+  return { cardResults, totalMonths: month };
 };
 
 export const DebtPayoffCalculator: React.FC = () => {
@@ -375,11 +457,12 @@ export const DebtPayoffCalculator: React.FC = () => {
     targetDate: undefined,
     frequency: "monthly",
     strategy: "avalanche",
+    calculationMode: "target-date",
+    fixedPaymentAmount: "",
   });
 
   const today = new Date();
   
-  // Quick date presets
   const datePresets = useMemo(() => [
     { label: "6 months", date: addMonths(today, 6) },
     { label: "1 year", date: addMonths(today, 12) },
@@ -388,34 +471,84 @@ export const DebtPayoffCalculator: React.FC = () => {
     { label: "5 years", date: addMonths(today, 60) },
   ], []);
 
-  // Get selected cards
   const selectedCards = useMemo(() => {
     return data.creditCards.filter(c => state.selectedCardIds.includes(c.id));
   }, [data.creditCards, state.selectedCardIds]);
 
-  // Calculate results based on strategy
-  const { results, totalMonthlyPayment } = useMemo(() => {
-    if (!state.targetDate || state.selectedCardIds.length === 0) {
-      return { results: [], totalMonthlyPayment: 0 };
+  const totalMinimums = useMemo(() => {
+    return selectedCards.reduce((sum, c) => sum + c.minimumPayment, 0);
+  }, [selectedCards]);
+
+  const fixedPaymentMonthly = useMemo(() => {
+    const amount = parseFloat(state.fixedPaymentAmount) || 0;
+    return convertToMonthly(amount, state.frequency);
+  }, [state.fixedPaymentAmount, state.frequency]);
+
+  // Calculate results based on mode and strategy
+  const calculationResults = useMemo((): { 
+    results: PayoffResult[]; 
+    totalMonthlyPayment: number; 
+    finalPayoffDate: Date | undefined; 
+    totalMonths: number;
+    error?: string;
+  } => {
+    if (state.selectedCardIds.length === 0) {
+      return { results: [], totalMonthlyPayment: 0, finalPayoffDate: undefined, totalMonths: 0 };
     }
 
-    return calculateStrategyPayoff(
-      selectedCards,
-      state.targetDate,
-      today,
-      state.strategy,
-      state.frequency
-    );
-  }, [state.selectedCardIds, state.targetDate, state.frequency, state.strategy, selectedCards]);
+    if (state.calculationMode === "target-date") {
+      if (!state.targetDate) {
+        return { results: [], totalMonthlyPayment: 0, finalPayoffDate: undefined, totalMonths: 0 };
+      }
+      const { results, totalMonthlyPayment } = calculateStrategyPayoffByDate(
+        selectedCards,
+        state.targetDate,
+        today,
+        state.strategy,
+        state.frequency
+      );
+      return { 
+        results, 
+        totalMonthlyPayment, 
+        finalPayoffDate: state.targetDate,
+        totalMonths: differenceInMonths(state.targetDate, today)
+      };
+    } else {
+      if (fixedPaymentMonthly <= 0) {
+        return { results: [], totalMonthlyPayment: 0, finalPayoffDate: undefined, totalMonths: 0 };
+      }
+      
+      if (fixedPaymentMonthly < totalMinimums) {
+        return { 
+          results: [], 
+          totalMonthlyPayment: fixedPaymentMonthly, 
+          finalPayoffDate: undefined, 
+          totalMonths: 0,
+          error: `Payment must be at least ${formatCurrency(totalMinimums)} to cover minimum payments`
+        };
+      }
+      
+      const { results, finalPayoffDate, totalMonths } = calculateStrategyPayoffByPayment(
+        selectedCards,
+        fixedPaymentMonthly,
+        today,
+        state.strategy,
+        state.frequency
+      );
+      return { results, totalMonthlyPayment: fixedPaymentMonthly, finalPayoffDate, totalMonths };
+    }
+  }, [state.selectedCardIds, state.targetDate, state.frequency, state.strategy, state.calculationMode, selectedCards, fixedPaymentMonthly, totalMinimums]);
+
+  const { results, totalMonthlyPayment, finalPayoffDate, totalMonths } = calculationResults;
+  const hasError = 'error' in calculationResults && calculationResults.error;
 
   // Calculate totals
   const totals = useMemo(() => {
     if (results.length === 0) return null;
 
-    const totalBalance = results.reduce((sum, r) => sum + r.currentBalance, 0);
+    const totalBalance = results.reduce<number>((sum, r) => sum + r.currentBalance, 0);
     const totalPaymentPerPeriod = convertPaymentFrequency(totalMonthlyPayment, state.frequency);
-    const totalInterest = results.reduce((sum, r) => sum + r.totalInterest, 0);
-    const totalMinimums = results.reduce((sum, r) => sum + r.minimumPayment, 0);
+    const totalInterest = results.reduce<number>((sum, r) => sum + r.totalInterest, 0);
 
     return {
       totalBalance,
@@ -425,7 +558,7 @@ export const DebtPayoffCalculator: React.FC = () => {
       extraNeeded: Math.max(0, totalMonthlyPayment - totalMinimums),
       monthlyEquivalent: totalMonthlyPayment,
     };
-  }, [results, state.frequency, totalMonthlyPayment]);
+  }, [results, state.frequency, totalMonthlyPayment, totalMinimums]);
 
   const toggleCard = (cardId: string) => {
     setState(prev => ({
@@ -450,13 +583,16 @@ export const DebtPayoffCalculator: React.FC = () => {
     }));
   };
 
-  // Sort results for display based on strategy
   const sortedResults = useMemo(() => {
     if (state.strategy === "simultaneous") {
       return results;
     }
     return [...results].sort((a, b) => (a.payoffOrder || 0) - (b.payoffOrder || 0));
   }, [results, state.strategy]);
+
+  const isReadyToCalculate = state.calculationMode === "target-date" 
+    ? state.selectedCardIds.length > 0 && state.targetDate
+    : state.selectedCardIds.length > 0 && fixedPaymentMonthly >= totalMinimums;
 
   return (
     <div className="space-y-6">
@@ -470,6 +606,43 @@ export const DebtPayoffCalculator: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="pt-6 space-y-6">
+          {/* Calculation Mode */}
+          <div className="space-y-3">
+            <Label className="text-sm font-mono uppercase tracking-wider">How do you want to calculate?</Label>
+            <RadioGroup
+              value={state.calculationMode}
+              onValueChange={(value) => setState(prev => ({ ...prev, calculationMode: value as CalculationMode }))}
+              className="grid grid-cols-2 gap-3"
+            >
+              {(Object.keys(modeInfo) as CalculationMode[]).map((key) => {
+                const info = modeInfo[key];
+                return (
+                  <div
+                    key={key}
+                    className={cn(
+                      "flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors",
+                      state.calculationMode === key
+                        ? "border-primary bg-primary/5"
+                        : "border-muted hover:border-foreground/50"
+                    )}
+                    onClick={() => setState(prev => ({ ...prev, calculationMode: key }))}
+                  >
+                    <RadioGroupItem value={key} id={`mode-${key}`} className="mt-0.5" />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-primary">{info.icon}</span>
+                        <label htmlFor={`mode-${key}`} className="font-bold cursor-pointer text-sm">
+                          {info.name}
+                        </label>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">{info.description}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </RadioGroup>
+          </div>
+
           {/* Strategy Selection */}
           <div className="space-y-3">
             <Label className="text-sm font-mono uppercase tracking-wider">Payoff Strategy</Label>
@@ -548,48 +721,12 @@ export const DebtPayoffCalculator: React.FC = () => {
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Target Date Selection */}
-          <div className="space-y-3">
-            <Label className="text-sm font-mono uppercase tracking-wider">Target Payoff Date</Label>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {datePresets.map(preset => (
-                <Button
-                  key={preset.label}
-                  variant={state.targetDate && format(state.targetDate, "yyyy-MM") === format(preset.date, "yyyy-MM") ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setState(prev => ({ ...prev, targetDate: preset.date }))}
-                  className="text-xs"
-                >
-                  {preset.label}
-                </Button>
-              ))}
-            </div>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal border-2",
-                    !state.targetDate && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {state.targetDate ? format(state.targetDate, "PPP") : "Or pick a custom date"}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={state.targetDate}
-                  onSelect={(date) => setState(prev => ({ ...prev, targetDate: date }))}
-                  disabled={(date) => date < today}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
-              </PopoverContent>
-            </Popover>
+            {state.selectedCardIds.length > 0 && (
+              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-lg">
+                <span className="font-medium">Combined minimum payments:</span>{" "}
+                <span className="text-foreground font-bold">{formatCurrency(totalMinimums)}/mo</span>
+              </div>
+            )}
           </div>
 
           {/* Payment Frequency */}
@@ -609,23 +746,111 @@ export const DebtPayoffCalculator: React.FC = () => {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Target Date Selection - only for target-date mode */}
+          {state.calculationMode === "target-date" && (
+            <div className="space-y-3">
+              <Label className="text-sm font-mono uppercase tracking-wider">Target Payoff Date</Label>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {datePresets.map(preset => (
+                  <Button
+                    key={preset.label}
+                    variant={state.targetDate && format(state.targetDate, "yyyy-MM") === format(preset.date, "yyyy-MM") ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setState(prev => ({ ...prev, targetDate: preset.date }))}
+                    className="text-xs"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal border-2",
+                      !state.targetDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {state.targetDate ? format(state.targetDate, "PPP") : "Or pick a custom date"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={state.targetDate}
+                    onSelect={(date) => setState(prev => ({ ...prev, targetDate: date }))}
+                    disabled={(date) => date < today}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {/* Fixed Payment Input - only for fixed-payment mode */}
+          {state.calculationMode === "fixed-payment" && (
+            <div className="space-y-3">
+              <Label className="text-sm font-mono uppercase tracking-wider">
+                How much can you pay {getFrequencyLabel(state.frequency)}?
+              </Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  placeholder={`Enter ${getFrequencyLabel(state.frequency)} payment amount`}
+                  value={state.fixedPaymentAmount}
+                  onChange={(e) => setState(prev => ({ ...prev, fixedPaymentAmount: e.target.value }))}
+                  className="pl-9 border-2 text-lg font-bold"
+                />
+              </div>
+              {state.fixedPaymentAmount && fixedPaymentMonthly < totalMinimums && totalMinimums > 0 && (
+                <p className="text-sm text-destructive">
+                  ⚠️ Payment must be at least {formatCurrency(convertPaymentFrequency(totalMinimums, state.frequency))} {getFrequencyLabel(state.frequency)} to cover minimum payments
+                </p>
+              )}
+              {state.frequency !== "monthly" && fixedPaymentMonthly > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  = {formatCurrency(fixedPaymentMonthly)}/month equivalent
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Results */}
-      {results.length > 0 && totals && (
+      {isReadyToCalculate && results.length > 0 && totals && (
         <>
           {/* Summary Card */}
           <Card className="border-2 border-primary bg-primary/5">
             <CardContent className="pt-6">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                    Required {getFrequencyLabel(state.frequency)} Payment
-                  </p>
-                  <p className="text-4xl font-bold text-primary mt-1">
-                    {formatCurrency(totals.totalPaymentPerPeriod)}
-                  </p>
+                  {state.calculationMode === "target-date" ? (
+                    <>
+                      <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                        Required {getFrequencyLabel(state.frequency)} Payment
+                      </p>
+                      <p className="text-4xl font-bold text-primary mt-1">
+                        {formatCurrency(totals.totalPaymentPerPeriod)}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                        Debt-Free Date
+                      </p>
+                      <p className="text-4xl font-bold text-primary mt-1">
+                        {finalPayoffDate ? format(finalPayoffDate, "MMM yyyy") : "—"}
+                      </p>
+                    </>
+                  )}
                   <p className="text-xs text-muted-foreground mt-1">
                     Using {strategyInfo[state.strategy].name} strategy
                   </p>
@@ -645,21 +870,33 @@ export const DebtPayoffCalculator: React.FC = () => {
                   <p className="text-lg font-bold text-destructive">{formatCurrency(totals.totalInterest)}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Current Minimums</p>
-                  <p className="text-lg font-bold">{formatCurrency(totals.totalMinimums)}/mo</p>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    {state.calculationMode === "target-date" ? "Current Minimums" : "Your Payment"}
+                  </p>
+                  <p className="text-lg font-bold">
+                    {state.calculationMode === "target-date" 
+                      ? `${formatCurrency(totals.totalMinimums)}/mo`
+                      : `${formatCurrency(totals.totalPaymentPerPeriod)}/${state.frequency === "monthly" ? "mo" : state.frequency === "biweekly" ? "2wk" : "wk"}`}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Extra Needed</p>
-                  <p className="text-lg font-bold text-primary">+{formatCurrency(totals.extraNeeded)}/mo</p>
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                    {state.calculationMode === "target-date" ? "Extra Needed" : "Time to Payoff"}
+                  </p>
+                  <p className="text-lg font-bold text-primary">
+                    {state.calculationMode === "target-date"
+                      ? `+${formatCurrency(totals.extraNeeded)}/mo`
+                      : `${totalMonths} months`}
+                  </p>
                 </div>
               </div>
 
-              {state.targetDate && (
+              {finalPayoffDate && (
                 <div className="mt-4 pt-4 border-t border-foreground/20 flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
                   <span className="text-muted-foreground">
-                    Debt-free by <span className="font-bold text-foreground">{format(state.targetDate, "MMMM d, yyyy")}</span>
-                    {" "}({differenceInMonths(state.targetDate, today)} months)
+                    Debt-free by <span className="font-bold text-foreground">{format(finalPayoffDate, "MMMM d, yyyy")}</span>
+                    {" "}({totalMonths} months from now)
                   </span>
                 </div>
               )}
@@ -670,7 +907,7 @@ export const DebtPayoffCalculator: React.FC = () => {
           <Card className="border-2 border-foreground">
             <CardHeader className="border-b-2 border-foreground pb-4">
               <CardTitle className="text-lg font-bold uppercase tracking-wider">
-                {state.strategy === "simultaneous" ? "Payment Breakdown by Card" : "Payoff Order"}
+                {state.strategy === "simultaneous" ? "Payment Breakdown by Card" : "Payoff Order & Timeline"}
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-4">
@@ -696,34 +933,22 @@ export const DebtPayoffCalculator: React.FC = () => {
                       </div>
                       <div className="text-right">
                         <p className="text-xl font-bold text-primary">
-                          {formatCurrency(result.requiredPayment)}
+                          {format(result.payoffDate, "MMM yyyy")}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          avg per {state.frequency === "biweekly" ? "2 weeks" : state.frequency === "weekly" ? "week" : "month"}
+                          paid off
                         </p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-3 gap-4 pt-3 border-t border-foreground/10 text-sm">
                       <div>
-                        <p className="text-[10px] font-mono uppercase text-muted-foreground">
-                          {state.strategy === "simultaneous" ? "Current Min" : "Paid Off In"}
-                        </p>
-                        <p className="font-medium">
-                          {state.strategy === "simultaneous" 
-                            ? `${formatCurrency(result.minimumPayment)}/mo`
-                            : `${result.monthsToPayoff} months`}
-                        </p>
+                        <p className="text-[10px] font-mono uppercase text-muted-foreground">Months to Payoff</p>
+                        <p className="font-medium">{result.monthsToPayoff} months</p>
                       </div>
                       <div>
-                        <p className="text-[10px] font-mono uppercase text-muted-foreground">
-                          {state.strategy === "simultaneous" ? "Extra Needed" : "Payoff Date"}
-                        </p>
-                        <p className="font-medium text-primary">
-                          {state.strategy === "simultaneous"
-                            ? `+${formatCurrency(result.extraNeeded)}/mo`
-                            : format(result.payoffDate, "MMM yyyy")}
-                        </p>
+                        <p className="text-[10px] font-mono uppercase text-muted-foreground">Payoff Date</p>
+                        <p className="font-medium text-primary">{format(result.payoffDate, "MMM d, yyyy")}</p>
                       </div>
                       <div>
                         <p className="text-[10px] font-mono uppercase text-muted-foreground">Interest Cost</p>
@@ -738,15 +963,21 @@ export const DebtPayoffCalculator: React.FC = () => {
         </>
       )}
 
-      {/* Empty State */}
-      {(state.selectedCardIds.length === 0 || !state.targetDate) && (
+      {/* Empty/Error State */}
+      {!isReadyToCalculate && (
         <Card className="border-2 border-dashed border-muted-foreground/30">
           <CardContent className="py-8 text-center">
             <TrendingDown className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
             <p className="text-muted-foreground">
               {state.selectedCardIds.length === 0
                 ? "Select one or more cards to calculate payoff"
-                : "Choose a target payoff date to see your payment plan"}
+                : state.calculationMode === "target-date" && !state.targetDate
+                  ? "Choose a target payoff date to see your payment plan"
+                  : state.calculationMode === "fixed-payment" && !state.fixedPaymentAmount
+                    ? "Enter your payment amount to see when you'll be debt-free"
+                    : hasError
+                      ? (calculationResults as any).error
+                      : "Configure your payoff plan above"}
             </p>
           </CardContent>
         </Card>
