@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Edit2, CreditCard as CreditCardIcon, Calendar, Receipt, Upload } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { Plus, Trash2, Edit2, CreditCard as CreditCardIcon, Calendar as CalendarIcon, Receipt, Upload } from "lucide-react";
 import { useFinance } from "../context/FinanceContext";
 import { formatCurrency } from "../lib/calculations";
 import { Expense, RecurringFrequency } from "../types";
@@ -53,6 +56,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
     category: "Other",
     amount: "",
     dueDay: "",
+    renewalDate: undefined as Date | undefined,
     isRecurring: true,
     recurringFrequency: "monthly" as RecurringFrequency,
     linkedCardId: "",
@@ -66,12 +70,15 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
         category: expense?.category || "Other",
         amount: expense?.amount?.toString() || "",
         dueDay: expense?.dueDay?.toString() || "",
+        renewalDate: expense?.renewalDate ? new Date(expense.renewalDate) : undefined,
         isRecurring: expense?.isRecurring ?? true,
         recurringFrequency: expense?.recurringFrequency || "monthly",
         linkedCardId: expense?.linkedCardId || "",
       });
     }
   }, [expense, open]);
+
+  const isDateBasedFrequency = formData.recurringFrequency === "quarterly" || formData.recurringFrequency === "yearly";
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,7 +87,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
       name: formData.name,
       category: formData.category,
       amount: parseFloat(formData.amount) || 0,
-      dueDay: dueDayValue >= 1 && dueDayValue <= 31 ? dueDayValue : undefined,
+      dueDay: !isDateBasedFrequency && dueDayValue >= 1 && dueDayValue <= 31 ? dueDayValue : undefined,
+      renewalDate: isDateBasedFrequency && formData.renewalDate ? formData.renewalDate.toISOString() : undefined,
       isRecurring: formData.recurringFrequency !== "none",
       recurringFrequency: formData.recurringFrequency,
       linkedCardId: formData.linkedCardId || undefined,
@@ -142,18 +150,50 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="dueDay">Due Day (1-31)</Label>
-              <Input
-                id="dueDay"
-                type="number"
-                min="1"
-                max="31"
-                value={formData.dueDay}
-                onChange={(e) => setFormData({ ...formData, dueDay: e.target.value })}
-                placeholder="e.g., 15 for the 15th of each month"
-              />
-            </div>
+            {isDateBasedFrequency ? (
+              <div className="grid gap-2">
+                <Label>Renewal Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !formData.renewalDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {formData.renewalDate ? format(formData.renewalDate, "PPP") : <span>Pick renewal date</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={formData.renewalDate}
+                      onSelect={(date) => setFormData({ ...formData, renewalDate: date })}
+                      initialFocus
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <p className="text-xs text-muted-foreground">
+                  When does this {formData.recurringFrequency} expense renew?
+                </p>
+              </div>
+            ) : formData.recurringFrequency === "monthly" ? (
+              <div className="grid gap-2">
+                <Label htmlFor="dueDay">Due Day (1-31)</Label>
+                <Input
+                  id="dueDay"
+                  type="number"
+                  min="1"
+                  max="31"
+                  value={formData.dueDay}
+                  onChange={(e) => setFormData({ ...formData, dueDay: e.target.value })}
+                  placeholder="e.g., 15 for the 15th of each month"
+                />
+              </div>
+            ) : null}
             <div className="grid gap-2">
               <Label htmlFor="linkedCard">Linked Credit Card (Optional)</Label>
               <Select
@@ -341,10 +381,16 @@ export const ExpensesSection: React.FC = () => {
                               )}
                             </div>
                             <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                              {expense.dueDay && (
+                              {expense.dueDay && expense.recurringFrequency === "monthly" && (
                                 <span className="flex items-center gap-1">
-                                  <Calendar className="h-3 w-3" />
+                                  <CalendarIcon className="h-3 w-3" />
                                   Due: {expense.dueDay}{getOrdinalSuffix(expense.dueDay)}
+                                </span>
+                              )}
+                              {expense.renewalDate && (expense.recurringFrequency === "quarterly" || expense.recurringFrequency === "yearly") && (
+                                <span className="flex items-center gap-1">
+                                  <CalendarIcon className="h-3 w-3" />
+                                  Renews: {format(new Date(expense.renewalDate), "MMM d, yyyy")}
                                 </span>
                               )}
                               {linkedCard && (
