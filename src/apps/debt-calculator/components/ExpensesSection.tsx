@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,14 +49,29 @@ interface ExpenseFormProps {
 
 const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSave, creditCards }) => {
   const [formData, setFormData] = useState({
-    name: expense?.name || "",
-    category: expense?.category || "Other",
-    amount: expense?.amount?.toString() || "",
-    dueDay: expense?.dueDay?.toString() || "",
-    isRecurring: expense?.isRecurring ?? true,
-    recurringFrequency: expense?.recurringFrequency || "monthly" as RecurringFrequency,
-    linkedCardId: expense?.linkedCardId || "",
+    name: "",
+    category: "Other",
+    amount: "",
+    dueDay: "",
+    isRecurring: true,
+    recurringFrequency: "monthly" as RecurringFrequency,
+    linkedCardId: "",
   });
+
+  // Sync form data when expense prop changes (edit mode)
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        name: expense?.name || "",
+        category: expense?.category || "Other",
+        amount: expense?.amount?.toString() || "",
+        dueDay: expense?.dueDay?.toString() || "",
+        isRecurring: expense?.isRecurring ?? true,
+        recurringFrequency: expense?.recurringFrequency || "monthly",
+        linkedCardId: expense?.linkedCardId || "",
+      });
+    }
+  }, [expense, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
