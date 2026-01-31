@@ -9,6 +9,8 @@ export interface CreditCard {
   dueDay?: number; // Day of month (1-31) when payment is due
 }
 
+export type RecurringFrequency = 'monthly' | 'quarterly' | 'yearly' | 'none';
+
 export interface Expense {
   id: string;
   category: string;
@@ -16,6 +18,7 @@ export interface Expense {
   amount: number;
   dueDay?: number; // Day of month (1-31) when payment is due
   isRecurring: boolean;
+  recurringFrequency?: RecurringFrequency; // How often the expense recurs
   linkedCardId?: string; // Optional link to a credit card
 }
 

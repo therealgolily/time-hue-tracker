@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Plus, Trash2, Edit2, CreditCard as CreditCardIcon, Calendar, Receipt } from "lucide-react";
+import { Plus, Trash2, Edit2, CreditCard as CreditCardIcon, Calendar, Receipt, Upload } from "lucide-react";
 import { useFinance } from "../context/FinanceContext";
 import { formatCurrency } from "../lib/calculations";
-import { Expense } from "../types";
+import { Expense, RecurringFrequency } from "../types";
 import { cn } from "@/lib/utils";
+import { ExpenseCSVImport } from "./ExpenseCSVImport";
 
 const EXPENSE_CATEGORIES = [
   "Housing",
@@ -24,6 +25,13 @@ const EXPENSE_CATEGORIES = [
   "Personal",
   "Other",
 ];
+
+const FREQUENCY_LABELS: Record<RecurringFrequency, string> = {
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  yearly: "Yearly",
+  none: "One-time",
+};
 
 const getOrdinalSuffix = (n: number): string => {
   const s = ["th", "st", "nd", "rd"];
@@ -46,6 +54,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
     amount: expense?.amount?.toString() || "",
     dueDay: expense?.dueDay?.toString() || "",
     isRecurring: expense?.isRecurring ?? true,
+    recurringFrequency: expense?.recurringFrequency || "monthly" as RecurringFrequency,
     linkedCardId: expense?.linkedCardId || "",
   });
 
@@ -57,7 +66,8 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
       category: formData.category,
       amount: parseFloat(formData.amount) || 0,
       dueDay: dueDayValue >= 1 && dueDayValue <= 31 ? dueDayValue : undefined,
-      isRecurring: formData.isRecurring,
+      isRecurring: formData.recurringFrequency !== "none",
+      recurringFrequency: formData.recurringFrequency,
       linkedCardId: formData.linkedCardId || undefined,
     };
 
@@ -151,13 +161,22 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
                 Link to a card if this expense is auto-charged to it
               </p>
             </div>
-            <div className="flex items-center justify-between">
-              <Label htmlFor="isRecurring">Recurring Monthly</Label>
-              <Switch
-                id="isRecurring"
-                checked={formData.isRecurring}
-                onCheckedChange={(checked) => setFormData({ ...formData, isRecurring: checked })}
-              />
+            <div className="space-y-2">
+              <Label>Recurring Frequency</Label>
+              <Select
+                value={formData.recurringFrequency}
+                onValueChange={(value) => setFormData({ ...formData, recurringFrequency: value as RecurringFrequency })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="yearly">Yearly</SelectItem>
+                  <SelectItem value="none">One-time (not recurring)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -175,6 +194,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
 export const ExpensesSection: React.FC = () => {
   const { data, addExpense, updateExpense, deleteExpense } = useFinance();
   const [formOpen, setFormOpen] = useState(false);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | undefined>(undefined);
 
   const totalExpenses = data.budget.expenses.reduce((sum, exp) => sum + exp.amount, 0);
@@ -197,6 +217,10 @@ export const ExpensesSection: React.FC = () => {
     setEditingExpense(undefined);
   };
 
+  const handleImportExpenses = (expenses: Omit<Expense, "id">[]) => {
+    expenses.forEach((exp) => addExpense(exp));
+  };
+
   const handleEditExpense = (expense: Expense) => {
     setEditingExpense(expense);
     setFormOpen(true);
@@ -217,13 +241,23 @@ export const ExpensesSection: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between mb-4 border-b-2 border-foreground pb-2">
         <h2 className="text-xl font-bold uppercase tracking-wider">Monthly Expenses</h2>
-        <Button 
-          onClick={() => { setEditingExpense(undefined); setFormOpen(true); }} 
-          className="border-2 border-foreground"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Expense
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => setCsvImportOpen(true)} 
+            className="border-2 border-foreground"
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Import CSV
+          </Button>
+          <Button 
+            onClick={() => { setEditingExpense(undefined); setFormOpen(true); }} 
+            className="border-2 border-foreground"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Expense
+          </Button>
+        </div>
       </div>
 
       <ExpenseForm
@@ -232,6 +266,12 @@ export const ExpensesSection: React.FC = () => {
         onClose={handleCloseForm}
         onSave={handleSaveExpense}
         creditCards={data.creditCards.map(c => ({ id: c.id, name: c.name }))}
+      />
+
+      <ExpenseCSVImport
+        open={csvImportOpen}
+        onClose={() => setCsvImportOpen(false)}
+        onImport={handleImportExpenses}
       />
 
       {/* Summary Card */}
@@ -274,9 +314,14 @@ export const ExpensesSection: React.FC = () => {
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <span className="font-medium">{expense.name || expense.category}</span>
-                              {expense.isRecurring && (
+                              {expense.isRecurring && expense.recurringFrequency && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-mono uppercase">
-                                  Monthly
+                                  {FREQUENCY_LABELS[expense.recurringFrequency] || "Monthly"}
+                                </span>
+                              )}
+                              {!expense.isRecurring && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono uppercase">
+                                  One-time
                                 </span>
                               )}
                             </div>
