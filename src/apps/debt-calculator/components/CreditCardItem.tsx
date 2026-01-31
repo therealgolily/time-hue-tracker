@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Edit2, Trash2, CreditCard as CreditCardIcon } from "lucide-react";
 import { formatCurrency } from "../lib/calculations";
 
+const getOrdinalSuffix = (n: number): string => {
+  const s = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  return s[(v - 20) % 10] || s[v] || s[0];
+};
+
 interface CreditCardItemProps {
   card: CreditCard;
   onEdit: (card: CreditCard) => void;
@@ -69,6 +75,12 @@ export const CreditCardItem: React.FC<CreditCardItemProps> = ({ card, onEdit, on
             {utilization.toFixed(1)}%
           </span>
         </div>
+        {card.dueDay && (
+          <div className="flex justify-between items-center pt-2">
+            <span className="text-sm text-muted-foreground">Due Day:</span>
+            <span className="font-medium">{card.dueDay}{getOrdinalSuffix(card.dueDay)} of month</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
