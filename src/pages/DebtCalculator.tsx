@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { FinanceProvider, useFinance } from '@/apps/debt-calculator/context/FinanceContext';
 
 import { AssetSection } from '@/apps/debt-calculator/components/AssetSection';
+import { DebtSummary } from '@/apps/debt-calculator/components/DebtSummary';
 import { CreditCardForm } from '@/apps/debt-calculator/components/CreditCardForm';
 import { CreditCardItem } from '@/apps/debt-calculator/components/CreditCardItem';
 import { NetWorthSummary } from '@/apps/debt-calculator/components/NetWorthSummary';
@@ -238,6 +239,10 @@ const DebtCalculatorContent = () => {
         </TabsContent>
 
         <TabsContent value="overview" className="space-y-6">
+          <DebtSummary 
+            creditCards={data.creditCards}
+            otherDebts={data.otherDebts}
+          />
           <NetWorthSummary 
             totalAssets={totalAssets}
             totalLiabilities={totalLiabilities}
