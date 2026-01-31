@@ -132,14 +132,14 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
             <div className="grid gap-2">
               <Label htmlFor="linkedCard">Linked Credit Card (Optional)</Label>
               <Select
-                value={formData.linkedCardId}
-                onValueChange={(value) => setFormData({ ...formData, linkedCardId: value })}
+                value={formData.linkedCardId || "none"}
+                onValueChange={(value) => setFormData({ ...formData, linkedCardId: value === "none" ? "" : value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="None - Pay directly" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None - Pay directly</SelectItem>
+                  <SelectItem value="none">None - Pay directly</SelectItem>
                   {creditCards.map((card) => (
                     <SelectItem key={card.id} value={card.id}>
                       {card.name}
