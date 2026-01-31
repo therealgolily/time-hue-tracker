@@ -146,60 +146,6 @@ export const DebtSummary: React.FC<DebtSummaryProps> = ({ creditCards, otherDebt
         </Card>
       </div>
 
-      {/* Per-Card Utilization */}
-      {creditCards.length > 0 && (
-        <Card className="border-2 border-foreground">
-          <CardHeader className="border-b-2 border-foreground pb-4">
-            <CardTitle className="text-lg font-bold uppercase tracking-wider flex items-center gap-2">
-              <CreditCardIcon className="h-5 w-5" />
-              Credit Card Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="space-y-4">
-              {creditCards
-                .sort((a, b) => (b.balance / b.creditLimit) - (a.balance / a.creditLimit))
-                .map(card => {
-                  const utilization = card.creditLimit > 0 ? (card.balance / card.creditLimit) * 100 : 0;
-                  const isHighUtilization = utilization > 30;
-                  
-                  return (
-                    <div key={card.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{card.name}</span>
-                          {isHighUtilization && (
-                            <AlertTriangle className="h-4 w-4 text-orange-500" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-muted-foreground">
-                            {formatCurrency(card.balance)} / {formatCurrency(card.creditLimit)}
-                          </span>
-                          <span className={cn("font-bold min-w-[60px] text-right", getUtilizationColor(utilization))}>
-                            {utilization.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                      <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                        <div 
-                          className={cn("h-full transition-all", getUtilizationBg(utilization))}
-                          style={{ width: `${Math.min(utilization, 100)}%` }}
-                        />
-                        {/* 30% marker */}
-                        <div className="absolute top-0 bottom-0 w-px bg-foreground/30" style={{ left: '30%' }} />
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>APR: {card.apr}%</span>
-                        <span>Min: {formatCurrency(card.minimumPayment)}/mo</span>
-                      </div>
-                    </div>
-                  );
-                })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Other Debts Summary */}
       {otherDebts.length > 0 && (
