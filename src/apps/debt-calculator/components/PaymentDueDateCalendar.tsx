@@ -388,7 +388,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="" disabled>All cards have due dates</SelectItem>
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">All cards have due dates</div>
                     )
                   ) : (
                     expensesWithoutDueDate.length > 0 ? (
@@ -398,7 +398,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                         </SelectItem>
                       ))
                     ) : (
-                      <SelectItem value="" disabled>All expenses have due dates</SelectItem>
+                      <div className="px-2 py-1.5 text-sm text-muted-foreground">All expenses have due dates</div>
                     )
                   )}
                 </SelectContent>
