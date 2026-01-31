@@ -175,7 +175,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
               <span className="text-muted-foreground">Credit Card</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-primary" />
+              <div className="w-3 h-3 rounded-full bg-expense" />
               <span className="text-muted-foreground">Expense</span>
             </div>
           </div>
@@ -228,7 +228,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                                 key={`${item.type}-${item.id}`}
                                 className={cn(
                                   "w-2 h-2 rounded-full cursor-pointer hover:scale-125 transition-transform",
-                                  item.type === 'card' ? "bg-destructive" : "bg-primary"
+                                  item.type === 'card' ? "bg-destructive" : "bg-expense"
                                 )}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -253,10 +253,10 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                         </p>
                         {itemsOnDay.map(item => (
                           <div key={`${item.type}-${item.id}`} className="flex items-center gap-2 text-sm">
-                            {item.type === 'card' ? (
+                          {item.type === 'card' ? (
                               <CreditCardIcon className="h-3 w-3 text-destructive" />
                             ) : (
-                              <Receipt className="h-3 w-3 text-primary" />
+                              <Receipt className="h-3 w-3 text-expense" />
                             )}
                             <span className="font-medium flex-1">{item.name}</span>
                             <span className="text-muted-foreground">
@@ -296,7 +296,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                         className={cn(
                           "flex items-center justify-between p-2 rounded border cursor-pointer",
                           isPast ? "border-muted bg-muted/30" : 
-                            item.type === 'card' ? "border-destructive/30 bg-destructive/5" : "border-primary/30 bg-primary/5",
+                            item.type === 'card' ? "border-destructive/30 bg-destructive/5" : "border-expense/30 bg-expense/5",
                           "hover:bg-accent/50"
                         )}
                         onClick={() => handleItemClick(item)}
@@ -305,7 +305,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                           {item.type === 'card' ? (
                             <CreditCardIcon className={cn("h-4 w-4", isPast ? "text-muted-foreground" : "text-destructive")} />
                           ) : (
-                            <Receipt className={cn("h-4 w-4", isPast ? "text-muted-foreground" : "text-primary")} />
+                            <Receipt className={cn("h-4 w-4", isPast ? "text-muted-foreground" : "text-expense")} />
                           )}
                           <div>
                             <span className={cn("font-medium", isPast && "text-muted-foreground line-through")}>
@@ -325,7 +325,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                           <span className={cn(
                             "font-semibold", 
                             isPast ? "text-muted-foreground" : 
-                              item.type === 'card' ? "text-destructive" : "text-primary"
+                              item.type === 'card' ? "text-destructive" : "text-expense"
                           )}>
                             {formatCurrency(item.amount)}
                           </span>

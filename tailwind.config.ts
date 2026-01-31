@@ -76,6 +76,8 @@ export default {
           black: "hsl(0 0% 0%)",
           white: "hsl(0 0% 100%)",
         },
+        // Finance colors
+        expense: "hsl(var(--expense))",
       },
       borderRadius: {
         lg: "var(--radius)",
