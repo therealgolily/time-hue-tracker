@@ -16,7 +16,8 @@ export interface Expense {
   category: string;
   name: string;
   amount: number;
-  dueDay?: number; // Day of month (1-31) when payment is due
+  dueDay?: number; // Day of month (1-31) when payment is due (for monthly)
+  renewalDate?: string; // ISO date string for quarterly/yearly expenses
   isRecurring: boolean;
   recurringFrequency?: RecurringFrequency; // How often the expense recurs
   linkedCardId?: string; // Optional link to a credit card
