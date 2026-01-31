@@ -13,15 +13,13 @@ import { CreditCardForm } from '@/apps/debt-calculator/components/CreditCardForm
 import { CreditCardItem } from '@/apps/debt-calculator/components/CreditCardItem';
 import { ExpectedIncomeSection } from '@/apps/debt-calculator/components/ExpectedIncomeSection';
 import { OtherDebtsSection } from '@/apps/debt-calculator/components/OtherDebtsSection';
-import { PaymentDueDateCalendar } from '@/apps/debt-calculator/components/PaymentDueDateCalendar';
-import { ExpensesSection } from '@/apps/debt-calculator/components/ExpensesSection';
-import { CreditCard, Expense } from '@/apps/debt-calculator/types';
+import { MonthlyObligations } from '@/apps/debt-calculator/components/MonthlyObligations';
+import { CreditCard } from '@/apps/debt-calculator/types';
 
 const DebtCalculatorContent = () => {
-  const { data, loading, addCreditCard, updateCreditCard, deleteCreditCard, updateExpense } = useFinance();
+  const { data, loading, addCreditCard, updateCreditCard, deleteCreditCard } = useFinance();
   const [cardFormOpen, setCardFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | undefined>(undefined);
-  const [editingExpense, setEditingExpense] = useState<Expense | undefined>(undefined);
 
   // Calculate totals
   const totalCreditCardDebt = data.creditCards.reduce((sum, card) => sum + card.balance, 0);
@@ -59,33 +57,19 @@ const DebtCalculatorContent = () => {
     setEditingCard(undefined);
   };
 
-  const handleEditExpense = (expense: Expense) => {
-    setEditingExpense(expense);
-    // Navigate to expenses tab when clicking expense in calendar
-    // The ExpensesSection has its own form dialog
-  };
-
-  const handleAddDueDate = (type: 'card' | 'expense', itemId: string, dueDay: number) => {
-    if (type === 'card') {
-      updateCreditCard(itemId, { dueDay });
-    } else {
-      updateExpense(itemId, { dueDay });
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
-      <Tabs defaultValue="expenses" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5 border-2 border-foreground">
-          <TabsTrigger value="expenses" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Expenses</TabsTrigger>
+      <Tabs defaultValue="monthly" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 border-2 border-foreground">
+          <TabsTrigger value="monthly" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Monthly</TabsTrigger>
           <TabsTrigger value="assets" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Assets</TabsTrigger>
           <TabsTrigger value="debts" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Debts</TabsTrigger>
           <TabsTrigger value="income" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Income</TabsTrigger>
-          <TabsTrigger value="calendar" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Calendar</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="expenses">
-          <ExpensesSection />
+        <TabsContent value="monthly">
+          <MonthlyObligations />
         </TabsContent>
 
         <TabsContent value="assets">
@@ -129,15 +113,6 @@ const DebtCalculatorContent = () => {
           <ExpectedIncomeSection />
         </TabsContent>
 
-        <TabsContent value="calendar">
-          <PaymentDueDateCalendar 
-            creditCards={data.creditCards}
-            expenses={data.budget.expenses}
-            onCardClick={handleEditCard}
-            onExpenseClick={handleEditExpense}
-            onAddDueDate={handleAddDueDate}
-          />
-        </TabsContent>
 
       </Tabs>
     </div>
