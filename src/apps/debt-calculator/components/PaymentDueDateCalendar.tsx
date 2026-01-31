@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, setDate } from "date-fns";
-import { ChevronLeft, ChevronRight, CreditCard as CreditCardIcon, Plus, Receipt } from "lucide-react";
+import { ChevronLeft, ChevronRight, CreditCard as CreditCardIcon, Plus, Receipt, RefreshCw, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { CreditCard, Expense } from "../types";
 import { formatCurrency } from "../lib/calculations";
@@ -20,6 +19,7 @@ type DueItem = {
   dueDay: number;
   linkedCardId?: string;
   linkedCardName?: string;
+  isRecurring?: boolean;
 };
 
 interface PaymentDueDateCalendarProps {
@@ -72,6 +72,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
           dueDay: expense.dueDay,
           linkedCardId: expense.linkedCardId,
           linkedCardName: linkedCard?.name,
+          isRecurring: expense.isRecurring,
         });
       }
     });
@@ -275,9 +276,50 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
             })}
           </div>
 
+          {/* Monthly Totals Summary */}
+          <div className="mt-6 border-t-2 border-foreground pt-4">
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-destructive/10 border border-destructive/30 rounded p-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-xs text-destructive font-mono uppercase mb-1">
+                  <CreditCardIcon className="h-3 w-3" />
+                  Cards
+                </div>
+                <p className="text-lg font-bold text-destructive">
+                  {formatCurrency(allDueItems.filter(i => i.type === 'card').reduce((sum, i) => sum + i.amount, 0))}
+                </p>
+              </div>
+              <div className="bg-expense/10 border border-expense/30 rounded p-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-xs text-expense font-mono uppercase mb-1">
+                  <Receipt className="h-3 w-3" />
+                  Expenses
+                </div>
+                <p className="text-lg font-bold text-expense">
+                  {formatCurrency(allDueItems.filter(i => i.type === 'expense').reduce((sum, i) => sum + i.amount, 0))}
+                </p>
+              </div>
+              <div className="bg-foreground/5 border border-foreground/30 rounded p-3 text-center">
+                <div className="flex items-center justify-center gap-1 text-xs text-foreground font-mono uppercase mb-1">
+                  <DollarSign className="h-3 w-3" />
+                  Total
+                </div>
+                <p className="text-lg font-bold">
+                  {formatCurrency(allDueItems.reduce((sum, i) => sum + i.amount, 0))}
+                </p>
+              </div>
+            </div>
+
+            {/* Recurring indicator */}
+            {allDueItems.some(i => i.isRecurring) && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3 px-1">
+                <RefreshCw className="h-3 w-3" />
+                <span>Recurring expenses auto-populate each month</span>
+              </div>
+            )}
+          </div>
+
           {/* Summary List */}
           {allDueItems.length > 0 ? (
-            <div className="mt-6 border-t-2 border-foreground pt-4">
+            <div className="border-t border-muted pt-4">
               <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
                 This Month's Due Dates
               </h3>
@@ -307,12 +349,15 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
                           ) : (
                             <Receipt className={cn("h-4 w-4", isPast ? "text-muted-foreground" : "text-expense")} />
                           )}
-                          <div>
+                          <div className="flex items-center gap-1.5">
                             <span className={cn("font-medium", isPast && "text-muted-foreground line-through")}>
                               {item.name}
                             </span>
+                            {item.isRecurring && (
+                              <RefreshCw className="h-3 w-3 text-muted-foreground" />
+                            )}
                             {item.linkedCardName && (
-                              <span className="text-xs text-muted-foreground ml-2">
+                              <span className="text-xs text-muted-foreground">
                                 via {item.linkedCardName}
                               </span>
                             )}
@@ -336,7 +381,7 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
               </div>
             </div>
           ) : (
-            <div className="mt-6 border-t-2 border-foreground pt-4 text-center">
+            <div className="border-t border-muted pt-4 text-center">
               <p className="text-muted-foreground font-mono text-sm">
                 No due dates set. Click on a day to add a due date, or edit your credit cards and expenses.
               </p>
