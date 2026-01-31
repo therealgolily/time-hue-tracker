@@ -17,6 +17,7 @@ import { CreditCard, SavedPayoffScenario } from "../types";
 import { PayoffTimeline } from "./PayoffTimeline";
 import { StrategyComparison } from "./StrategyComparison";
 import { SavedPayoffScenarios } from "./SavedPayoffScenarios";
+import { AmortizationSchedule } from "./AmortizationSchedule";
 
 type PaymentFrequency = "monthly" | "biweekly" | "weekly";
 type PayoffStrategy = "snowball" | "avalanche" | "simultaneous";
@@ -997,6 +998,17 @@ export const DebtPayoffCalculator: React.FC = () => {
               results={sortedResults}
               startDate={today}
               endDate={finalPayoffDate}
+              strategy={state.strategy}
+            />
+          )}
+
+          {/* Amortization Schedule */}
+          {finalPayoffDate && (
+            <AmortizationSchedule
+              results={sortedResults}
+              cards={selectedCards}
+              startDate={today}
+              totalMonthlyPayment={totalMonthlyPayment}
               strategy={state.strategy}
             />
           )}
