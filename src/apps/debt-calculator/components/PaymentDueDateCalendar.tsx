@@ -1,46 +1,101 @@
 import { useMemo, useState } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, setDate, isSameDay } from "date-fns";
-import { ChevronLeft, ChevronRight, CreditCard as CreditCardIcon } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addMonths, subMonths, setDate } from "date-fns";
+import { ChevronLeft, ChevronRight, CreditCard as CreditCardIcon, Plus, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { CreditCard } from "../types";
+import { CreditCard, Expense } from "../types";
 import { formatCurrency } from "../lib/calculations";
+
+type DueItem = {
+  id: string;
+  type: 'card' | 'expense';
+  name: string;
+  amount: number;
+  dueDay: number;
+  linkedCardId?: string;
+  linkedCardName?: string;
+};
 
 interface PaymentDueDateCalendarProps {
   creditCards: CreditCard[];
+  expenses: Expense[];
   onCardClick?: (card: CreditCard) => void;
+  onExpenseClick?: (expense: Expense) => void;
+  onAddDueDate?: (type: 'card' | 'expense', itemId: string, dueDay: number) => void;
 }
 
 export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({ 
   creditCards,
-  onCardClick 
+  expenses,
+  onCardClick,
+  onExpenseClick,
+  onAddDueDate,
 }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [addDueDateDialogOpen, setAddDueDateDialogOpen] = useState(false);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [newDueDateType, setNewDueDateType] = useState<'card' | 'expense'>('expense');
+  const [selectedItemId, setSelectedItemId] = useState<string>('');
 
-  const cardsWithDueDates = creditCards.filter(card => card.dueDay && card.dueDay >= 1 && card.dueDay <= 31);
+  // Combine cards and expenses with due dates
+  const allDueItems = useMemo(() => {
+    const items: DueItem[] = [];
+    
+    creditCards.forEach(card => {
+      if (card.dueDay && card.dueDay >= 1 && card.dueDay <= 31) {
+        items.push({
+          id: card.id,
+          type: 'card',
+          name: card.name,
+          amount: card.minimumPayment,
+          dueDay: card.dueDay,
+        });
+      }
+    });
+    
+    expenses.forEach(expense => {
+      if (expense.dueDay && expense.dueDay >= 1 && expense.dueDay <= 31) {
+        const linkedCard = expense.linkedCardId 
+          ? creditCards.find(c => c.id === expense.linkedCardId)
+          : undefined;
+        items.push({
+          id: expense.id,
+          type: 'expense',
+          name: expense.name || expense.category,
+          amount: expense.amount,
+          dueDay: expense.dueDay,
+          linkedCardId: expense.linkedCardId,
+          linkedCardName: linkedCard?.name,
+        });
+      }
+    });
+    
+    return items;
+  }, [creditCards, expenses]);
 
   // Calculate due dates for the current month view
   const dueDatesMap = useMemo(() => {
-    const map = new Map<string, CreditCard[]>();
+    const map = new Map<string, DueItem[]>();
     
-    cardsWithDueDates.forEach(card => {
-      if (!card.dueDay) return;
-      
-      // Get the due date for current month
+    allDueItems.forEach(item => {
       const monthStart = startOfMonth(currentMonth);
       const daysInMonth = endOfMonth(currentMonth).getDate();
-      const actualDueDay = Math.min(card.dueDay, daysInMonth);
+      const actualDueDay = Math.min(item.dueDay, daysInMonth);
       const dueDate = setDate(monthStart, actualDueDay);
       
       const dateKey = format(dueDate, "yyyy-MM-dd");
       const existing = map.get(dateKey) || [];
-      map.set(dateKey, [...existing, card]);
+      map.set(dateKey, [...existing, item]);
     });
     
     return map;
-  }, [cardsWithDueDates, currentMonth]);
+  }, [allDueItems, currentMonth]);
 
   const days = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
@@ -48,7 +103,6 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
     return eachDayOfInterval({ start: monthStart, end: monthEnd });
   }, [currentMonth]);
 
-  // Pad the beginning of the month to align with weekday
   const startPadding = useMemo(() => {
     const firstDay = startOfMonth(currentMonth).getDay();
     return Array(firstDay).fill(null);
@@ -58,163 +112,309 @@ export const PaymentDueDateCalendar: React.FC<PaymentDueDateCalendarProps> = ({
   const handleNextMonth = () => setCurrentMonth(prev => addMonths(prev, 1));
   const handleToday = () => setCurrentMonth(new Date());
 
+  const handleDayClick = (day: number) => {
+    setSelectedDay(day);
+    setAddDueDateDialogOpen(true);
+    setSelectedItemId('');
+  };
+
+  const handleAddDueDate = () => {
+    if (selectedItemId && selectedDay && onAddDueDate) {
+      onAddDueDate(newDueDateType, selectedItemId, selectedDay);
+    }
+    setAddDueDateDialogOpen(false);
+    setSelectedDay(null);
+    setSelectedItemId('');
+  };
+
+  const handleItemClick = (item: DueItem) => {
+    if (item.type === 'card') {
+      const card = creditCards.find(c => c.id === item.id);
+      if (card && onCardClick) onCardClick(card);
+    } else {
+      const expense = expenses.find(e => e.id === item.id);
+      if (expense && onExpenseClick) onExpenseClick(expense);
+    }
+  };
+
+  // Get items without due dates for the add dialog
+  const cardsWithoutDueDate = creditCards.filter(c => !c.dueDay);
+  const expensesWithoutDueDate = expenses.filter(e => !e.dueDay);
+
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
-    <Card className="border-2 border-foreground">
-      <CardHeader className="border-b-2 border-foreground pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-bold uppercase tracking-wider">
-            Payment Due Dates
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleToday} className="font-mono text-xs">
-              Today
-            </Button>
-            <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-        <div className="text-center font-mono text-sm uppercase tracking-widest mt-2">
-          {format(currentMonth, "MMMM yyyy")}
-        </div>
-      </CardHeader>
-      <CardContent className="p-4">
-        {/* Weekday headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {weekDays.map(day => (
-            <div key={day} className="text-center text-xs font-mono uppercase tracking-wider text-muted-foreground py-2">
-              {day}
+    <>
+      <Card className="border-2 border-foreground">
+        <CardHeader className="border-b-2 border-foreground pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-bold uppercase tracking-wider">
+              Payment Due Dates
+            </CardTitle>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-8 w-8">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleToday} className="font-mono text-xs">
+                Today
+              </Button>
+              <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-8 w-8">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          ))}
-        </div>
+          </div>
+          <div className="text-center font-mono text-sm uppercase tracking-widest mt-2">
+            {format(currentMonth, "MMMM yyyy")}
+          </div>
+        </CardHeader>
+        <CardContent className="p-4">
+          {/* Legend */}
+          <div className="flex items-center justify-center gap-6 mb-4 text-xs">
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-destructive" />
+              <span className="text-muted-foreground">Credit Card</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-3 h-3 rounded-full bg-primary" />
+              <span className="text-muted-foreground">Expense</span>
+            </div>
+          </div>
 
-        {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {/* Padding for start of month */}
-          {startPadding.map((_, index) => (
-            <div key={`pad-${index}`} className="aspect-square" />
-          ))}
+          {/* Weekday headers */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {weekDays.map(day => (
+              <div key={day} className="text-center text-xs font-mono uppercase tracking-wider text-muted-foreground py-2">
+                {day}
+              </div>
+            ))}
+          </div>
 
-          {/* Days of the month */}
-          {days.map(day => {
-            const dateKey = format(day, "yyyy-MM-dd");
-            const cardsOnDay = dueDatesMap.get(dateKey) || [];
-            const hasPayments = cardsOnDay.length > 0;
-            const isDayToday = isToday(day);
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1">
+            {startPadding.map((_, index) => (
+              <div key={`pad-${index}`} className="aspect-square" />
+            ))}
 
-            return (
-              <TooltipProvider key={dateKey}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div
-                      className={cn(
-                        "aspect-square flex flex-col items-center justify-start p-1 rounded-md transition-colors cursor-default",
-                        isDayToday && "ring-2 ring-primary ring-offset-1",
-                        hasPayments && "bg-destructive/10 hover:bg-destructive/20"
-                      )}
-                    >
-                      <span className={cn(
-                        "text-sm font-mono",
-                        isDayToday && "font-bold text-primary",
-                        !isSameMonth(day, currentMonth) && "text-muted-foreground"
-                      )}>
-                        {format(day, "d")}
-                      </span>
-                      {hasPayments && (
-                        <div className="flex flex-wrap justify-center gap-0.5 mt-1">
-                          {cardsOnDay.slice(0, 3).map(card => (
-                            <div
-                              key={card.id}
-                              className="w-2 h-2 rounded-full bg-destructive cursor-pointer hover:scale-125 transition-transform"
-                              onClick={() => onCardClick?.(card)}
-                            />
-                          ))}
-                          {cardsOnDay.length > 3 && (
-                            <span className="text-[10px] text-muted-foreground">+{cardsOnDay.length - 3}</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </TooltipTrigger>
-                  {hasPayments && (
-                    <TooltipContent side="bottom" className="max-w-[200px]">
+            {days.map(day => {
+              const dateKey = format(day, "yyyy-MM-dd");
+              const itemsOnDay = dueDatesMap.get(dateKey) || [];
+              const hasItems = itemsOnDay.length > 0;
+              const isDayToday = isToday(day);
+              const dayNumber = parseInt(format(day, "d"));
+
+              return (
+                <TooltipProvider key={dateKey}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className={cn(
+                          "aspect-square flex flex-col items-center justify-start p-1 rounded-md transition-colors cursor-pointer hover:bg-accent/50",
+                          isDayToday && "ring-2 ring-primary ring-offset-1",
+                          hasItems && "bg-muted hover:bg-muted/80"
+                        )}
+                        onClick={() => handleDayClick(dayNumber)}
+                      >
+                        <span className={cn(
+                          "text-sm font-mono",
+                          isDayToday && "font-bold text-primary",
+                          !isSameMonth(day, currentMonth) && "text-muted-foreground"
+                        )}>
+                          {format(day, "d")}
+                        </span>
+                        {hasItems && (
+                          <div className="flex flex-wrap justify-center gap-0.5 mt-1">
+                            {itemsOnDay.slice(0, 4).map(item => (
+                              <div
+                                key={`${item.type}-${item.id}`}
+                                className={cn(
+                                  "w-2 h-2 rounded-full cursor-pointer hover:scale-125 transition-transform",
+                                  item.type === 'card' ? "bg-destructive" : "bg-primary"
+                                )}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleItemClick(item);
+                                }}
+                              />
+                            ))}
+                            {itemsOnDay.length > 4 && (
+                              <span className="text-[10px] text-muted-foreground">+{itemsOnDay.length - 4}</span>
+                            )}
+                          </div>
+                        )}
+                        {!hasItems && (
+                          <Plus className="h-3 w-3 text-muted-foreground/30 mt-1 opacity-0 group-hover:opacity-100" />
+                        )}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="max-w-[250px]">
                       <div className="space-y-2">
                         <p className="font-mono text-xs uppercase tracking-wider font-bold">
-                          {format(day, "MMM d")} - Payments Due
+                          {format(day, "MMM d")} {hasItems ? "- Due" : "- Click to add"}
                         </p>
-                        {cardsOnDay.map(card => (
-                          <div key={card.id} className="flex items-center gap-2 text-sm">
-                            <CreditCardIcon className="h-3 w-3" />
-                            <span className="font-medium">{card.name}</span>
-                            <span className="text-muted-foreground ml-auto">
-                              {formatCurrency(card.minimumPayment)}
+                        {itemsOnDay.map(item => (
+                          <div key={`${item.type}-${item.id}`} className="flex items-center gap-2 text-sm">
+                            {item.type === 'card' ? (
+                              <CreditCardIcon className="h-3 w-3 text-destructive" />
+                            ) : (
+                              <Receipt className="h-3 w-3 text-primary" />
+                            )}
+                            <span className="font-medium flex-1">{item.name}</span>
+                            <span className="text-muted-foreground">
+                              {formatCurrency(item.amount)}
                             </span>
                           </div>
                         ))}
+                        {!hasItems && (
+                          <p className="text-xs text-muted-foreground">Click to add a due date</p>
+                        )}
                       </div>
                     </TooltipContent>
-                  )}
-                </Tooltip>
-              </TooltipProvider>
-            );
-          })}
-        </div>
+                  </Tooltip>
+                </TooltipProvider>
+              );
+            })}
+          </div>
 
-        {/* Legend / Summary */}
-        {cardsWithDueDates.length > 0 ? (
-          <div className="mt-6 border-t-2 border-foreground pt-4">
-            <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
-              This Month's Due Dates
-            </h3>
-            <div className="space-y-2">
-              {cardsWithDueDates.map(card => {
-                const daysInMonth = endOfMonth(currentMonth).getDate();
-                const actualDueDay = Math.min(card.dueDay!, daysInMonth);
-                const dueDate = setDate(startOfMonth(currentMonth), actualDueDay);
-                const isPast = dueDate < new Date() && !isToday(dueDate);
-                
-                return (
-                  <div 
-                    key={card.id} 
-                    className={cn(
-                      "flex items-center justify-between p-2 rounded border",
-                      isPast ? "border-muted bg-muted/30" : "border-destructive/30 bg-destructive/5",
-                      onCardClick && "cursor-pointer hover:bg-accent/50"
-                    )}
-                    onClick={() => onCardClick?.(card)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <CreditCardIcon className={cn("h-4 w-4", isPast ? "text-muted-foreground" : "text-destructive")} />
-                      <span className={cn("font-medium", isPast && "text-muted-foreground line-through")}>
-                        {card.name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-3 text-sm">
-                      <span className="font-mono text-muted-foreground">
-                        {format(dueDate, "MMM d")}
-                      </span>
-                      <span className={cn("font-semibold", isPast ? "text-muted-foreground" : "text-destructive")}>
-                        {formatCurrency(card.minimumPayment)}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Summary List */}
+          {allDueItems.length > 0 ? (
+            <div className="mt-6 border-t-2 border-foreground pt-4">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
+                This Month's Due Dates
+              </h3>
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {allDueItems
+                  .sort((a, b) => a.dueDay - b.dueDay)
+                  .map(item => {
+                    const daysInMonth = endOfMonth(currentMonth).getDate();
+                    const actualDueDay = Math.min(item.dueDay, daysInMonth);
+                    const dueDate = setDate(startOfMonth(currentMonth), actualDueDay);
+                    const isPast = dueDate < new Date() && !isToday(dueDate);
+                    
+                    return (
+                      <div 
+                        key={`${item.type}-${item.id}`}
+                        className={cn(
+                          "flex items-center justify-between p-2 rounded border cursor-pointer",
+                          isPast ? "border-muted bg-muted/30" : 
+                            item.type === 'card' ? "border-destructive/30 bg-destructive/5" : "border-primary/30 bg-primary/5",
+                          "hover:bg-accent/50"
+                        )}
+                        onClick={() => handleItemClick(item)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {item.type === 'card' ? (
+                            <CreditCardIcon className={cn("h-4 w-4", isPast ? "text-muted-foreground" : "text-destructive")} />
+                          ) : (
+                            <Receipt className={cn("h-4 w-4", isPast ? "text-muted-foreground" : "text-primary")} />
+                          )}
+                          <div>
+                            <span className={cn("font-medium", isPast && "text-muted-foreground line-through")}>
+                              {item.name}
+                            </span>
+                            {item.linkedCardName && (
+                              <span className="text-xs text-muted-foreground ml-2">
+                                via {item.linkedCardName}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <span className="font-mono text-muted-foreground">
+                            {format(dueDate, "MMM d")}
+                          </span>
+                          <span className={cn(
+                            "font-semibold", 
+                            isPast ? "text-muted-foreground" : 
+                              item.type === 'card' ? "text-destructive" : "text-primary"
+                          )}>
+                            {formatCurrency(item.amount)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          ) : (
+            <div className="mt-6 border-t-2 border-foreground pt-4 text-center">
+              <p className="text-muted-foreground font-mono text-sm">
+                No due dates set. Click on a day to add a due date, or edit your credit cards and expenses.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Due Date Dialog */}
+      <Dialog open={addDueDateDialogOpen} onOpenChange={setAddDueDateDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Add Due Date for Day {selectedDay}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Type</Label>
+              <Select
+                value={newDueDateType}
+                onValueChange={(value: 'card' | 'expense') => {
+                  setNewDueDateType(value);
+                  setSelectedItemId('');
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="card">Credit Card</SelectItem>
+                  <SelectItem value="expense">Expense</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label>Select {newDueDateType === 'card' ? 'Credit Card' : 'Expense'}</Label>
+              <Select
+                value={selectedItemId}
+                onValueChange={setSelectedItemId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={`Choose a ${newDueDateType === 'card' ? 'card' : 'expense'}`} />
+                </SelectTrigger>
+                <SelectContent>
+                  {newDueDateType === 'card' ? (
+                    cardsWithoutDueDate.length > 0 ? (
+                      cardsWithoutDueDate.map(card => (
+                        <SelectItem key={card.id} value={card.id}>
+                          {card.name} - {formatCurrency(card.minimumPayment)}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>All cards have due dates</SelectItem>
+                    )
+                  ) : (
+                    expensesWithoutDueDate.length > 0 ? (
+                      expensesWithoutDueDate.map(expense => (
+                        <SelectItem key={expense.id} value={expense.id}>
+                          {expense.name || expense.category} - {formatCurrency(expense.amount)}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>All expenses have due dates</SelectItem>
+                    )
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        ) : (
-          <div className="mt-6 border-t-2 border-foreground pt-4 text-center">
-            <p className="text-muted-foreground font-mono text-sm">
-              No due dates set. Edit your credit cards to add payment due dates.
-            </p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDueDateDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddDueDate} disabled={!selectedItemId}>
+              Set Due Date
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };

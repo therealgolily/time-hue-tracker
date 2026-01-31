@@ -23,4 +23,5 @@ export { MonthlyBreakdownTable } from "./components/MonthlyBreakdownTable";
 export { CardBreakdown } from "./components/CardBreakdown";
 export { ExpectedIncomeSection } from "./components/ExpectedIncomeSection";
 export { PaymentDueDateCalendar } from "./components/PaymentDueDateCalendar";
+export { ExpensesSection } from "./components/ExpensesSection";
 export { OtherDebtsSection } from "./components/OtherDebtsSection";
