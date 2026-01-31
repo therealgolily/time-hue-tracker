@@ -15,6 +15,7 @@ import { useFinance } from "../context/FinanceContext";
 import { formatCurrency } from "../lib/calculations";
 import { CreditCard } from "../types";
 import { PayoffTimeline } from "./PayoffTimeline";
+import { StrategyComparison } from "./StrategyComparison";
 
 type PaymentFrequency = "monthly" | "biweekly" | "weekly";
 type PayoffStrategy = "snowball" | "avalanche" | "simultaneous";
@@ -561,6 +562,47 @@ export const DebtPayoffCalculator: React.FC = () => {
     };
   }, [results, state.frequency, totalMonthlyPayment, totalMinimums]);
 
+  // Calculate all three strategies for comparison
+  const strategyComparison = useMemo(() => {
+    if (state.selectedCardIds.length === 0) return [];
+    
+    const strategies: Array<"snowball" | "avalanche" | "simultaneous"> = ["snowball", "avalanche", "simultaneous"];
+    
+    return strategies.map(strategy => {
+      if (state.calculationMode === "target-date") {
+        if (!state.targetDate) {
+          return { strategy, totalInterest: 0, totalMonths: 0 };
+        }
+        const { results } = calculateStrategyPayoffByDate(
+          selectedCards,
+          state.targetDate,
+          today,
+          strategy,
+          state.frequency
+        );
+        const totalInterest = results.reduce<number>((sum, r) => sum + r.totalInterest, 0);
+        return { 
+          strategy, 
+          totalInterest,
+          totalMonths: differenceInMonths(state.targetDate, today)
+        };
+      } else {
+        if (fixedPaymentMonthly < totalMinimums) {
+          return { strategy, totalInterest: 0, totalMonths: 0 };
+        }
+        const { results, totalMonths } = calculateStrategyPayoffByPayment(
+          selectedCards,
+          fixedPaymentMonthly,
+          today,
+          strategy,
+          state.frequency
+        );
+        const totalInterest = results.reduce<number>((sum, r) => sum + r.totalInterest, 0);
+        return { strategy, totalInterest, totalMonths };
+      }
+    });
+  }, [state.selectedCardIds, state.targetDate, state.frequency, state.calculationMode, selectedCards, fixedPaymentMonthly, totalMinimums]);
+
   const toggleCard = (cardId: string) => {
     setState(prev => ({
       ...prev,
@@ -903,6 +945,14 @@ export const DebtPayoffCalculator: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Strategy Comparison */}
+          {strategyComparison.length > 0 && strategyComparison[0].totalInterest > 0 && (
+            <StrategyComparison
+              results={strategyComparison}
+              currentStrategy={state.strategy}
+            />
+          )}
 
           {/* Visual Timeline */}
           {finalPayoffDate && (
