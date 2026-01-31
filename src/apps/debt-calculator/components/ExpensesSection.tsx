@@ -131,7 +131,7 @@ const ExpenseForm: React.FC<ExpenseFormProps> = ({ expense, open, onClose, onSav
               </Select>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="amount">Monthly Amount</Label>
+              <Label htmlFor="amount">Amount</Label>
               <Input
                 id="amount"
                 type="number"
