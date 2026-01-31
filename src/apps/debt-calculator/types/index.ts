@@ -6,6 +6,7 @@ export interface CreditCard {
   minimumPayment: number;
   monthlyPurchases: number;
   creditLimit: number;
+  dueDay?: number; // Day of month (1-31) when payment is due
 }
 
 export interface Expense {

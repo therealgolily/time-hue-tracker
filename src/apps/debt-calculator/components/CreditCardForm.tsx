@@ -20,6 +20,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({ card, open, onCl
     minimumPayment: "",
     monthlyPurchases: "",
     creditLimit: "",
+    dueDay: "",
   });
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({ card, open, onCl
         minimumPayment: card.minimumPayment.toString(),
         monthlyPurchases: card.monthlyPurchases.toString(),
         creditLimit: card.creditLimit.toString(),
+        dueDay: card.dueDay?.toString() || "",
       });
     } else {
       setFormData({
@@ -40,12 +42,14 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({ card, open, onCl
         minimumPayment: "",
         monthlyPurchases: "",
         creditLimit: "",
+        dueDay: "",
       });
     }
   }, [card, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const dueDayValue = parseInt(formData.dueDay);
     const cardData = {
       name: formData.name,
       balance: parseFloat(formData.balance) || 0,
@@ -53,6 +57,7 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({ card, open, onCl
       minimumPayment: parseFloat(formData.minimumPayment) || 0,
       monthlyPurchases: parseFloat(formData.monthlyPurchases) || 0,
       creditLimit: parseFloat(formData.creditLimit) || 0,
+      dueDay: dueDayValue >= 1 && dueDayValue <= 31 ? dueDayValue : undefined,
     };
 
     if (card) {
@@ -137,6 +142,18 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({ card, open, onCl
                 value={formData.creditLimit}
                 onChange={(e) => setFormData({ ...formData, creditLimit: e.target.value })}
                 placeholder="0.00"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="dueDay">Payment Due Day (1-31)</Label>
+              <Input
+                id="dueDay"
+                type="number"
+                min="1"
+                max="31"
+                value={formData.dueDay}
+                onChange={(e) => setFormData({ ...formData, dueDay: e.target.value })}
+                placeholder="e.g., 15 for the 15th of each month"
               />
             </div>
           </div>
