@@ -12,7 +12,11 @@ export interface CreditCard {
 export interface Expense {
   id: string;
   category: string;
+  name: string;
   amount: number;
+  dueDay?: number; // Day of month (1-31) when payment is due
+  isRecurring: boolean;
+  linkedCardId?: string; // Optional link to a credit card
 }
 
 export interface Budget {

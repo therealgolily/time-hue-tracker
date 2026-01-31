@@ -17,8 +17,9 @@ import { ExpectedIncomeSection } from '@/apps/debt-calculator/components/Expecte
 import { OtherDebtsSection } from '@/apps/debt-calculator/components/OtherDebtsSection';
 import { ScenarioCard } from '@/apps/debt-calculator/components/ScenarioCard';
 import { PaymentDueDateCalendar } from '@/apps/debt-calculator/components/PaymentDueDateCalendar';
+import { ExpensesSection } from '@/apps/debt-calculator/components/ExpensesSection';
 import { EventBasedScenarioForm } from '@/apps/debt-calculator/components/EventBasedScenarioForm';
-import { CreditCard, PaymentScenario, ScenarioResult } from '@/apps/debt-calculator/types';
+import { CreditCard, PaymentScenario, ScenarioResult, Expense } from '@/apps/debt-calculator/types';
 import { 
   calculateNetIncome, 
   calculateAvailableForDebt, 
@@ -26,9 +27,10 @@ import {
 } from '@/apps/debt-calculator/lib/calculations';
 
 const DebtCalculatorContent = () => {
-  const { data, loading, addCreditCard, updateCreditCard, deleteCreditCard, addScenario, deleteScenario, selectScenario } = useFinance();
+  const { data, loading, addCreditCard, updateCreditCard, deleteCreditCard, updateExpense, addScenario, deleteScenario, selectScenario } = useFinance();
   const [cardFormOpen, setCardFormOpen] = useState(false);
   const [editingCard, setEditingCard] = useState<CreditCard | undefined>(undefined);
+  const [editingExpense, setEditingExpense] = useState<Expense | undefined>(undefined);
   const [scenarioFormOpen, setScenarioFormOpen] = useState(false);
 
   // Calculate totals - moved before conditional return to fix hooks order
@@ -120,11 +122,26 @@ const DebtCalculatorContent = () => {
     setEditingCard(undefined);
   };
 
+  const handleEditExpense = (expense: Expense) => {
+    setEditingExpense(expense);
+    // Navigate to expenses tab when clicking expense in calendar
+    // The ExpensesSection has its own form dialog
+  };
+
+  const handleAddDueDate = (type: 'card' | 'expense', itemId: string, dueDay: number) => {
+    if (type === 'card') {
+      updateCreditCard(itemId, { dueDay });
+    } else {
+      updateExpense(itemId, { dueDay });
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <Tabs defaultValue="budget" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 border-2 border-foreground">
+        <TabsList className="grid w-full grid-cols-8 border-2 border-foreground">
           <TabsTrigger value="budget" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Budget</TabsTrigger>
+          <TabsTrigger value="expenses" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Expenses</TabsTrigger>
           <TabsTrigger value="assets" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Assets</TabsTrigger>
           <TabsTrigger value="debts" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Debts</TabsTrigger>
           <TabsTrigger value="income" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Income</TabsTrigger>
@@ -135,6 +152,10 @@ const DebtCalculatorContent = () => {
 
         <TabsContent value="budget">
           <BudgetSection />
+        </TabsContent>
+
+        <TabsContent value="expenses">
+          <ExpensesSection />
         </TabsContent>
 
         <TabsContent value="assets">
@@ -177,7 +198,10 @@ const DebtCalculatorContent = () => {
         <TabsContent value="calendar">
           <PaymentDueDateCalendar 
             creditCards={data.creditCards}
+            expenses={data.budget.expenses}
             onCardClick={handleEditCard}
+            onExpenseClick={handleEditExpense}
+            onAddDueDate={handleAddDueDate}
           />
         </TabsContent>
 

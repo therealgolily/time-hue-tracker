@@ -21,7 +21,9 @@ export const BudgetSection: React.FC = () => {
     if (newExpenseCategory && newExpenseAmount) {
       addExpense({
         category: newExpenseCategory,
+        name: newExpenseCategory,
         amount: parseFloat(newExpenseAmount),
+        isRecurring: true,
       });
       setNewExpenseCategory("");
       setNewExpenseAmount("");
