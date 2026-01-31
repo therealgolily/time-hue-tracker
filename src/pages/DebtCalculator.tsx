@@ -11,9 +11,6 @@ import { AssetSection } from '@/apps/debt-calculator/components/AssetSection';
 import { DebtSummary } from '@/apps/debt-calculator/components/DebtSummary';
 import { CreditCardForm } from '@/apps/debt-calculator/components/CreditCardForm';
 import { CreditCardItem } from '@/apps/debt-calculator/components/CreditCardItem';
-import { NetWorthSummary } from '@/apps/debt-calculator/components/NetWorthSummary';
-import { NetWorthChart } from '@/apps/debt-calculator/components/NetWorthChart';
-import { PayoffChart } from '@/apps/debt-calculator/components/PayoffChart';
 import { ExpectedIncomeSection } from '@/apps/debt-calculator/components/ExpectedIncomeSection';
 import { OtherDebtsSection } from '@/apps/debt-calculator/components/OtherDebtsSection';
 import { ScenarioCard } from '@/apps/debt-calculator/components/ScenarioCard';
@@ -140,14 +137,13 @@ const DebtCalculatorContent = () => {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <Tabs defaultValue="expenses" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-7 border-2 border-foreground">
+        <TabsList className="grid w-full grid-cols-6 border-2 border-foreground">
           <TabsTrigger value="expenses" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Expenses</TabsTrigger>
           <TabsTrigger value="assets" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Assets</TabsTrigger>
           <TabsTrigger value="debts" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Debts</TabsTrigger>
           <TabsTrigger value="income" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Income</TabsTrigger>
           <TabsTrigger value="calendar" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Calendar</TabsTrigger>
           <TabsTrigger value="scenarios" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Scenarios</TabsTrigger>
-          <TabsTrigger value="overview" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Overview</TabsTrigger>
         </TabsList>
 
         <TabsContent value="expenses">
@@ -159,6 +155,10 @@ const DebtCalculatorContent = () => {
         </TabsContent>
 
         <TabsContent value="debts" className="space-y-6">
+          <DebtSummary 
+            creditCards={data.creditCards}
+            otherDebts={data.otherDebts}
+          />
           <div>
             <div className="flex items-center justify-between mb-4 border-b-2 border-foreground pb-2">
               <h2 className="text-xl font-bold uppercase tracking-wider">Credit Cards</h2>
@@ -238,23 +238,6 @@ const DebtCalculatorContent = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="overview" className="space-y-6">
-          <DebtSummary 
-            creditCards={data.creditCards}
-            otherDebts={data.otherDebts}
-          />
-          <NetWorthSummary 
-            totalAssets={totalAssets}
-            totalLiabilities={totalLiabilities}
-            netWorth={netWorth}
-          />
-          {data.creditCards.length > 0 && scenarioResult.monthlyBreakdown.length > 0 && (
-            <div className="grid gap-6 lg:grid-cols-2">
-              <NetWorthChart result={scenarioResult} totalAssets={totalAssets} />
-              <PayoffChart result={scenarioResult} />
-            </div>
-          )}
-        </TabsContent>
       </Tabs>
     </div>
   );
