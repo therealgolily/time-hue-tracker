@@ -42,6 +42,9 @@
     --energy-neutral: 0 0% 50%;
     --energy-negative: 0 0% 20%;
 
+    /* Finance colors */
+    --expense: 210 100% 50%;
+
     /* Timeline */
     --timeline-track: 0 0% 94%;
     --timeline-marker: 0 0% 70%;
@@ -96,6 +99,9 @@
     --energy-positive: 0 100% 50%;
     --energy-neutral: 0 0% 60%;
     --energy-negative: 0 0% 40%;
+
+    /* Finance colors */
+    --expense: 210 100% 50%;
 
     /* Timeline */
     --timeline-track: 0 0% 12%;
