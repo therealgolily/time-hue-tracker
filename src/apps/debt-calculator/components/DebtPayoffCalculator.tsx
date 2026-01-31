@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useFinance } from "../context/FinanceContext";
 import { formatCurrency } from "../lib/calculations";
 import { CreditCard } from "../types";
+import { PayoffTimeline } from "./PayoffTimeline";
 
 type PaymentFrequency = "monthly" | "biweekly" | "weekly";
 type PayoffStrategy = "snowball" | "avalanche" | "simultaneous";
@@ -902,6 +903,16 @@ export const DebtPayoffCalculator: React.FC = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Visual Timeline */}
+          {finalPayoffDate && (
+            <PayoffTimeline
+              results={sortedResults}
+              startDate={today}
+              endDate={finalPayoffDate}
+              strategy={state.strategy}
+            />
+          )}
 
           {/* Per-Card Breakdown */}
           <Card className="border-2 border-foreground">
