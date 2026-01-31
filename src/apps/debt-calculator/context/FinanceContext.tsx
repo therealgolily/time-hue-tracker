@@ -8,7 +8,8 @@ import {
   SavingsAccount, 
   PhysicalAsset, 
   ExpectedIncome, 
-  OtherDebt 
+  OtherDebt,
+  SavedPayoffScenario 
 } from "../types";
 import { 
   loadDataFromDatabase, 
@@ -48,6 +49,9 @@ interface FinanceContextType {
   addOtherDebt: (debt: Omit<OtherDebt, "id">) => void;
   updateOtherDebt: (id: string, debt: Partial<OtherDebt>) => void;
   deleteOtherDebt: (id: string) => void;
+  addSavedPayoffScenario: (scenario: Omit<SavedPayoffScenario, "id">) => void;
+  updateSavedPayoffScenario: (id: string, scenario: Partial<SavedPayoffScenario>) => void;
+  deleteSavedPayoffScenario: (id: string) => void;
 }
 
 const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
@@ -310,6 +314,24 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
     updateData(prev => ({ ...prev, otherDebts: prev.otherDebts.filter(debt => debt.id !== id) }));
   }, [updateData]);
 
+  const addSavedPayoffScenario = useCallback((scenario: Omit<SavedPayoffScenario, "id">) => {
+    const newScenario: SavedPayoffScenario = { ...scenario, id: crypto.randomUUID() };
+    updateData(prev => ({ ...prev, savedPayoffScenarios: [...prev.savedPayoffScenarios, newScenario] }));
+  }, [updateData]);
+
+  const updateSavedPayoffScenario = useCallback((id: string, updates: Partial<SavedPayoffScenario>) => {
+    updateData(prev => ({
+      ...prev,
+      savedPayoffScenarios: prev.savedPayoffScenarios.map(scenario => 
+        scenario.id === id ? { ...scenario, ...updates } : scenario
+      ),
+    }));
+  }, [updateData]);
+
+  const deleteSavedPayoffScenario = useCallback((id: string) => {
+    updateData(prev => ({ ...prev, savedPayoffScenarios: prev.savedPayoffScenarios.filter(s => s.id !== id) }));
+  }, [updateData]);
+
   return (
     <FinanceContext.Provider
       value={{
@@ -341,6 +363,9 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
         addOtherDebt,
         updateOtherDebt,
         deleteOtherDebt,
+        addSavedPayoffScenario,
+        updateSavedPayoffScenario,
+        deleteSavedPayoffScenario,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { format, differenceInMonths, addMonths } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,9 +13,10 @@ import { Calculator, CalendarIcon, TrendingDown, Target, Clock, Snowflake, Flame
 import { cn } from "@/lib/utils";
 import { useFinance } from "../context/FinanceContext";
 import { formatCurrency } from "../lib/calculations";
-import { CreditCard } from "../types";
+import { CreditCard, SavedPayoffScenario } from "../types";
 import { PayoffTimeline } from "./PayoffTimeline";
 import { StrategyComparison } from "./StrategyComparison";
+import { SavedPayoffScenarios } from "./SavedPayoffScenarios";
 
 type PaymentFrequency = "monthly" | "biweekly" | "weekly";
 type PayoffStrategy = "snowball" | "avalanche" | "simultaneous";
@@ -626,6 +627,19 @@ export const DebtPayoffCalculator: React.FC = () => {
     }));
   };
 
+  const handleLoadScenario = useCallback((scenario: SavedPayoffScenario) => {
+    setState({
+      selectedCardIds: scenario.selectedCardIds.filter(id => 
+        data.creditCards.some(c => c.id === id)
+      ),
+      calculationMode: scenario.mode,
+      strategy: scenario.strategy,
+      frequency: scenario.frequency,
+      targetDate: scenario.targetDate ? new Date(scenario.targetDate) : undefined,
+      fixedPaymentAmount: scenario.fixedPaymentAmount?.toString() || "",
+    });
+  }, [data.creditCards]);
+
   const sortedResults = useMemo(() => {
     if (state.strategy === "simultaneous") {
       return results;
@@ -636,6 +650,23 @@ export const DebtPayoffCalculator: React.FC = () => {
   const isReadyToCalculate = state.calculationMode === "target-date" 
     ? state.selectedCardIds.length > 0 && state.targetDate
     : state.selectedCardIds.length > 0 && fixedPaymentMonthly >= totalMinimums;
+
+  // Build the current config for saving
+  const currentSaveConfig = useMemo(() => {
+    if (!isReadyToCalculate || results.length === 0 || !finalPayoffDate) return null;
+    
+    return {
+      selectedCardIds: state.selectedCardIds,
+      mode: state.calculationMode,
+      strategy: state.strategy,
+      frequency: state.frequency,
+      targetDate: state.targetDate,
+      fixedPaymentAmount: fixedPaymentMonthly > 0 ? fixedPaymentMonthly : undefined,
+      totalInterest: results.reduce((sum, r) => sum + r.totalInterest, 0),
+      totalMonths,
+      payoffDate: finalPayoffDate,
+    };
+  }, [state, results, finalPayoffDate, totalMonths, fixedPaymentMonthly, isReadyToCalculate]);
 
   return (
     <div className="space-y-6">
@@ -866,6 +897,12 @@ export const DebtPayoffCalculator: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Saved Scenarios */}
+      <SavedPayoffScenarios
+        currentConfig={currentSaveConfig}
+        onLoadScenario={handleLoadScenario}
+      />
 
       {/* Results */}
       {isReadyToCalculate && results.length > 0 && totals && (
