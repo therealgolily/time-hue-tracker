@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LogOut, User, Briefcase } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
@@ -77,17 +77,19 @@ const Home = () => {
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2">
           <Link
             to="/apps/personal"
-            className="flex flex-col items-center justify-center gap-4 p-12 md:p-16 border-b-2 md:border-b-0 md:border-r-2 border-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="flex items-center justify-center p-12 md:p-16 border-b-2 md:border-b-0 md:border-r-2 border-foreground hover:bg-primary hover:text-primary-foreground transition-colors group"
           >
-            <User className="w-16 h-16 md:w-20 md:h-20" strokeWidth={1.5} />
-            <span className="text-lg md:text-xl font-bold uppercase tracking-widest">Personal</span>
+            <span className="text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-widest transition-transform duration-300 group-hover:scale-110">
+              Personal
+            </span>
           </Link>
           <Link
             to="/apps/work"
-            className="flex flex-col items-center justify-center gap-4 p-12 md:p-16 hover:bg-primary hover:text-primary-foreground transition-colors"
+            className="flex items-center justify-center p-12 md:p-16 hover:bg-primary hover:text-primary-foreground transition-colors group"
           >
-            <Briefcase className="w-16 h-16 md:w-20 md:h-20" strokeWidth={1.5} />
-            <span className="text-lg md:text-xl font-bold uppercase tracking-widest">Work</span>
+            <span className="text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-widest transition-transform duration-300 group-hover:scale-110">
+              Work
+            </span>
           </Link>
         </div>
       </main>
