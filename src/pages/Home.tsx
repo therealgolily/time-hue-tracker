@@ -1,7 +1,6 @@
 import { useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, RefreshCw, LogOut, Briefcase, Calculator, TrendingUp, CalendarDays, Clock, CheckSquare } from 'lucide-react';
-import { AppTile } from '@/components/AppTile';
+import { useNavigate, Link } from 'react-router-dom';
+import { LogOut, User, Briefcase } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,24 +8,6 @@ import { Button } from '@/components/ui/button';
 import { CONSISTENCY_QUOTES } from '@/data/consistencyQuotes';
 
 const STORAGE_KEY = 'home-quote-index';
-
-// Organized into logical groups for better visual hierarchy
-const timeApps = [
-  { name: 'Personal', route: '/personal-time-tracker', icon: User },
-  { name: 'Work', route: '/work-time-tracker', icon: Briefcase },
-];
-
-const financeApps = [
-  { name: 'Personal', route: '/personal-finance', icon: Calculator },
-  { name: 'Business', route: '/business-finance', icon: TrendingUp },
-];
-
-const utilityApps = [
-  { name: 'Journal', route: '/journal', icon: RefreshCw },
-  { name: 'Calendar', route: '/calendar', icon: CalendarDays },
-  { name: 'Timeline', route: '/timeline', icon: Clock },
-  { name: 'Tasks', route: 'tasks.rosserresults.com', icon: CheckSquare, external: true },
-];
 
 const Home = () => {
   useTheme();
@@ -92,61 +73,22 @@ const Home = () => {
           </div>
         </div>
 
-        {/* App Grid - Organized sections */}
-        <div className="flex-1 flex flex-col">
-          {/* Time Tracking Row */}
-          <div className="border-b-2 border-foreground">
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-              <div className="border-b-2 md:border-b-0 md:border-r-2 border-foreground px-6 py-4 flex items-center">
-                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Time Tracking</span>
-              </div>
-              <div className="grid grid-cols-2">
-                {timeApps.map((app, index) => (
-                  <AppTile 
-                    key={app.name + app.route} 
-                    {...app} 
-                    isLast={index === timeApps.length - 1}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Finance Row */}
-          <div className="border-b-2 border-foreground">
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr]">
-              <div className="border-b-2 md:border-b-0 md:border-r-2 border-foreground px-6 py-4 flex items-center">
-                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Finance</span>
-              </div>
-              <div className="grid grid-cols-2">
-                {financeApps.map((app, index) => (
-                  <AppTile 
-                    key={app.name + app.route} 
-                    {...app} 
-                    isLast={index === financeApps.length - 1}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Utilities Row */}
-          <div className="flex-1">
-            <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] h-full">
-              <div className="border-b-2 md:border-b-0 md:border-r-2 border-foreground px-6 py-4 flex items-center">
-                <span className="text-xs font-mono uppercase tracking-widest text-muted-foreground">Utilities</span>
-              </div>
-              <div className="grid grid-cols-4">
-                {utilityApps.map((app, index) => (
-                  <AppTile 
-                    key={app.name + app.route} 
-                    {...app} 
-                    isLast={index === utilityApps.length - 1}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+        {/* Two large buttons */}
+        <div className="flex-1 grid grid-cols-1 md:grid-cols-2">
+          <Link
+            to="/apps/personal"
+            className="flex flex-col items-center justify-center gap-4 p-12 md:p-16 border-b-2 md:border-b-0 md:border-r-2 border-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <User className="w-16 h-16 md:w-20 md:h-20" strokeWidth={1.5} />
+            <span className="text-lg md:text-xl font-bold uppercase tracking-widest">Personal</span>
+          </Link>
+          <Link
+            to="/apps/work"
+            className="flex flex-col items-center justify-center gap-4 p-12 md:p-16 hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            <Briefcase className="w-16 h-16 md:w-20 md:h-20" strokeWidth={1.5} />
+            <span className="text-lg md:text-xl font-bold uppercase tracking-widest">Work</span>
+          </Link>
         </div>
       </main>
     </div>
