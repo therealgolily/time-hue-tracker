@@ -77,7 +77,7 @@ const Home = () => {
         <div className="flex-1 grid grid-cols-1 md:grid-cols-2">
           <Link
             to="/apps/personal"
-            className="flex items-center justify-center p-12 md:p-16 border-b-2 md:border-b-0 md:border-r-2 border-foreground hover:bg-primary hover:text-primary-foreground transition-colors group"
+            className="flex items-center justify-center pt-12 md:pt-20 pb-24 md:pb-32 p-12 md:p-16 border-b-2 md:border-b-0 md:border-r-2 border-foreground hover:bg-primary hover:text-primary-foreground transition-colors group items-start"
           >
             <span className="text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-widest transition-transform duration-300 group-hover:scale-110">
               Personal
@@ -85,7 +85,7 @@ const Home = () => {
           </Link>
           <Link
             to="/apps/work"
-            className="flex items-center justify-center p-12 md:p-16 hover:bg-primary hover:text-primary-foreground transition-colors group"
+            className="flex items-center justify-center pt-12 md:pt-20 pb-24 md:pb-32 p-12 md:p-16 hover:bg-primary hover:text-primary-foreground transition-colors group items-start"
           >
             <span className="text-4xl md:text-6xl lg:text-7xl font-bold uppercase tracking-widest transition-transform duration-300 group-hover:scale-110">
               Work
