@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
+import AppsPage from "./pages/AppsPage";
 import Auth from "./pages/Auth";
 import PinScreen from "./pages/PinScreen";
 import EnergyTracker from "./pages/EnergyTracker";
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/pin" element={<PinScreen />} />
           <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/apps/:category" element={<ProtectedRoute><AppsPage /></ProtectedRoute>} />
           <Route path="/personal-time-tracker" element={<ProtectedRoute><EnergyTracker /></ProtectedRoute>} />
           <Route path="/work-time-tracker" element={<ProtectedRoute><ClientTracker /></ProtectedRoute>} />
           <Route path="/journal" element={<ProtectedRoute><Refresh /></ProtectedRoute>} />
