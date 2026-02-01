@@ -14,6 +14,7 @@ import { CreditCardItem } from '@/apps/debt-calculator/components/CreditCardItem
 
 import { OtherDebtsSection } from '@/apps/debt-calculator/components/OtherDebtsSection';
 import { MonthlyObligations } from '@/apps/debt-calculator/components/MonthlyObligations';
+import { PaymentDueDateCalendar } from '@/apps/debt-calculator/components/PaymentDueDateCalendar';
 import { DebtPayoffCalculator } from '@/apps/debt-calculator/components/DebtPayoffCalculator';
 import { CreditCard } from '@/apps/debt-calculator/types';
 
@@ -62,14 +63,22 @@ const DebtCalculatorContent = () => {
   return (
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       <Tabs defaultValue="monthly" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 border-2 border-foreground">
+        <TabsList className="grid w-full grid-cols-4 border-2 border-foreground">
           <TabsTrigger value="monthly" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Monthly</TabsTrigger>
+          <TabsTrigger value="calendar" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Calendar</TabsTrigger>
           <TabsTrigger value="assets" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Assets</TabsTrigger>
           <TabsTrigger value="debts" className="font-mono text-xs uppercase tracking-wider data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Debts</TabsTrigger>
         </TabsList>
 
         <TabsContent value="monthly">
           <MonthlyObligations />
+        </TabsContent>
+
+        <TabsContent value="calendar">
+          <PaymentDueDateCalendar 
+            creditCards={data.creditCards}
+            expenses={data.budget.expenses}
+          />
         </TabsContent>
 
         <TabsContent value="assets">
