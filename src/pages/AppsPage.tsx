@@ -1,21 +1,21 @@
 import { Link, useParams, Navigate } from 'react-router-dom';
-import { User, Briefcase, Calculator, TrendingUp, RefreshCw, Clock, CalendarDays, CheckSquare } from 'lucide-react';
+import { User, Briefcase } from 'lucide-react';
 import { AppTile } from '@/components/AppTile';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useTheme } from '@/hooks/useTheme';
 
 const personalApps = [
-  { name: 'Time Tracking', route: '/personal-time-tracker', icon: User },
-  { name: 'Finance', route: '/personal-finance', icon: Calculator },
-  { name: 'Journal', route: '/journal', icon: RefreshCw },
-  { name: 'Timeline', route: '/timeline', icon: Clock },
+  { name: 'Time Tracking', route: '/personal-time-tracker' },
+  { name: 'Finance', route: '/personal-finance' },
+  { name: 'Journal', route: '/journal' },
+  { name: 'Timeline', route: '/timeline' },
 ];
 
 const workApps = [
-  { name: 'Time Tracking', route: '/work-time-tracker', icon: Briefcase },
-  { name: 'Finance', route: '/business-finance', icon: TrendingUp },
-  { name: 'Calendar', route: '/calendar', icon: CalendarDays },
-  { name: 'Tasks', route: 'tasks.rosserresults.com', icon: CheckSquare, external: true },
+  { name: 'Time Tracking', route: '/work-time-tracker' },
+  { name: 'Finance', route: '/business-finance' },
+  { name: 'Calendar', route: '/calendar' },
+  { name: 'Tasks', route: 'tasks.rosserresults.com', external: true },
 ];
 
 const AppsPage = () => {
