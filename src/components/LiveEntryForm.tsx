@@ -72,8 +72,9 @@ export const LiveEntryForm = ({ segments, onSubmit, onCancel }: LiveEntryFormPro
   const lastEnd = segments.length > 0 ? segments[segments.length - 1].endTime : new Date();
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6 overflow-auto">
-      <form onSubmit={handleSubmit} className="w-full max-w-md space-y-6">
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-background rounded-lg shadow-lg max-w-md w-full max-h-[90vh] overflow-auto p-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
         <div className="text-center space-y-2">
           <h2 className="text-2xl font-bold text-foreground">Log Your Activity</h2>
           <div className="text-muted-foreground">
@@ -226,8 +227,9 @@ export const LiveEntryForm = ({ segments, onSubmit, onCancel }: LiveEntryFormPro
             <Plus className="w-4 h-4 mr-2" />
             Save {segments.length > 1 ? `${segments.length} Entries` : 'Entry'}
           </Button>
-        </div>
-      </form>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
