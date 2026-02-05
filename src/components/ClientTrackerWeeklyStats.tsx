@@ -13,7 +13,7 @@ interface ClientTrackerWeeklyStatsProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-type TimePeriod = 'week' | 'last7' | 'last30' | 'mtd' | 'ytd';
+type TimePeriod = 'today' | 'week' | 'last7' | 'last30' | 'mtd' | 'ytd';
 
 const formatDuration = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);
@@ -40,6 +40,12 @@ const getDateRange = (period: TimePeriod, weekStart: Date): { start: Date; end: 
   const today = new Date();
   
   switch (period) {
+    case 'today':
+      return {
+        start: today,
+        end: today,
+        label: format(today, 'EEEE, MMM d')
+      };
     case 'week':
       return {
         start: weekStart,
@@ -74,7 +80,7 @@ const getDateRange = (period: TimePeriod, weekStart: Date): { start: Date; end: 
 };
 
 export const ClientTrackerWeeklyStats = ({ weekStart, getDayData, open = true, onOpenChange }: ClientTrackerWeeklyStatsProps) => {
-  const [period, setPeriod] = useState<TimePeriod>('week');
+  const [period, setPeriod] = useState<TimePeriod>('today');
   
   const { start, end, label } = getDateRange(period, weekStart);
 
@@ -142,6 +148,7 @@ export const ClientTrackerWeeklyStats = ({ weekStart, getDayData, open = true, o
   );
 
   const periodLabels: Record<TimePeriod, string> = {
+    today: 'Today',
     week: 'Week',
     last7: '7 Days',
     last30: '30 Days',
@@ -162,7 +169,7 @@ export const ClientTrackerWeeklyStats = ({ weekStart, getDayData, open = true, o
         
         <CollapsibleContent className="px-4 pb-4 space-y-4">
           <Tabs value={period} onValueChange={(v) => setPeriod(v as TimePeriod)} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 h-8">
+            <TabsList className="grid w-full grid-cols-6 h-8">
               {(Object.keys(periodLabels) as TimePeriod[]).map((p) => (
                 <TabsTrigger 
                   key={p} 
