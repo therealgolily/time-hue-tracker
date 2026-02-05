@@ -61,7 +61,7 @@ const ClientTracker = () => {
   const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | 'clock-in' | 'clock-out' | null>(null);
   const [liveModeActive, setLiveModeActive] = useState(false);
   const [liveSegments, setLiveSegments] = useState<ClientLiveSegment[] | null>(null);
-  const [timelineOpen, setTimelineOpen] = useState(true);
+  const [timelineOpen, setTimelineOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(true);
 
   const dayData = getDayData(selectedDate);
@@ -280,19 +280,6 @@ const ClientTracker = () => {
               onOpenChange={setSummaryOpen}
             />
 
-            {/* Legend - Swiss style */}
-            <div className="flex flex-wrap justify-center gap-6 text-xs font-mono uppercase tracking-widest">
-              {(Object.keys(TRACKER_CLIENT_LABELS) as TrackerClient[]).slice(0, 6).map((client, index) => (
-                <div key={client} className="flex items-center gap-2">
-                  <div className={`w-3 h-3 ${
-                    index === 0 ? 'bg-primary' :
-                    index % 2 === 0 ? 'bg-foreground' :
-                    'bg-muted-foreground'
-                  }`} />
-                  <span>{TRACKER_CLIENT_LABELS[client]}</span>
-                </div>
-              ))}
-            </div>
           </>
         )}
       </main>
