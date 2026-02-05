@@ -2,12 +2,15 @@ import { useState, useMemo } from 'react';
 import { format, startOfWeek, addDays, subDays, startOfMonth, startOfYear } from 'date-fns';
 import { ClientDayData, TrackerClient, TRACKER_CLIENT_LABELS } from '@/types/clientTracker';
 import { cn } from '@/lib/utils';
-import { Building2, AlertCircle } from 'lucide-react';
+import { Building2, AlertCircle, ChevronDown } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface ClientTrackerWeeklyStatsProps {
   weekStart: Date;
   getDayData: (date: Date) => ClientDayData;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 type TimePeriod = 'week' | 'last7' | 'last30' | 'mtd' | 'ytd';
@@ -70,7 +73,7 @@ const getDateRange = (period: TimePeriod, weekStart: Date): { start: Date; end: 
   }
 };
 
-export const ClientTrackerWeeklyStats = ({ weekStart, getDayData }: ClientTrackerWeeklyStatsProps) => {
+export const ClientTrackerWeeklyStats = ({ weekStart, getDayData, open = true, onOpenChange }: ClientTrackerWeeklyStatsProps) => {
   const [period, setPeriod] = useState<TimePeriod>('week');
   
   const { start, end, label } = getDateRange(period, weekStart);
@@ -147,93 +150,98 @@ export const ClientTrackerWeeklyStats = ({ weekStart, getDayData }: ClientTracke
   };
 
   return (
-    <div className="glass-card p-4 space-y-4">
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-foreground">Summary</h3>
-          <span className="text-sm text-muted-foreground">{label}</span>
-        </div>
+    <Collapsible open={open} onOpenChange={onOpenChange}>
+      <div className="glass-card">
+        <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-3">
+            <h3 className="font-semibold text-foreground">Summary</h3>
+            <span className="text-sm text-muted-foreground">{label}</span>
+          </div>
+          <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        </CollapsibleTrigger>
         
-        <Tabs value={period} onValueChange={(v) => setPeriod(v as TimePeriod)} className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-8">
-            {(Object.keys(periodLabels) as TimePeriod[]).map((p) => (
-              <TabsTrigger 
-                key={p} 
-                value={p} 
-                className="text-xs px-2 py-1"
-              >
-                {periodLabels[p]}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-      </div>
+        <CollapsibleContent className="px-4 pb-4 space-y-4">
+          <Tabs value={period} onValueChange={(v) => setPeriod(v as TimePeriod)} className="w-full">
+            <TabsList className="grid w-full grid-cols-5 h-8">
+              {(Object.keys(periodLabels) as TimePeriod[]).map((p) => (
+                <TabsTrigger 
+                  key={p} 
+                  value={p} 
+                  className="text-xs px-2 py-1"
+                >
+                  {periodLabels[p]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
 
-      {activeClients.length > 0 || stats.totalUnloggedWorkMinutes > 0 ? (
-        <>
-          <div className="space-y-2">
-            {activeClients.map(client => {
-              const mins = stats.clientMinutes[client];
-              const percentage = stats.totalMinutes > 0 ? (mins / stats.totalMinutes) * 100 : 0;
-              
-              return (
-                <div key={client} className="space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-foreground">{TRACKER_CLIENT_LABELS[client]}</span>
+          {activeClients.length > 0 || stats.totalUnloggedWorkMinutes > 0 ? (
+            <>
+              <div className="space-y-2">
+                {activeClients.map(client => {
+                  const mins = stats.clientMinutes[client];
+                  const percentage = stats.totalMinutes > 0 ? (mins / stats.totalMinutes) * 100 : 0;
+                  
+                  return (
+                    <div key={client} className="space-y-1">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Building2 className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-foreground">{TRACKER_CLIENT_LABELS[client]}</span>
+                        </div>
+                        <span className="font-mono text-muted-foreground">{formatDuration(mins)}</span>
+                      </div>
+                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all', clientBgColors[client])}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                    <span className="font-mono text-muted-foreground">{formatDuration(mins)}</span>
+                  );
+                })}
+                
+                {stats.totalUnloggedWorkMinutes > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-3 h-3 text-destructive" />
+                        <span className="text-destructive">Unlogged Work Time</span>
+                      </div>
+                      <span className="font-mono text-destructive">{formatDuration(stats.totalUnloggedWorkMinutes)}</span>
+                    </div>
+                    <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all bg-destructive"
+                        style={{ width: `${stats.totalWorkingMinutes > 0 ? (stats.totalUnloggedWorkMinutes / stats.totalWorkingMinutes) * 100 : 0}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className={cn('h-full rounded-full transition-all', clientBgColors[client])}
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-            
-            {stats.totalUnloggedWorkMinutes > 0 && (
-              <div className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-2">
-                    <AlertCircle className="w-3 h-3 text-destructive" />
-                    <span className="text-destructive">Unlogged Work Time</span>
-                  </div>
-                  <span className="font-mono text-destructive">{formatDuration(stats.totalUnloggedWorkMinutes)}</span>
-                </div>
-                <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all bg-destructive"
-                    style={{ width: `${stats.totalWorkingMinutes > 0 ? (stats.totalUnloggedWorkMinutes / stats.totalWorkingMinutes) * 100 : 0}%` }}
-                  />
-                </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <div className="pt-2 border-t border-border space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total tracked</span>
-              <span className="font-mono font-medium text-foreground">
-                {formatDuration(stats.totalMinutes)}
-              </span>
-            </div>
-            {stats.totalWorkingMinutes > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total clocked work</span>
-                <span className="font-mono font-medium text-foreground">
-                  {formatDuration(stats.totalWorkingMinutes)}
-                </span>
+              <div className="pt-2 border-t border-border space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Total tracked</span>
+                  <span className="font-mono font-medium text-foreground">
+                    {formatDuration(stats.totalMinutes)}
+                  </span>
+                </div>
+                {stats.totalWorkingMinutes > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total clocked work</span>
+                    <span className="font-mono font-medium text-foreground">
+                      {formatDuration(stats.totalWorkingMinutes)}
+                    </span>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </>
-      ) : (
-        <p className="text-sm text-muted-foreground text-center py-4">No time tracked for this period.</p>
-      )}
-    </div>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">No time tracked for this period.</p>
+          )}
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   );
 };

@@ -63,6 +63,7 @@ const ClientTracker = () => {
   const [liveModeActive, setLiveModeActive] = useState(false);
   const [liveSegments, setLiveSegments] = useState<ClientLiveSegment[] | null>(null);
   const [timelineOpen, setTimelineOpen] = useState(true);
+  const [summaryOpen, setSummaryOpen] = useState(true);
 
   const dayData = getDayData(selectedDate);
 
@@ -274,7 +275,12 @@ const ClientTracker = () => {
               </div>
             </Collapsible>
 
-            <ClientTrackerWeeklyStats weekStart={weekStart} getDayData={getDayData} />
+            <ClientTrackerWeeklyStats 
+              weekStart={weekStart} 
+              getDayData={getDayData} 
+              open={summaryOpen}
+              onOpenChange={setSummaryOpen}
+            />
 
             {/* Legend - Swiss style */}
             <div className="flex flex-wrap justify-center gap-6 text-xs font-mono uppercase tracking-widest">
