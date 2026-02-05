@@ -195,15 +195,6 @@ const ClientTracker = () => {
               Start Live Mode
             </Button>
 
-            <ClientTrackerWeekNavigator
-              selectedDate={selectedDate}
-              onSelectDate={handleSelectDate}
-              onPreviousWeek={() => setWeekStart(subWeeks(weekStart, 1))}
-              onNextWeek={() => setWeekStart(addWeeks(weekStart, 1))}
-              weekStart={weekStart}
-              getDayData={getDayData}
-            />
-
             {/* Selected Date Header */}
             <div className="text-center py-4 border-b-2 border-foreground">
               <h2 className="text-3xl font-bold uppercase tracking-tight">
@@ -247,6 +238,15 @@ const ClientTracker = () => {
             </div>
 
             <ClientTrackerDaySummary dayData={dayData} />
+
+            <ClientTrackerWeekNavigator
+              selectedDate={selectedDate}
+              onSelectDate={handleSelectDate}
+              onPreviousWeek={() => setWeekStart(subWeeks(weekStart, 1))}
+              onNextWeek={() => setWeekStart(addWeeks(weekStart, 1))}
+              weekStart={weekStart}
+              getDayData={getDayData}
+            />
 
             <ClientTrackerAddEntryForm
               selectedDate={selectedDate}
