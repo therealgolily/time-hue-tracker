@@ -188,21 +188,6 @@ const ClientTracker = () => {
           </div>
         ) : (
           <>
-            {/* Live Mode Button - Swiss style */}
-            <Button
-              onClick={() => setLiveModeActive(true)}
-              className="w-full h-14 text-sm font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:bg-foreground hover:text-background transition-colors"
-            >
-              <Zap className="w-4 h-4 mr-3" />
-              Start Live Mode
-            </Button>
-
-            <ClientTrackerAddEntryForm
-              selectedDate={selectedDate}
-              entries={dayData.entries}
-              onAddEntry={(entry) => addEntry(selectedDate, entry)}
-            />
-
             {/* Selected Date Header */}
             <div className="text-center py-4 border-b-2 border-foreground">
               <h2 className="text-3xl font-bold uppercase tracking-tight">
@@ -244,6 +229,21 @@ const ClientTracker = () => {
                 onClearTime={() => clearClockOutTime(selectedDate)}
               />
             </div>
+
+            {/* Live Mode Button - Swiss style */}
+            <Button
+              onClick={() => setLiveModeActive(true)}
+              className="w-full h-14 text-sm font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:bg-foreground hover:text-background transition-colors"
+            >
+              <Zap className="w-4 h-4 mr-3" />
+              Start Live Mode
+            </Button>
+
+            <ClientTrackerAddEntryForm
+              selectedDate={selectedDate}
+              entries={dayData.entries}
+              onAddEntry={(entry) => addEntry(selectedDate, entry)}
+            />
 
             <ClientTrackerWeeklyStats 
               weekStart={weekStart} 
