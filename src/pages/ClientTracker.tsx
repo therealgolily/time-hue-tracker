@@ -234,12 +234,14 @@ const ClientTracker = () => {
                 type="clock-in"
                 time={dayData.clockInTime}
                 onSetTime={() => handleSetMilestone('clock-in')}
+                onSetNow={() => setClockInTime(selectedDate, new Date())}
                 onClearTime={() => clearClockInTime(selectedDate)}
               />
               <ClockInOutButton
                 type="clock-out"
                 time={dayData.clockOutTime}
                 onSetTime={() => handleSetMilestone('clock-out')}
+                onSetNow={() => setClockOutTime(selectedDate, new Date())}
                 onClearTime={() => clearClockOutTime(selectedDate)}
               />
             </div>
