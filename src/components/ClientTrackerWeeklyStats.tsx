@@ -26,6 +26,8 @@ const clientBgColors: Record<TrackerClient, string> = {
   'memphis': 'bg-amber-500',
   'tri-cities': 'bg-rose-500',
   'birmingham': 'bg-cyan-500',
+  'outside': 'bg-green-600',
+  'personal': 'bg-pink-500',
   'other': 'bg-slate-500',
 };
 
@@ -40,6 +42,8 @@ export const ClientTrackerWeeklyStats = ({ weekStart, getDayData }: ClientTracke
       'memphis': 0,
       'tri-cities': 0,
       'birmingham': 0,
+      'outside': 0,
+      'personal': 0,
       'other': 0,
     };
 

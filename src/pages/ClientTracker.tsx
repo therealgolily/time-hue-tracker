@@ -3,6 +3,7 @@ import { format, startOfWeek, addWeeks, subWeeks, formatDistanceToNow } from 'da
 import { LiveClock } from '@/components/LiveClock';
 import { ClientTrackerWeekNavigator } from '@/components/ClientTrackerWeekNavigator';
 import { MilestoneButton } from '@/components/MilestoneButton';
+import { ClockInOutButton } from '@/components/ClockInOutButton';
 import { ClientTrackerTimelineView } from '@/components/ClientTrackerTimelineView';
 import { ClientTrackerAddEntryForm } from '@/components/ClientTrackerAddEntryForm';
 import { TimePickerDialog } from '@/components/TimePickerDialog';
@@ -33,6 +34,10 @@ const ClientTracker = () => {
     setSleepTime,
     clearWakeTime,
     clearSleepTime,
+    setClockInTime,
+    setClockOutTime,
+    clearClockInTime,
+    clearClockOutTime,
     addEntry,
     deleteEntry,
     updateEntry,
@@ -53,13 +58,13 @@ const ClientTracker = () => {
     }
   };
 
-  const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | null>(null);
+  const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | 'clock-in' | 'clock-out' | null>(null);
   const [liveModeActive, setLiveModeActive] = useState(false);
   const [liveSegments, setLiveSegments] = useState<ClientLiveSegment[] | null>(null);
 
   const dayData = getDayData(selectedDate);
 
-  const handleSetMilestone = (type: 'wake' | 'sleep') => {
+  const handleSetMilestone = (type: 'wake' | 'sleep' | 'clock-in' | 'clock-out') => {
     setTimePickerType(type);
   };
 
@@ -68,6 +73,10 @@ const ClientTracker = () => {
       setWakeTime(selectedDate, time);
     } else if (timePickerType === 'sleep') {
       setSleepTime(selectedDate, time);
+    } else if (timePickerType === 'clock-in') {
+      setClockInTime(selectedDate, time);
+    } else if (timePickerType === 'clock-out') {
+      setClockOutTime(selectedDate, time);
     }
   };
 
@@ -219,6 +228,22 @@ const ClientTracker = () => {
               />
             </div>
 
+            {/* Clock In/Out */}
+            <div className="grid grid-cols-2 gap-4">
+              <ClockInOutButton
+                type="clock-in"
+                time={dayData.clockInTime}
+                onSetTime={() => handleSetMilestone('clock-in')}
+                onClearTime={() => clearClockInTime(selectedDate)}
+              />
+              <ClockInOutButton
+                type="clock-out"
+                time={dayData.clockOutTime}
+                onSetTime={() => handleSetMilestone('clock-out')}
+                onClearTime={() => clearClockOutTime(selectedDate)}
+              />
+            </div>
+
             <ClientTrackerDaySummary dayData={dayData} />
 
             <ClientTrackerAddEntryForm
@@ -260,11 +285,16 @@ const ClientTracker = () => {
       <TimePickerDialog
         open={timePickerType !== null}
         onOpenChange={(open) => !open && setTimePickerType(null)}
-        title={timePickerType === 'wake' ? 'Set wake time' : 'Set bedtime'}
+        title={
+          timePickerType === 'wake' ? 'Set wake time' : 
+          timePickerType === 'sleep' ? 'Set bedtime' :
+          timePickerType === 'clock-in' ? 'Set clock in time' :
+          'Set clock out time'
+        }
         selectedDate={selectedDate}
         onConfirm={handleConfirmTime}
         wakeTime={dayData.wakeTime}
-        isSleepTime={timePickerType === 'sleep'}
+        isSleepTime={timePickerType === 'sleep' || timePickerType === 'clock-out'}
       />
     </div>
   );

@@ -44,6 +44,8 @@ export const useCloudClientTracker = (userId: string | null) => {
           date: row.date,
           wakeTime: row.wake_time ? new Date(row.wake_time) : null,
           sleepTime: row.sleep_time ? new Date(row.sleep_time) : null,
+          clockInTime: (row as any).clock_in_time ? new Date((row as any).clock_in_time) : null,
+          clockOutTime: (row as any).clock_out_time ? new Date((row as any).clock_out_time) : null,
           entries: [],
         };
       });
@@ -56,6 +58,8 @@ export const useCloudClientTracker = (userId: string | null) => {
             date: dateKey,
             wakeTime: null,
             sleepTime: null,
+            clockInTime: null,
+            clockOutTime: null,
             entries: [],
           };
         }
@@ -98,6 +102,8 @@ export const useCloudClientTracker = (userId: string | null) => {
           date: key,
           wakeTime: null,
           sleepTime: null,
+          clockInTime: null,
+          clockOutTime: null,
           entries: [],
         }
       );
@@ -230,6 +236,136 @@ export const useCloudClientTracker = (userId: string | null) => {
         setLastSaved(new Date());
       } catch (error) {
         console.error('Error clearing sleep time:', error);
+      }
+    },
+    [userId, getDayData]
+  );
+
+  const setClockInTime = useCallback(
+    async (date: Date, time: Date) => {
+      if (!userId) return;
+
+      const dateKey = getDateKey(date);
+
+      try {
+        const { error } = await supabase
+          .from('client_day_data')
+          .upsert(
+            {
+              user_id: userId,
+              date: dateKey,
+              clock_in_time: time.toISOString(),
+            },
+            { onConflict: 'user_id,date' }
+          );
+
+        if (error) throw error;
+
+        setData((prev) => ({
+          ...prev,
+          [dateKey]: {
+            ...getDayData(date),
+            clockInTime: time,
+          },
+        }));
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error('Error setting clock in time:', error);
+      }
+    },
+    [userId, getDayData]
+  );
+
+  const setClockOutTime = useCallback(
+    async (date: Date, time: Date) => {
+      if (!userId) return;
+
+      const dateKey = getDateKey(date);
+
+      try {
+        const { error } = await supabase
+          .from('client_day_data')
+          .upsert(
+            {
+              user_id: userId,
+              date: dateKey,
+              clock_out_time: time.toISOString(),
+            },
+            { onConflict: 'user_id,date' }
+          );
+
+        if (error) throw error;
+
+        setData((prev) => ({
+          ...prev,
+          [dateKey]: {
+            ...getDayData(date),
+            clockOutTime: time,
+          },
+        }));
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error('Error setting clock out time:', error);
+      }
+    },
+    [userId, getDayData]
+  );
+
+  const clearClockInTime = useCallback(
+    async (date: Date) => {
+      if (!userId) return;
+
+      const dateKey = getDateKey(date);
+
+      try {
+        const { error } = await supabase
+          .from('client_day_data')
+          .update({ clock_in_time: null })
+          .eq('user_id', userId)
+          .eq('date', dateKey);
+
+        if (error) throw error;
+
+        setData((prev) => ({
+          ...prev,
+          [dateKey]: {
+            ...getDayData(date),
+            clockInTime: null,
+          },
+        }));
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error('Error clearing clock in time:', error);
+      }
+    },
+    [userId, getDayData]
+  );
+
+  const clearClockOutTime = useCallback(
+    async (date: Date) => {
+      if (!userId) return;
+
+      const dateKey = getDateKey(date);
+
+      try {
+        const { error } = await supabase
+          .from('client_day_data')
+          .update({ clock_out_time: null })
+          .eq('user_id', userId)
+          .eq('date', dateKey);
+
+        if (error) throw error;
+
+        setData((prev) => ({
+          ...prev,
+          [dateKey]: {
+            ...getDayData(date),
+            clockOutTime: null,
+          },
+        }));
+        setLastSaved(new Date());
+      } catch (error) {
+        console.error('Error clearing clock out time:', error);
       }
     },
     [userId, getDayData]
@@ -389,6 +525,10 @@ export const useCloudClientTracker = (userId: string | null) => {
     setSleepTime,
     clearWakeTime,
     clearSleepTime,
+    setClockInTime,
+    setClockOutTime,
+    clearClockInTime,
+    clearClockOutTime,
     addEntry,
     deleteEntry,
     updateEntry,

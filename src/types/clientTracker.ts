@@ -5,6 +5,8 @@ export type TrackerClient =
   | 'memphis'
   | 'tri-cities'
   | 'birmingham'
+  | 'outside'
+  | 'personal'
   | 'other';
 
 export const TRACKER_CLIENT_LABELS: Record<TrackerClient, string> = {
@@ -14,6 +16,8 @@ export const TRACKER_CLIENT_LABELS: Record<TrackerClient, string> = {
   'memphis': 'Memphis',
   'tri-cities': 'Tri-Cities',
   'birmingham': 'Birmingham',
+  'outside': 'Outside',
+  'personal': 'Personal',
   'other': 'Other',
 };
 
@@ -30,6 +34,8 @@ export interface ClientDayData {
   date: string; // YYYY-MM-DD format
   wakeTime: Date | null;
   sleepTime: Date | null;
+  clockInTime: Date | null;
+  clockOutTime: Date | null;
   entries: ClientTimeEntry[];
 }
 

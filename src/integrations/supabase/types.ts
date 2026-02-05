@@ -79,6 +79,8 @@ export type Database = {
       }
       client_day_data: {
         Row: {
+          clock_in_time: string | null
+          clock_out_time: string | null
           created_at: string
           date: string
           id: string
@@ -88,6 +90,8 @@ export type Database = {
           wake_time: string | null
         }
         Insert: {
+          clock_in_time?: string | null
+          clock_out_time?: string | null
           created_at?: string
           date: string
           id?: string
@@ -97,6 +101,8 @@ export type Database = {
           wake_time?: string | null
         }
         Update: {
+          clock_in_time?: string | null
+          clock_out_time?: string | null
           created_at?: string
           date?: string
           id?: string
