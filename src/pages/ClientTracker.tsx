@@ -16,7 +16,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { useCloudClientTracker } from '@/hooks/useCloudClientTracker';
 import { useTheme } from '@/hooks/useTheme';
-import { Check, LogOut, Loader2, Zap, ArrowLeft } from 'lucide-react';
+import { Check, LogOut, Loader2, Zap, ArrowLeft, ChevronDown } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { ClientLiveSegment, TrackerClient, TRACKER_CLIENT_LABELS } from '@/types/clientTracker';
 import { Link } from 'react-router-dom';
@@ -61,6 +62,7 @@ const ClientTracker = () => {
   const [timePickerType, setTimePickerType] = useState<'wake' | 'sleep' | 'clock-in' | 'clock-out' | null>(null);
   const [liveModeActive, setLiveModeActive] = useState(false);
   const [liveSegments, setLiveSegments] = useState<ClientLiveSegment[] | null>(null);
+  const [timelineOpen, setTimelineOpen] = useState(true);
 
   const dayData = getDayData(selectedDate);
 
@@ -254,16 +256,23 @@ const ClientTracker = () => {
               getDayData={getDayData}
             />
 
-            <div className="border-2 border-foreground p-6">
-              <h3 className="text-sm font-bold uppercase tracking-widest mb-6">Timeline</h3>
-              <ClientTrackerTimelineView
-                dayData={dayData}
-                onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
-                onUpdateEntry={(entryId, updates) => updateEntry(selectedDate, entryId, updates)}
-                onDeleteWakeTime={() => clearWakeTime(selectedDate)}
-                onDeleteSleepTime={() => clearSleepTime(selectedDate)}
-              />
-            </div>
+            <Collapsible open={timelineOpen} onOpenChange={setTimelineOpen}>
+              <div className="border-2 border-foreground">
+                <CollapsibleTrigger className="w-full p-6 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                  <h3 className="text-sm font-bold uppercase tracking-widest">Timeline</h3>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${timelineOpen ? 'rotate-180' : ''}`} />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-6 pb-6">
+                  <ClientTrackerTimelineView
+                    dayData={dayData}
+                    onDeleteEntry={(entryId) => deleteEntry(selectedDate, entryId)}
+                    onUpdateEntry={(entryId, updates) => updateEntry(selectedDate, entryId, updates)}
+                    onDeleteWakeTime={() => clearWakeTime(selectedDate)}
+                    onDeleteSleepTime={() => clearSleepTime(selectedDate)}
+                  />
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
 
             <ClientTrackerWeeklyStats weekStart={weekStart} getDayData={getDayData} />
 
