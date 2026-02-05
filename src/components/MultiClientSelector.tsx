@@ -1,10 +1,11 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { TrackerClient, TRACKER_CLIENT_LABELS } from '@/types/clientTracker';
-import { Building2 } from 'lucide-react';
+import { Building2, Check } from 'lucide-react';
 
-interface ClientSelectorProps {
-  value: TrackerClient;
-  onChange: (client: TrackerClient) => void;
+interface MultiClientSelectorProps {
+  value: TrackerClient[];
+  onChange: (clients: TrackerClient[]) => void;
   size?: 'sm' | 'md';
 }
 
@@ -33,18 +34,26 @@ const clientColors: Record<TrackerClient, string> = {
   'other': 'bg-slate-500',
 };
 
-export const ClientSelector = ({ value, onChange, size = 'md' }: ClientSelectorProps) => {
+export const MultiClientSelector = ({ value, onChange, size = 'md' }: MultiClientSelectorProps) => {
+  const toggleClient = (client: TrackerClient) => {
+    if (value.includes(client)) {
+      onChange(value.filter(c => c !== client));
+    } else {
+      onChange([...value, client]);
+    }
+  };
+
   return (
     <div className="flex flex-wrap gap-2">
       {clients.map((client) => {
-        const isSelected = value === client;
+        const isSelected = value.includes(client);
         
         return (
           <button
             key={client}
-            onClick={() => onChange(client)}
+            onClick={() => toggleClient(client)}
             className={cn(
-              'flex items-center gap-2 rounded-lg transition-all duration-200',
+              'flex items-center gap-2 rounded-lg transition-all duration-200 relative',
               size === 'sm' ? 'px-3 py-2' : 'px-4 py-3',
               isSelected
                 ? `${clientColors[client]} text-white`
@@ -55,6 +64,9 @@ export const ClientSelector = ({ value, onChange, size = 'md' }: ClientSelectorP
             <span className={cn('font-medium', size === 'sm' ? 'text-sm' : 'text-base')}>
               {TRACKER_CLIENT_LABELS[client]}
             </span>
+            {isSelected && (
+              <Check className={cn('absolute -top-1 -right-1 p-0.5 rounded-full bg-background text-foreground', size === 'sm' ? 'w-4 h-4' : 'w-5 h-5')} />
+            )}
           </button>
         );
       })}
