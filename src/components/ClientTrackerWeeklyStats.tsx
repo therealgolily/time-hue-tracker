@@ -212,14 +212,14 @@ export const ClientTrackerWeeklyStats = ({ weekStart, getDayData, open = true, o
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
-                        <AlertCircle className="w-3 h-3 text-destructive" />
-                        <span className="text-destructive">Unlogged Work Time</span>
+                        <AlertCircle className="w-3 h-3" />
+                        <span>Unlogged Work Time</span>
                       </div>
-                      <span className="font-mono text-destructive">{formatDuration(stats.totalUnloggedWorkMinutes)}</span>
+                      <span className="font-mono">{formatDuration(stats.totalUnloggedWorkMinutes)}</span>
                     </div>
                     <div className="h-2 bg-secondary rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all bg-destructive"
+                        className="h-full rounded-full transition-all bg-primary"
                         style={{ width: `${stats.totalWorkingMinutes > 0 ? (stats.totalUnloggedWorkMinutes / stats.totalWorkingMinutes) * 100 : 0}%` }}
                       />
                     </div>
