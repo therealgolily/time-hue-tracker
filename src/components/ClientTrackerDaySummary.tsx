@@ -66,10 +66,29 @@ export const ClientTrackerDaySummary = ({ dayData }: ClientTrackerDaySummaryProp
 
   // Calculate working hours (clock in to clock out)
   let workingMinutes = 0;
+  let unloggedWorkMinutes = 0;
+  
   if (dayData.clockInTime && dayData.clockOutTime) {
     const clockIn = new Date(dayData.clockInTime).getTime();
     const clockOut = new Date(dayData.clockOutTime).getTime();
     workingMinutes = (clockOut - clockIn) / 1000 / 60;
+    
+    // Calculate time logged during work hours
+    let loggedDuringWork = 0;
+    entries.forEach(entry => {
+      const entryStart = new Date(entry.startTime).getTime();
+      const entryEnd = new Date(entry.endTime).getTime();
+      
+      // Find overlap between entry and work period
+      const overlapStart = Math.max(entryStart, clockIn);
+      const overlapEnd = Math.min(entryEnd, clockOut);
+      
+      if (overlapEnd > overlapStart) {
+        loggedDuringWork += (overlapEnd - overlapStart) / 1000 / 60;
+      }
+    });
+    
+    unloggedWorkMinutes = Math.max(0, workingMinutes - loggedDuringWork);
   }
 
   const hasData = wakeTime || sleepTime || entries.length > 0 || dayData.clockInTime || dayData.clockOutTime;
@@ -124,6 +143,22 @@ export const ClientTrackerDaySummary = ({ dayData }: ClientTrackerDaySummaryProp
             <span className="text-muted-foreground">Working hours (clocked)</span>
             <span className="font-mono font-medium text-foreground">
               {formatDuration(Math.round(workingMinutes))}
+            </span>
+          </div>
+          {unloggedWorkMinutes > 0 && (
+            <div className="flex justify-between text-sm mt-1">
+              <span className="text-destructive">Unlogged work time</span>
+              <span className="font-mono font-medium text-destructive">
+                {formatDuration(Math.round(unloggedWorkMinutes))}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between text-sm mt-1">
+            <span className="text-muted-foreground">Work time logged</span>
+            <span className="font-mono font-medium text-foreground">
+              {workingMinutes > 0 
+                ? `${Math.round(((workingMinutes - unloggedWorkMinutes) / workingMinutes) * 100)}%`
+                : '0%'}
             </span>
           </div>
         </div>
