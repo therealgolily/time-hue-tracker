@@ -64,7 +64,15 @@ export const ClientTrackerDaySummary = ({ dayData }: ClientTrackerDaySummaryProp
     unaccountedMinutes = Math.max(0, awakeMinutes - accountedMinutes);
   }
 
-  const hasData = wakeTime || sleepTime || entries.length > 0;
+  // Calculate working hours (clock in to clock out)
+  let workingMinutes = 0;
+  if (dayData.clockInTime && dayData.clockOutTime) {
+    const clockIn = new Date(dayData.clockInTime).getTime();
+    const clockOut = new Date(dayData.clockOutTime).getTime();
+    workingMinutes = (clockOut - clockIn) / 1000 / 60;
+  }
+
+  const hasData = wakeTime || sleepTime || entries.length > 0 || dayData.clockInTime || dayData.clockOutTime;
 
   if (!hasData) {
     return null;
@@ -110,8 +118,19 @@ export const ClientTrackerDaySummary = ({ dayData }: ClientTrackerDaySummaryProp
         <p className="text-sm text-muted-foreground">No time tracked yet.</p>
       )}
 
-      {wakeTime && sleepTime && (
+      {workingMinutes > 0 && (
         <div className="pt-2 border-t border-border">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Working hours (clocked)</span>
+            <span className="font-mono font-medium text-foreground">
+              {formatDuration(Math.round(workingMinutes))}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {wakeTime && sleepTime && (
+        <div className={workingMinutes > 0 ? "pt-2" : "pt-2 border-t border-border"}>
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total awake time</span>
             <span className="font-mono font-medium text-foreground">
