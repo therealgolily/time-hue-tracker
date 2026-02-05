@@ -245,6 +245,12 @@ const ClientTracker = () => {
               />
             </div>
 
+            <ClientTrackerWeeklyStats 
+              weekStart={weekStart} 
+              getDayData={getDayData} 
+              open={summaryOpen}
+              onOpenChange={setSummaryOpen}
+            />
 
             <ClientTrackerWeekNavigator
               selectedDate={selectedDate}
@@ -272,13 +278,6 @@ const ClientTracker = () => {
                 </CollapsibleContent>
               </div>
             </Collapsible>
-
-            <ClientTrackerWeeklyStats 
-              weekStart={weekStart} 
-              getDayData={getDayData} 
-              open={summaryOpen}
-              onOpenChange={setSummaryOpen}
-            />
 
           </>
         )}
