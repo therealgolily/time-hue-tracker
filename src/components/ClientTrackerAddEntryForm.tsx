@@ -19,9 +19,10 @@ interface ClientTrackerAddEntryFormProps {
     trackerClient: TrackerClient;
     customClient?: string;
   }) => void;
+  className?: string;
 }
 
-export const ClientTrackerAddEntryForm = ({ selectedDate, entries = [], onAddEntry }: ClientTrackerAddEntryFormProps) => {
+export const ClientTrackerAddEntryForm = ({ selectedDate, entries = [], onAddEntry, className }: ClientTrackerAddEntryFormProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -108,7 +109,10 @@ export const ClientTrackerAddEntryForm = ({ selectedDate, entries = [], onAddEnt
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="w-full p-4 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-all duration-200 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground"
+        className={cn(
+          "w-full p-4 rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-all duration-200 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground",
+          className
+        )}
       >
         <Plus className="w-5 h-5" />
         <span className="font-medium">Add time entry</span>

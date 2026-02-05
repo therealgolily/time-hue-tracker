@@ -230,20 +230,23 @@ const ClientTracker = () => {
               />
             </div>
 
-            {/* Live Mode Button - Swiss style */}
-            <Button
-              onClick={() => setLiveModeActive(true)}
-              className="w-full h-14 text-sm font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:bg-foreground hover:text-background transition-colors"
-            >
-              <Zap className="w-4 h-4 mr-3" />
-              Start Live Mode
-            </Button>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-4">
+              <Button
+                onClick={() => setLiveModeActive(true)}
+                className="h-14 text-sm font-bold uppercase tracking-widest bg-primary text-primary-foreground hover:bg-foreground hover:text-background transition-colors"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Live Mode
+              </Button>
 
-            <ClientTrackerAddEntryForm
-              selectedDate={selectedDate}
-              entries={dayData.entries}
-              onAddEntry={(entry) => addEntry(selectedDate, entry)}
-            />
+              <ClientTrackerAddEntryForm
+                selectedDate={selectedDate}
+                entries={dayData.entries}
+                onAddEntry={(entry) => addEntry(selectedDate, entry)}
+                className="h-14"
+              />
+            </div>
 
             <ClientTrackerWeeklyStats 
               weekStart={weekStart} 
