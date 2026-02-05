@@ -7,7 +7,6 @@ import { ClockInOutButton } from '@/components/ClockInOutButton';
 import { ClientTrackerTimelineView } from '@/components/ClientTrackerTimelineView';
 import { ClientTrackerAddEntryForm } from '@/components/ClientTrackerAddEntryForm';
 import { TimePickerDialog } from '@/components/TimePickerDialog';
-import { ClientTrackerDaySummary } from '@/components/ClientTrackerDaySummary';
 import { ClientTrackerWeeklyStats } from '@/components/ClientTrackerWeeklyStats';
 import { AuthForm } from '@/components/AuthForm';
 import { ClientTrackerLiveMode } from '@/components/ClientTrackerLiveMode';
@@ -246,7 +245,6 @@ const ClientTracker = () => {
               />
             </div>
 
-            <ClientTrackerDaySummary dayData={dayData} />
 
             <ClientTrackerWeekNavigator
               selectedDate={selectedDate}
