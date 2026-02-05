@@ -14,13 +14,15 @@ export const ClockInOutButton = ({ type, time, onSetTime, onSetNow, onClearTime 
   const isClockIn = type === 'clock-in';
   const Icon = isClockIn ? LogIn : LogOut;
   const label = isClockIn ? 'Clock In' : 'Clock Out';
-  const bgColor = isClockIn ? 'bg-green-600' : 'bg-orange-600';
+  // Swiss design: Primary (red) for Clock In, Foreground (black) for Clock Out
+  const bgColor = isClockIn ? 'bg-primary' : 'bg-foreground';
+  const textColor = isClockIn ? 'text-primary-foreground' : 'text-background';
 
   if (time) {
     return (
       <div className={cn(
         'flex items-center justify-between p-3 border-2 border-foreground',
-        bgColor, 'text-white'
+        bgColor, textColor
       )}>
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" />
