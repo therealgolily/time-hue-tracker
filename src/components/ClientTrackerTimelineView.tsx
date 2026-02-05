@@ -13,29 +13,29 @@ interface ClientTrackerTimelineViewProps {
   onDeleteSleepTime: () => void;
 }
 
-// Color mapping for each client
+// All clients use primary (red) color for Swiss design consistency
 const clientColors: Record<TrackerClient, string> = {
-  'rosser-results': 'bg-violet-500',
-  'carolinas': 'bg-blue-500',
-  'richmond': 'bg-emerald-500',
-  'memphis': 'bg-amber-500',
-  'tri-cities': 'bg-rose-500',
-  'birmingham': 'bg-cyan-500',
-  'outside': 'bg-green-600',
-  'personal': 'bg-pink-500',
-  'other': 'bg-slate-500',
+  'rosser-results': 'bg-primary',
+  'carolinas': 'bg-primary',
+  'richmond': 'bg-primary',
+  'memphis': 'bg-primary',
+  'tri-cities': 'bg-primary',
+  'birmingham': 'bg-primary',
+  'outside': 'bg-primary',
+  'personal': 'bg-primary',
+  'other': 'bg-primary',
 };
 
 const clientBgColors: Record<TrackerClient, string> = {
-  'rosser-results': 'bg-violet-500/20 text-violet-500',
-  'carolinas': 'bg-blue-500/20 text-blue-500',
-  'richmond': 'bg-emerald-500/20 text-emerald-500',
-  'memphis': 'bg-amber-500/20 text-amber-500',
-  'tri-cities': 'bg-rose-500/20 text-rose-500',
-  'birmingham': 'bg-cyan-500/20 text-cyan-500',
-  'outside': 'bg-green-600/20 text-green-600',
-  'personal': 'bg-pink-500/20 text-pink-500',
-  'other': 'bg-slate-500/20 text-slate-500',
+  'rosser-results': 'bg-primary/20 text-primary',
+  'carolinas': 'bg-primary/20 text-primary',
+  'richmond': 'bg-primary/20 text-primary',
+  'memphis': 'bg-primary/20 text-primary',
+  'tri-cities': 'bg-primary/20 text-primary',
+  'birmingham': 'bg-primary/20 text-primary',
+  'outside': 'bg-primary/20 text-primary',
+  'personal': 'bg-primary/20 text-primary',
+  'other': 'bg-primary/20 text-primary',
 };
 
 export const ClientTrackerTimelineView = ({ dayData, onDeleteEntry, onUpdateEntry, onDeleteWakeTime, onDeleteSleepTime }: ClientTrackerTimelineViewProps) => {

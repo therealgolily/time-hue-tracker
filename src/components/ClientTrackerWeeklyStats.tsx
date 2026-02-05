@@ -23,17 +23,17 @@ const formatDuration = (minutes: number): string => {
   return `${hours}h ${mins}m`;
 };
 
-// Color mapping for each client
+// All clients use primary (red) color for Swiss design consistency
 const clientBgColors: Record<TrackerClient, string> = {
-  'rosser-results': 'bg-violet-500',
-  'carolinas': 'bg-blue-500',
-  'richmond': 'bg-emerald-500',
-  'memphis': 'bg-amber-500',
-  'tri-cities': 'bg-rose-500',
-  'birmingham': 'bg-cyan-500',
-  'outside': 'bg-green-600',
-  'personal': 'bg-pink-500',
-  'other': 'bg-slate-500',
+  'rosser-results': 'bg-primary',
+  'carolinas': 'bg-primary',
+  'richmond': 'bg-primary',
+  'memphis': 'bg-primary',
+  'tri-cities': 'bg-primary',
+  'birmingham': 'bg-primary',
+  'outside': 'bg-primary',
+  'personal': 'bg-primary',
+  'other': 'bg-primary',
 };
 
 const getDateRange = (period: TimePeriod, weekStart: Date): { start: Date; end: Date; label: string } => {
