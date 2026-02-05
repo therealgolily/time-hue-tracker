@@ -1,14 +1,16 @@
 import { useState, useMemo } from 'react';
-import { format, startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns';
+import { format, startOfWeek, addDays, subDays, startOfMonth, startOfYear } from 'date-fns';
 import { ClientDayData, TrackerClient, TRACKER_CLIENT_LABELS } from '@/types/clientTracker';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Building2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Building2, AlertCircle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ClientTrackerWeeklyStatsProps {
   weekStart: Date;
   getDayData: (date: Date) => ClientDayData;
 }
+
+type TimePeriod = 'week' | 'last7' | 'last30' | 'mtd' | 'ytd';
 
 const formatDuration = (minutes: number): string => {
   const hours = Math.floor(minutes / 60);
@@ -31,10 +33,49 @@ const clientBgColors: Record<TrackerClient, string> = {
   'other': 'bg-slate-500',
 };
 
-export const ClientTrackerWeeklyStats = ({ weekStart, getDayData }: ClientTrackerWeeklyStatsProps) => {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+const getDateRange = (period: TimePeriod, weekStart: Date): { start: Date; end: Date; label: string } => {
+  const today = new Date();
+  
+  switch (period) {
+    case 'week':
+      return {
+        start: weekStart,
+        end: addDays(weekStart, 6),
+        label: `${format(weekStart, 'MMM d')} - ${format(addDays(weekStart, 6), 'MMM d')}`
+      };
+    case 'last7':
+      return {
+        start: subDays(today, 6),
+        end: today,
+        label: 'Last 7 Days'
+      };
+    case 'last30':
+      return {
+        start: subDays(today, 29),
+        end: today,
+        label: 'Last 30 Days'
+      };
+    case 'mtd':
+      return {
+        start: startOfMonth(today),
+        end: today,
+        label: format(today, 'MMMM yyyy')
+      };
+    case 'ytd':
+      return {
+        start: startOfYear(today),
+        end: today,
+        label: `YTD ${format(today, 'yyyy')}`
+      };
+  }
+};
 
-  const weeklyStats = useMemo(() => {
+export const ClientTrackerWeeklyStats = ({ weekStart, getDayData }: ClientTrackerWeeklyStatsProps) => {
+  const [period, setPeriod] = useState<TimePeriod>('week');
+  
+  const { start, end, label } = getDateRange(period, weekStart);
+
+  const stats = useMemo(() => {
     const clientMinutes: Record<TrackerClient, number> = {
       'rosser-results': 0,
       'carolinas': 0,
@@ -46,41 +87,94 @@ export const ClientTrackerWeeklyStats = ({ weekStart, getDayData }: ClientTracke
       'personal': 0,
       'other': 0,
     };
+    
+    let totalUnloggedWorkMinutes = 0;
+    let totalWorkingMinutes = 0;
 
-    days.forEach(day => {
+    // Iterate through all days in the range
+    const dayCount = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    for (let i = 0; i < dayCount; i++) {
+      const day = addDays(start, i);
       const dayData = getDayData(day);
+      
+      // Calculate logged time per client
       dayData.entries.forEach(entry => {
-        const start = new Date(entry.startTime).getTime();
-        const end = new Date(entry.endTime).getTime();
-        const mins = (end - start) / 1000 / 60;
+        const entryStart = new Date(entry.startTime).getTime();
+        const entryEnd = new Date(entry.endTime).getTime();
+        const mins = (entryEnd - entryStart) / 1000 / 60;
         clientMinutes[entry.trackerClient] += mins;
       });
-    });
+      
+      // Calculate unlogged work time
+      if (dayData.clockInTime && dayData.clockOutTime) {
+        const clockIn = new Date(dayData.clockInTime).getTime();
+        const clockOut = new Date(dayData.clockOutTime).getTime();
+        const workMins = (clockOut - clockIn) / 1000 / 60;
+        totalWorkingMinutes += workMins;
+        
+        // Calculate logged during work hours
+        let loggedDuringWork = 0;
+        dayData.entries.forEach(entry => {
+          const entryStart = new Date(entry.startTime).getTime();
+          const entryEnd = new Date(entry.endTime).getTime();
+          const overlapStart = Math.max(entryStart, clockIn);
+          const overlapEnd = Math.min(entryEnd, clockOut);
+          if (overlapEnd > overlapStart) {
+            loggedDuringWork += (overlapEnd - overlapStart) / 1000 / 60;
+          }
+        });
+        
+        totalUnloggedWorkMinutes += Math.max(0, workMins - loggedDuringWork);
+      }
+    }
 
     const totalMinutes = Object.values(clientMinutes).reduce((a, b) => a + b, 0);
 
-    return { clientMinutes, totalMinutes };
-  }, [days, getDayData]);
+    return { clientMinutes, totalMinutes, totalUnloggedWorkMinutes, totalWorkingMinutes };
+  }, [start, end, getDayData]);
 
-  const activeClients = (Object.keys(weeklyStats.clientMinutes) as TrackerClient[]).filter(
-    client => weeklyStats.clientMinutes[client] > 0
+  const activeClients = (Object.keys(stats.clientMinutes) as TrackerClient[]).filter(
+    client => stats.clientMinutes[client] > 0
   );
+
+  const periodLabels: Record<TimePeriod, string> = {
+    week: 'Week',
+    last7: '7 Days',
+    last30: '30 Days',
+    mtd: 'MTD',
+    ytd: 'YTD',
+  };
 
   return (
     <div className="glass-card p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-foreground">Weekly Summary</h3>
-        <span className="text-sm text-muted-foreground">
-          {format(weekStart, 'MMM d')} - {format(addDays(weekStart, 6), 'MMM d')}
-        </span>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">Summary</h3>
+          <span className="text-sm text-muted-foreground">{label}</span>
+        </div>
+        
+        <Tabs value={period} onValueChange={(v) => setPeriod(v as TimePeriod)} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 h-8">
+            {(Object.keys(periodLabels) as TimePeriod[]).map((p) => (
+              <TabsTrigger 
+                key={p} 
+                value={p} 
+                className="text-xs px-2 py-1"
+              >
+                {periodLabels[p]}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
       </div>
 
-      {activeClients.length > 0 ? (
+      {activeClients.length > 0 || stats.totalUnloggedWorkMinutes > 0 ? (
         <>
           <div className="space-y-2">
             {activeClients.map(client => {
-              const mins = weeklyStats.clientMinutes[client];
-              const percentage = weeklyStats.totalMinutes > 0 ? (mins / weeklyStats.totalMinutes) * 100 : 0;
+              const mins = stats.clientMinutes[client];
+              const percentage = stats.totalMinutes > 0 ? (mins / stats.totalMinutes) * 100 : 0;
               
               return (
                 <div key={client} className="space-y-1">
@@ -100,19 +194,45 @@ export const ClientTrackerWeeklyStats = ({ weekStart, getDayData }: ClientTracke
                 </div>
               );
             })}
+            
+            {stats.totalUnloggedWorkMinutes > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-3 h-3 text-destructive" />
+                    <span className="text-destructive">Unlogged Work Time</span>
+                  </div>
+                  <span className="font-mono text-destructive">{formatDuration(stats.totalUnloggedWorkMinutes)}</span>
+                </div>
+                <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all bg-destructive"
+                    style={{ width: `${stats.totalWorkingMinutes > 0 ? (stats.totalUnloggedWorkMinutes / stats.totalWorkingMinutes) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="pt-2 border-t border-border">
+          <div className="pt-2 border-t border-border space-y-1">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Total tracked</span>
               <span className="font-mono font-medium text-foreground">
-                {formatDuration(weeklyStats.totalMinutes)}
+                {formatDuration(stats.totalMinutes)}
               </span>
             </div>
+            {stats.totalWorkingMinutes > 0 && (
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total clocked work</span>
+                <span className="font-mono font-medium text-foreground">
+                  {formatDuration(stats.totalWorkingMinutes)}
+                </span>
+              </div>
+            )}
           </div>
         </>
       ) : (
-        <p className="text-sm text-muted-foreground text-center py-4">No time tracked this week.</p>
+        <p className="text-sm text-muted-foreground text-center py-4">No time tracked for this period.</p>
       )}
     </div>
   );
