@@ -229,33 +229,67 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
     } else {
       const realContractor = contractors.find(c => c.id === id);
       if (realContractor) {
+        // Calculate effective monthly pay for the scenario modification
+        let effectiveMonthlyPay = Number(realContractor.monthly_pay);
+        if (realContractor.pay_type === 'hourly') {
+          effectiveMonthlyPay = Number(realContractor.hours_per_week) * 4.33 * Number(realContractor.hourly_rate);
+        }
         onChange({
           ...mergedConfig,
           scenarioContractors: [
             ...mergedConfig.scenarioContractors,
-            { id, name: realContractor.name, monthlyPay: updates.monthlyPay ?? Number(realContractor.monthly_pay) },
+            { id, name: realContractor.name, monthlyPay: updates.monthlyPay ?? effectiveMonthlyPay },
           ],
         });
       }
     }
   };
 
-  const getContractorPay = (contractorId: string) => {
-    const scenarioContractor = mergedConfig.scenarioContractors.find(c => c.id === contractorId);
+  // Get effective monthly pay for a contractor (handles both monthly and hourly)
+  const getContractorMonthlyPay = (contractor: typeof contractors[0]) => {
+    // Check if there's a scenario override
+    const scenarioContractor = mergedConfig.scenarioContractors.find(c => c.id === contractor.id);
     if (scenarioContractor) return scenarioContractor.monthlyPay;
-    const realContractor = contractors.find(c => c.id === contractorId);
-    return realContractor ? Number(realContractor.monthly_pay) : 0;
+    
+    // Calculate from original data
+    if (contractor.pay_type === 'hourly') {
+      return Number(contractor.hours_per_week) * 4.33 * Number(contractor.hourly_rate);
+    }
+    return Number(contractor.monthly_pay);
   };
 
   // === Virtual Contractor modifications ===
-  const addVirtualContractor = () => {
-    onChange({
-      ...mergedConfig,
-      additionalContractors: [...mergedConfig.additionalContractors, { name: 'New Contractor', pay: 0 }],
-    });
+  const addVirtualContractor = (payType: 'monthly' | 'hourly' = 'monthly') => {
+    if (payType === 'hourly') {
+      onChange({
+        ...mergedConfig,
+        additionalContractors: [...mergedConfig.additionalContractors, { 
+          name: 'New Contractor', 
+          pay: 0,
+          payType: 'hourly',
+          hourlyRate: 0,
+          hoursPerWeek: 0,
+        }],
+      });
+    } else {
+      onChange({
+        ...mergedConfig,
+        additionalContractors: [...mergedConfig.additionalContractors, { 
+          name: 'New Contractor', 
+          pay: 0,
+          payType: 'monthly',
+        }],
+      });
+    }
   };
 
-  const updateVirtualContractor = (index: number, updates: Partial<{ name: string; pay: number }>) => {
+  const updateVirtualContractor = (index: number, updates: Partial<{ 
+    name: string; 
+    pay: number;
+    payType: 'monthly' | 'hourly';
+    hourlyRate: number;
+    hoursPerWeek: number;
+  }>) => {
     onChange({
       ...mergedConfig,
       additionalContractors: mergedConfig.additionalContractors.map((c, i) =>
@@ -269,6 +303,14 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
       ...mergedConfig,
       additionalContractors: mergedConfig.additionalContractors.filter((_, i) => i !== index),
     });
+  };
+
+  // Calculate estimated monthly for virtual hourly contractor
+  const getVirtualContractorMonthlyPay = (contractor: typeof mergedConfig.additionalContractors[0]) => {
+    if (contractor.payType === 'hourly' && contractor.hourlyRate && contractor.hoursPerWeek) {
+      return Math.round(contractor.hoursPerWeek * 4.33 * contractor.hourlyRate);
+    }
+    return contractor.pay || 0;
   };
 
   // === Real Employee modifications ===
@@ -669,21 +711,36 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
             <Briefcase className="w-4 h-4" />
             <h3 className="text-sm font-bold uppercase tracking-widest">Contractors (1099)</h3>
           </div>
-          <Button size="sm" variant="outline" onClick={addVirtualContractor} className="h-7 text-xs rounded-none border-2 border-foreground">
-            <Plus className="w-3 h-3 mr-1" /> Add
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button size="sm" variant="outline" onClick={() => addVirtualContractor('monthly')} className="h-7 text-xs rounded-none border-2 border-foreground">
+              <Plus className="w-3 h-3 mr-1" /> Monthly
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => addVirtualContractor('hourly')} className="h-7 text-xs rounded-none border-2 border-foreground">
+              <Clock className="w-3 h-3 mr-1" /> Hourly
+            </Button>
+          </div>
         </div>
-        <div className="p-3 space-y-2 max-h-48 overflow-y-auto">
+        <div className="p-3 space-y-2 max-h-64 overflow-y-auto">
           {contractors.map(contractor => {
             const isRemoved = mergedConfig.removedContractorIds.includes(contractor.id);
             const scenarioContractor = mergedConfig.scenarioContractors.find(c => c.id === contractor.id);
+            const effectiveMonthlyPay = getContractorMonthlyPay(contractor);
+            const isHourly = contractor.pay_type === 'hourly';
+            
             return (
               <div key={contractor.id} className={`flex items-center gap-2 p-2 border border-foreground/30 ${isRemoved ? 'opacity-40 line-through' : ''}`}>
                 <Switch checked={!isRemoved} onCheckedChange={() => toggleContractorRemoval(contractor.id)} />
-                <span className="flex-1 text-sm font-mono truncate">{contractor.name}</span>
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-mono truncate block">{contractor.name}</span>
+                  {isHourly && !scenarioContractor && (
+                    <span className="text-xs text-muted-foreground">
+                      ${Number(contractor.hourly_rate).toFixed(0)}/hr × {Number(contractor.hours_per_week)}h/wk
+                    </span>
+                  )}
+                </div>
                 <Input
                   type="number"
-                  value={scenarioContractor?.monthlyPay ?? Number(contractor.monthly_pay)}
+                  value={scenarioContractor?.monthlyPay ?? Math.round(effectiveMonthlyPay)}
                   onChange={(e) => updateScenarioContractor(contractor.id, { monthlyPay: Number(e.target.value) })}
                   className="w-24 h-7 text-xs font-mono rounded-none border-2"
                   disabled={isRemoved}
@@ -698,16 +755,41 @@ export const ScenarioEditor = ({ config, onChange }: ScenarioEditorProps) => {
               <Input
                 value={contractor.name}
                 onChange={(e) => updateVirtualContractor(index, { name: e.target.value })}
-                className="flex-1 h-7 text-xs rounded-none border-2"
+                className="flex-1 h-7 text-xs rounded-none border-2 min-w-0"
                 placeholder="Name"
               />
-              <Input
-                type="number"
-                value={contractor.pay}
-                onChange={(e) => updateVirtualContractor(index, { pay: Number(e.target.value) })}
-                className="w-24 h-7 text-xs font-mono rounded-none border-2"
-                placeholder="Monthly pay"
-              />
+              {contractor.payType === 'hourly' ? (
+                <>
+                  <Input
+                    type="number"
+                    value={contractor.hourlyRate || ''}
+                    onChange={(e) => updateVirtualContractor(index, { hourlyRate: Number(e.target.value) })}
+                    className="w-16 h-7 text-xs font-mono rounded-none border-2"
+                    placeholder="$/hr"
+                  />
+                  <Input
+                    type="number"
+                    value={contractor.hoursPerWeek || ''}
+                    onChange={(e) => updateVirtualContractor(index, { hoursPerWeek: Number(e.target.value) })}
+                    className="w-16 h-7 text-xs font-mono rounded-none border-2"
+                    placeholder="hrs/wk"
+                  />
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    ≈${getVirtualContractorMonthlyPay(contractor).toLocaleString()}/mo
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Input
+                    type="number"
+                    value={contractor.pay}
+                    onChange={(e) => updateVirtualContractor(index, { pay: Number(e.target.value) })}
+                    className="w-24 h-7 text-xs font-mono rounded-none border-2"
+                    placeholder="Monthly pay"
+                  />
+                  <span className="text-xs text-muted-foreground">/mo</span>
+                </>
+              )}
               <Button size="sm" variant="ghost" onClick={() => removeVirtualContractor(index)} className="h-7 w-7 p-0">
                 <Trash2 className="w-3 h-3" />
               </Button>
