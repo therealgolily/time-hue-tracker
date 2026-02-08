@@ -447,6 +447,63 @@ export type Database = {
           },
         ]
       }
+      payroll_tax_collections: {
+        Row: {
+          created_at: string
+          federal_income_tax: number
+          federal_unemployment: number
+          id: string
+          medicare_employee: number
+          medicare_employer: number
+          notes: string | null
+          payroll_check_date: string
+          social_security_employee: number
+          social_security_employer: number
+          state_income_tax: number
+          state_unemployment: number
+          transaction_date: string
+          transaction_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          federal_income_tax?: number
+          federal_unemployment?: number
+          id?: string
+          medicare_employee?: number
+          medicare_employer?: number
+          notes?: string | null
+          payroll_check_date: string
+          social_security_employee?: number
+          social_security_employer?: number
+          state_income_tax?: number
+          state_unemployment?: number
+          transaction_date: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          federal_income_tax?: number
+          federal_unemployment?: number
+          id?: string
+          medicare_employee?: number
+          medicare_employer?: number
+          notes?: string | null
+          payroll_check_date?: string
+          social_security_employee?: number
+          social_security_employer?: number
+          state_income_tax?: number
+          state_unemployment?: number
+          transaction_date?: string
+          transaction_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reflections: {
         Row: {
           accomplishment_1: string | null
