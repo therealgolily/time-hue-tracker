@@ -74,25 +74,47 @@ export const ContractorsManager = () => {
               <thead>
                 <tr className="border-b-2 border-foreground bg-muted/30">
                   <th className="text-left p-3 text-xs font-mono uppercase tracking-widest">Name</th>
-                  <th className="text-right p-3 text-xs font-mono uppercase tracking-widest">Monthly Pay</th>
+                  <th className="text-left p-3 text-xs font-mono uppercase tracking-widest">Pay Type</th>
+                  <th className="text-right p-3 text-xs font-mono uppercase tracking-widest">Rate/Hours</th>
+                  <th className="text-right p-3 text-xs font-mono uppercase tracking-widest">Monthly</th>
                   <th className="text-right p-3 text-xs font-mono uppercase tracking-widest">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {contractors.map((contractor, index) => (
-                  <tr
-                    key={contractor.id}
-                    className={index < contractors.length - 1 ? "border-b border-foreground/30" : ""}
-                  >
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-bold">{contractor.name}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 text-right font-mono font-bold tabular-nums text-primary">
-                      ${Number(contractor.monthly_pay).toLocaleString()}
-                    </td>
+                {contractors.map((contractor, index) => {
+                  const isHourly = contractor.pay_type === 'hourly';
+                  const monthlyAmount = isHourly
+                    ? Number(contractor.hours_per_week) * 4.33 * Number(contractor.hourly_rate)
+                    : Number(contractor.monthly_pay);
+                  
+                  return (
+                    <tr
+                      key={contractor.id}
+                      className={index < contractors.length - 1 ? "border-b border-foreground/30" : ""}
+                    >
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-bold">{contractor.name}</span>
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <span className={`text-xs font-mono uppercase px-2 py-1 ${isHourly ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground'}`}>
+                          {isHourly ? 'Hourly' : 'Monthly'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-mono text-sm">
+                        {isHourly ? (
+                          <span className="text-muted-foreground">
+                            ${Number(contractor.hourly_rate).toFixed(2)}/hr × {Number(contractor.hours_per_week)}h/wk
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-right font-mono font-bold tabular-nums text-primary">
+                        ${monthlyAmount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                      </td>
                     <td className="p-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <ContractorForm
@@ -133,7 +155,8 @@ export const ContractorsManager = () => {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
