@@ -45,8 +45,14 @@ export interface ScenarioConfig {
   // Real contractors from DB (can be toggled off or amounts modified)
   scenarioContractors: Array<{ id: string; name: string; monthlyPay: number }>;
   removedContractorIds: string[];
-  // Virtual contractors (new hires in scenario)
-  additionalContractors: Array<{ name: string; pay: number }>;
+  // Virtual contractors (new hires in scenario) - supports both monthly and hourly
+  additionalContractors: Array<{ 
+    name: string; 
+    pay: number; 
+    payType?: 'monthly' | 'hourly';
+    hourlyRate?: number;
+    hoursPerWeek?: number;
+  }>;
   // Real employees from DB (can be toggled off or amounts modified)
   scenarioEmployees: Array<{ id: string; name: string; salary: number }>;
   removedEmployeeIds: string[];

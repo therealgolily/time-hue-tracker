@@ -77,13 +77,30 @@ export const calculateScenario = (
   contractors.forEach(contractor => {
     // Skip if removed in scenario
     if ((config.removedContractorIds || []).includes(contractor.id)) return;
+    
     // Use scenario amount if modified
     const scenarioContractor = (config.scenarioContractors || []).find(sc => sc.id === contractor.id);
-    realContractorPay += scenarioContractor?.monthlyPay ?? Number(contractor.monthly_pay);
+    if (scenarioContractor) {
+      // Use scenario-modified pay
+      realContractorPay += scenarioContractor.monthlyPay;
+    } else {
+      // Calculate from original contractor data
+      if (contractor.pay_type === 'hourly') {
+        // hours_per_week * 4.33 weeks * hourly_rate
+        realContractorPay += Number(contractor.hours_per_week) * 4.33 * Number(contractor.hourly_rate);
+      } else {
+        realContractorPay += Number(contractor.monthly_pay);
+      }
+    }
   });
   
-  // Add virtual contractors from scenario
-  const virtualContractorPay = (config.additionalContractors || []).reduce((sum, c) => sum + c.pay, 0);
+  // Add virtual contractors from scenario (support both hourly and monthly)
+  const virtualContractorPay = (config.additionalContractors || []).reduce((sum, c) => {
+    if (c.payType === 'hourly' && c.hourlyRate && c.hoursPerWeek) {
+      return sum + (c.hoursPerWeek * 4.33 * c.hourlyRate);
+    }
+    return sum + (c.pay || 0);
+  }, 0);
   const monthlyContractors = realContractorPay + virtualContractorPay;
 
   // Calculate employee salaries from database (with scenario modifications)
