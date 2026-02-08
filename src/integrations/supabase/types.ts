@@ -188,25 +188,34 @@ export type Database = {
       contractors: {
         Row: {
           created_at: string
+          hourly_rate: number | null
+          hours_per_week: number | null
           id: string
           monthly_pay: number
           name: string
+          pay_type: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          hourly_rate?: number | null
+          hours_per_week?: number | null
           id?: string
           monthly_pay?: number
           name: string
+          pay_type?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          hourly_rate?: number | null
+          hours_per_week?: number | null
           id?: string
           monthly_pay?: number
           name?: string
+          pay_type?: string
           updated_at?: string
           user_id?: string
         }

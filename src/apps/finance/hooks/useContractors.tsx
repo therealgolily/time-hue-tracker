@@ -8,6 +8,9 @@ export interface Contractor {
   user_id: string;
   name: string;
   monthly_pay: number;
+  pay_type: 'monthly' | 'hourly';
+  hourly_rate: number;
+  hours_per_week: number;
   created_at: string;
   updated_at: string;
 }
@@ -133,7 +136,13 @@ export const useContractors = () => {
     return { success: true };
   };
 
-  const totalMonthlyPay = contractors.reduce((sum, con) => sum + Number(con.monthly_pay), 0);
+  const totalMonthlyPay = contractors.reduce((sum, con) => {
+    if (con.pay_type === 'hourly') {
+      // Calculate monthly from hourly: hours_per_week * 4.33 weeks * hourly_rate
+      return sum + (Number(con.hours_per_week) * 4.33 * Number(con.hourly_rate));
+    }
+    return sum + Number(con.monthly_pay);
+  }, 0);
 
   return {
     contractors,
