@@ -13,7 +13,8 @@ import {
   ArrowLeft,
   Briefcase,
   User,
-  Plane
+  Plane,
+  FileText
 } from 'lucide-react';
 import { FinanceDashboard } from './components/FinanceDashboard';
 import { ClientsManager } from './components/ClientsManager';
@@ -26,6 +27,7 @@ import { ScenarioPlayground } from './components/ScenarioPlayground';
 import { ContractorsManager } from './components/ContractorsManager';
 import { EmployeesManager } from './components/EmployeesManager';
 import { TripExpenseTracker } from './components/TripExpenseTracker';
+import { PayrollTaxTracker } from './components/PayrollTaxTracker';
 import { useFinanceAuth } from './hooks/useFinanceAuth';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +39,7 @@ const navItems = [
   { id: 'expenses', label: 'EXPENSES', icon: Receipt },
   { id: 'payments', label: 'PAYMENTS', icon: CreditCard },
   { id: 'travel', label: 'TRAVEL', icon: Plane },
+  { id: 'payroll-taxes', label: 'PAYROLL TAX', icon: FileText },
   { id: 'monthly', label: 'SUMMARY', icon: PieChart },
   { id: 'taxes', label: 'TAXES', icon: Calculator },
   { id: 'playground', label: 'SCENARIOS', icon: FlaskConical },
@@ -89,6 +92,8 @@ const FinanceApp = ({
         return <PaymentsManager />;
       case 'travel':
         return <TripExpenseTracker />;
+      case 'payroll-taxes':
+        return <PayrollTaxTracker />;
       case 'monthly':
         return <MonthlySummary />;
       case 'taxes':
