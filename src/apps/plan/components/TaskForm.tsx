@@ -19,11 +19,11 @@ const TaskForm = ({ groups, onAdd, onClose }: Props) => {
   const [isCritical, setIsCritical] = useState(false);
 
   const inputStyle: React.CSSProperties = {
-    width: '100%', fontFamily: "'Caveat', cursive", fontSize: 15,
-    border: '2px solid currentColor', borderRadius: 0, padding: '6px 10px',
-    background: 'transparent', outline: 'none', filter: 'url(#sketchy)',
+    width: '100%', fontFamily: "'Caveat', cursive", fontSize: 16,
+    border: '1.5px solid hsl(var(--foreground) / 0.5)', borderRadius: 8, padding: '8px 12px',
+    background: 'transparent', outline: 'none',
   };
-  const labelStyle: React.CSSProperties = { fontFamily: "'Caveat', cursive", fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'block' };
+  const labelStyle: React.CSSProperties = { fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, display: 'block', opacity: 0.55 };
 
   const handleSubmit = () => {
     if (!name.trim() || !startDate || !endDate) return;
@@ -32,16 +32,25 @@ const TaskForm = ({ groups, onAdd, onClose }: Props) => {
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
-      <div className="bg-background border-2 border-foreground p-6 w-full max-w-md" style={{ filter: 'url(#sketchy)', fontFamily: "'Caveat', cursive" }} onClick={e => e.stopPropagation()}>
-        <div className="flex justify-between items-center mb-5">
-          <span style={{ fontFamily: "'Caveat', cursive", fontSize: 20, fontWeight: 700 }}>New Task</span>
-          <button onClick={onClose} className="hover:opacity-60"><X size={16} /></button>
+    <div className="fixed inset-0 flex items-center justify-center z-50" style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(2px)' }} onClick={onClose}>
+      <div
+        className="bg-background p-7 w-full max-w-md flex flex-col gap-5"
+        style={{
+          fontFamily: "'Caveat', cursive",
+          borderRadius: 12,
+          border: '1.5px solid hsl(var(--foreground) / 0.18)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.14)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center">
+          <span style={{ fontFamily: "'Caveat', cursive", fontSize: 24, fontWeight: 700 }}>New Task</span>
+          <button onClick={onClose} className="hover:opacity-50 transition-opacity opacity-40"><X size={16} /></button>
         </div>
         <div className="flex flex-col gap-4">
           <div>
             <span style={labelStyle}>Task Name</span>
-            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="What needs doing?" className="text-foreground" />
+            <input style={inputStyle} value={name} onChange={e => setName(e.target.value)} placeholder="What needs doing?" className="text-foreground focus:border-foreground/70 transition-colors" />
           </div>
           <div>
             <span style={labelStyle}>Group</span>
@@ -69,14 +78,14 @@ const TaskForm = ({ groups, onAdd, onClose }: Props) => {
               <option value="critical">Critical</option>
             </select>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer" style={{ fontFamily: "'Caveat', cursive", fontSize: 15 }}>
-            <input type="checkbox" checked={isCritical} onChange={e => setIsCritical(e.target.checked)} />
+          <label className="flex items-center gap-2.5 cursor-pointer" style={{ fontFamily: "'Caveat', cursive", fontSize: 15, opacity: 0.7 }}>
+            <input type="checkbox" checked={isCritical} onChange={e => setIsCritical(e.target.checked)} className="w-4 h-4 accent-foreground" />
             Mark as Critical Path
           </label>
           <button
             onClick={handleSubmit}
-            className="border-2 border-foreground bg-foreground text-background px-4 py-2 hover:opacity-80 transition-opacity"
-            style={{ fontFamily: "'Caveat', cursive", fontSize: 16, fontWeight: 700, filter: 'url(#sketchy)' }}
+            className="mt-1 py-2.5 rounded-lg font-bold hover:opacity-85 transition-opacity"
+            style={{ fontFamily: "'Caveat', cursive", fontSize: 17, fontWeight: 700, background: 'hsl(var(--foreground))', color: 'hsl(var(--background))' }}
           >
             Add Task
           </button>
