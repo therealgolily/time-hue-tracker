@@ -20,10 +20,10 @@ const calcCD = (iso: string | null): Countdown | null => {
 const Obj = ({ children, label, onClick, style }: { children: React.ReactNode; label: string; onClick: () => void; style?: React.CSSProperties }) => (
   <div onClick={onClick} style={{ position: 'absolute', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', ...style }}>
     <div className="group" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div className="transition-all duration-300 ease-out hover:scale-110 hover:-translate-y-2" style={{ filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.4))' }}>
+      <div className="transition-all duration-300 ease-out group-hover:scale-110 group-hover:-translate-y-2" style={{ filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.4))' }}>
         {children}
       </div>
-      <div style={{ marginTop: 8, background: 'rgba(30,16,8,0.82)', color: '#F5EDD3', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>
+      <div className="opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 transition-all duration-300 ease-out" style={{ marginTop: 8, background: 'rgba(30,16,8,0.82)', color: '#F5EDD3', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', padding: '3px 10px', borderRadius: 20, whiteSpace: 'nowrap', backdropFilter: 'blur(4px)' }}>
         {label}
       </div>
     </div>
