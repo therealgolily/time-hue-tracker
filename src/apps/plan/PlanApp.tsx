@@ -1,62 +1,133 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft, Layers } from 'lucide-react';
+import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft, Layers, Pencil, Trash2, Check } from 'lucide-react';
 import { usePlanProjects } from './hooks/usePlanProjects';
 import { usePlanData } from './hooks/usePlanData';
-import { TimeScale, PlanTask } from './types';
+import { TimeScale, PlanTask, PlanGroup } from './types';
 import GanttChart from './components/GanttChart';
 import TaskSidebar from './components/TaskSidebar';
 import TaskForm from './components/TaskForm';
 import SketchyFilter from './components/SketchyFilter';
 
-// Small inline component for adding a group from the toolbar
-const GroupButton = ({ onAdd, sketchBtn }: { onAdd: (name: string, type: 'client' | 'phase') => void; sketchBtn: (active?: boolean) => React.CSSProperties }) => {
+// Groups management panel (dropdown from toolbar)
+const GroupsPanel = ({
+  groups,
+  onAdd,
+  onRename,
+  onDelete,
+  sketchBtn,
+}: {
+  groups: PlanGroup[];
+  onAdd: (name: string, type: 'client' | 'phase') => void;
+  onRename: (id: string, name: string) => void;
+  onDelete: (id: string) => void;
+  sketchBtn: (active?: boolean) => React.CSSProperties;
+}) => {
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [type, setType] = useState<'client' | 'phase'>('client');
+  const [newName, setNewName] = useState('');
+  const [newType, setNewType] = useState<'client' | 'phase'>('client');
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState('');
+
   const submit = () => {
-    if (!name.trim()) return;
-    onAdd(name.trim(), type);
-    setName(''); setOpen(false);
+    if (!newName.trim()) return;
+    onAdd(newName.trim(), newType);
+    setNewName('');
   };
+
   return (
     <div className="relative">
-      <button onClick={() => setOpen(v => !v)} style={sketchBtn(open)} className="flex items-center gap-1 border-foreground">
-        <Layers size={12} /> Group
+      <button onClick={() => setOpen(v => !v)} style={sketchBtn(open)} className="flex items-center gap-1.5 border-foreground">
+        <Layers size={12} /> Groups
       </button>
       {open && (
         <div
-          className="absolute top-full right-0 mt-1 z-50 bg-background border-2 border-foreground p-3 flex flex-col gap-2"
-          style={{ minWidth: 200, filter: 'url(#sketchy)', fontFamily: "'Caveat', cursive" }}
+          className="absolute top-full right-0 mt-1 z-50 bg-background border border-border rounded-md shadow-lg p-0 overflow-hidden"
+          style={{ minWidth: 240, fontFamily: "'Caveat', cursive" }}
           onClick={e => e.stopPropagation()}
         >
-          <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>New Group</span>
-          <input
-            autoFocus
-            value={name}
-            onChange={e => setName(e.target.value)}
-            placeholder="Group name…"
-            style={{ fontSize: 14, fontFamily: "'Caveat', cursive", border: '1.5px solid currentColor', padding: '4px 8px', background: 'transparent', outline: 'none' }}
-            className="text-foreground"
-            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setOpen(false); }}
-          />
-          <div className="flex gap-2">
-            {(['client', 'phase'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setType(t)}
-                style={{ fontSize: 12, padding: '2px 8px', border: '1.5px solid currentColor', fontFamily: "'Caveat', cursive", background: type === t ? 'var(--foreground)' : 'transparent', color: type === t ? 'var(--background)' : 'inherit', cursor: 'pointer', flex: 1 }}
-              >
-                {t}
-              </button>
-            ))}
+          {/* Existing groups */}
+          {groups.length > 0 && (
+            <div className="border-b border-border">
+              {groups.map(g => (
+                <div key={g.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted group">
+                  {renamingId === g.id ? (
+                    <>
+                      <input
+                        autoFocus
+                        value={renameDraft}
+                        onChange={e => setRenameDraft(e.target.value)}
+                        className="flex-1 text-sm bg-transparent outline-none border-b border-foreground"
+                        style={{ fontFamily: "'Caveat', cursive" }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && renameDraft.trim()) { onRename(g.id, renameDraft.trim()); setRenamingId(null); }
+                          if (e.key === 'Escape') setRenamingId(null);
+                        }}
+                      />
+                      <button onClick={() => { if (renameDraft.trim()) { onRename(g.id, renameDraft.trim()); setRenamingId(null); } }} className="text-foreground hover:opacity-70">
+                        <Check size={12} />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm font-semibold">{g.name}</span>
+                      <span className="text-xs opacity-40 uppercase tracking-wide">{g.type}</span>
+                      <button
+                        onClick={() => { setRenamingId(g.id); setRenameDraft(g.name); }}
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
+                        title="Rename"
+                      >
+                        <Pencil size={11} />
+                      </button>
+                      <button
+                        onClick={() => onDelete(g.id)}
+                        className="opacity-0 group-hover:opacity-60 hover:!opacity-100 text-destructive transition-opacity"
+                        title="Delete"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Add new group */}
+          <div className="p-3 flex flex-col gap-2">
+            <p className="text-xs font-bold uppercase tracking-widest opacity-50">New Group</p>
+            <input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              placeholder="Group name…"
+              className="text-sm border border-border rounded px-2 py-1 bg-transparent outline-none focus:ring-1 focus:ring-foreground"
+              style={{ fontFamily: "'Caveat', cursive" }}
+              onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setOpen(false); }}
+            />
+            <div className="flex gap-1.5">
+              {(['client', 'phase'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setNewType(t)}
+                  className="flex-1 text-xs py-1 rounded border transition-colors capitalize"
+                  style={{
+                    fontFamily: "'Caveat', cursive",
+                    background: newType === t ? 'var(--foreground)' : 'transparent',
+                    color: newType === t ? 'var(--background)' : 'inherit',
+                    borderColor: 'currentColor',
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={submit}
+              className="text-sm font-bold py-1.5 rounded border-2 transition-opacity hover:opacity-80"
+              style={{ fontFamily: "'Caveat', cursive", background: 'var(--foreground)', color: 'var(--background)', borderColor: 'var(--foreground)' }}
+            >
+              + Add Group
+            </button>
           </div>
-          <button
-            onClick={submit}
-            style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Caveat', cursive", border: '2px solid currentColor', padding: '4px', background: 'var(--foreground)', color: 'var(--background)', cursor: 'pointer' }}
-          >
-            + Add Group
-          </button>
         </div>
       )}
     </div>
@@ -78,7 +149,8 @@ const PlanApp = () => {
 
   const {
     groups, tasks, dependencies,
-    createGroup, createTask, updateTask, deleteTask,
+    createGroup, updateGroup, deleteGroup,
+    createTask, updateTask, deleteTask,
     createDependency, deleteDependency,
   } = usePlanData(activeProjectId);
 
@@ -100,7 +172,6 @@ const PlanApp = () => {
   };
 
   const handleCreateTask = async (t: Parameters<typeof createTask.mutate>[0]) => {
-    // Ensure at least one group exists
     let gid = t.group_id;
     if (!gid && groups.length === 0) {
       const g = await createGroup.mutateAsync({ name: 'General', type: 'phase' });
@@ -109,18 +180,14 @@ const PlanApp = () => {
     createTask.mutate({ ...t, group_id: gid });
   };
 
-  const toolbar: React.CSSProperties = {
-    display: 'flex', alignItems: 'center', gap: 10,
-    padding: '0 16px', height: 48, borderBottom: '2px solid',
-    flexShrink: 0, fontFamily: "'Caveat', cursive",
-  };
-
   const sketchBtn = (active?: boolean): React.CSSProperties => ({
     fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 700,
-    padding: '3px 12px', border: '2px solid currentColor',
+    padding: '4px 12px', border: '1.5px solid',
+    borderColor: 'hsl(var(--foreground) / 0.4)',
+    borderRadius: 4,
     background: active ? 'var(--foreground)' : 'transparent',
     color: active ? 'var(--background)' : 'inherit',
-    cursor: 'pointer', filter: 'url(#sketchy)',
+    cursor: 'pointer',
   });
 
   if (isLoading) {
@@ -136,15 +203,15 @@ const PlanApp = () => {
       <SketchyFilter />
 
       {/* Header */}
-      <div className="border-b-2 border-foreground flex items-center" style={toolbar}>
-        <Link to="/apps/work" className="hover:opacity-60 mr-2"><ArrowLeft size={16} /></Link>
+      <div className="border-b border-border flex items-center gap-2.5 px-4 flex-shrink-0" style={{ height: 52 }}>
+        <Link to="/apps/work" className="hover:opacity-60 mr-1"><ArrowLeft size={16} /></Link>
 
         {/* Project selector */}
         <div className="relative">
           <button
             onClick={() => setShowProjectMenu(v => !v)}
-            style={{ ...sketchBtn(), display: 'flex', alignItems: 'center', gap: 6 }}
-            className="border-foreground"
+            className="flex items-center gap-1.5 hover:bg-muted px-2 py-1 rounded transition-colors"
+            style={{ fontFamily: "'Caveat', cursive", fontSize: 16, fontWeight: 700 }}
           >
             {editingTitle ? (
               <input
@@ -153,32 +220,32 @@ const PlanApp = () => {
                 onChange={e => setTitleDraft(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={e => e.key === 'Enter' && handleTitleSave()}
-                style={{ fontFamily: "'Caveat', cursive", fontSize: 15, border: 'none', outline: 'none', background: 'transparent', minWidth: 120 }}
+                style={{ fontFamily: "'Caveat', cursive", fontSize: 16, border: 'none', outline: 'none', background: 'transparent', minWidth: 120 }}
                 onClick={e => e.stopPropagation()}
               />
             ) : (
-              <span style={{ fontSize: 15, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activeProject?.title ?? 'No Project'}
               </span>
             )}
-            <ChevronDown size={12} />
+            <ChevronDown size={13} className="opacity-50" />
           </button>
           {showProjectMenu && (
-            <div className="absolute top-full left-0 mt-1 z-50 bg-background border-2 border-foreground min-w-48" style={{ filter: 'url(#sketchy)', fontFamily: "'Caveat', cursive" }}>
+            <div className="absolute top-full left-0 mt-1 z-50 bg-background border border-border rounded-md shadow-lg min-w-48 overflow-hidden" style={{ fontFamily: "'Caveat', cursive" }}>
               {projects.map(p => (
                 <button
                   key={p.id}
                   onClick={() => { setActiveProjectId(p.id); setShowProjectMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-foreground hover:text-background transition-colors"
-                  style={{ fontSize: 14, borderBottom: '1px solid', fontFamily: "'Caveat', cursive" }}
+                  className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border/50 last:border-0"
+                  style={{ fontSize: 14 }}
                 >
                   {p.title}
                 </button>
               ))}
               <button
                 onClick={handleNewProject}
-                className="w-full text-left px-4 py-2 hover:bg-foreground hover:text-background transition-colors flex items-center gap-2"
-                style={{ fontSize: 14, fontFamily: "'Caveat', cursive" }}
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 border-t border-border"
+                style={{ fontSize: 14 }}
               >
                 <Plus size={12} /> New Project
               </button>
@@ -186,36 +253,46 @@ const PlanApp = () => {
           )}
         </div>
 
-        {activeProject && (
-          <button onClick={() => { setEditingTitle(true); setTitleDraft(activeProject.title); }} style={{ fontSize: 11, opacity: 0.4, fontFamily: "'Caveat', cursive" }} className="hover:opacity-80">
-            rename
+        {activeProject && !editingTitle && (
+          <button
+            onClick={() => { setEditingTitle(true); setTitleDraft(activeProject.title); }}
+            className="opacity-30 hover:opacity-70 transition-opacity"
+            title="Rename project"
+          >
+            <Pencil size={12} />
           </button>
         )}
 
         <div className="flex-1" />
 
         {/* Scale toggle */}
-        <div className="flex items-center gap-1 border-2 border-foreground" style={{ filter: 'url(#sketchy)' }}>
-          <button style={sketchBtn(scale === 'months')} onClick={() => setScale('months')} className="flex items-center gap-1 border-0">
-            <LayoutGrid size={12} /> Months
+        <div className="flex items-center border border-border rounded overflow-hidden">
+          <button style={sketchBtn(scale === 'months')} onClick={() => setScale('months')} className="flex items-center gap-1 rounded-none border-0 border-r border-border">
+            <LayoutGrid size={11} /> Months
           </button>
-          <button style={sketchBtn(scale === 'weeks')} onClick={() => setScale('weeks')} className="flex items-center gap-1 border-0">
-            <Clock size={12} /> Weeks
+          <button style={sketchBtn(scale === 'weeks')} onClick={() => setScale('weeks')} className="flex items-center gap-1 rounded-none border-0">
+            <Clock size={11} /> Weeks
           </button>
         </div>
 
-        {/* Add group */}
+        {/* Groups management */}
         {activeProject && (
-          <GroupButton onAdd={(name, type) => createGroup.mutate({ name, type })} sketchBtn={sketchBtn} />
+          <GroupsPanel
+            groups={groups}
+            onAdd={(name, type) => createGroup.mutate({ name, type })}
+            onRename={(id, name) => updateGroup.mutate({ id, name })}
+            onDelete={(id) => deleteGroup.mutate(id)}
+            sketchBtn={sketchBtn}
+          />
         )}
 
         {/* Add task */}
-        <button onClick={() => setShowTaskForm(true)} style={sketchBtn()} className="flex items-center gap-1 border-foreground">
+        <button onClick={() => setShowTaskForm(true)} style={sketchBtn()} className="flex items-center gap-1.5 !border-foreground/60">
           <Plus size={12} /> Task
         </button>
 
         {/* Sidebar toggle */}
-        <button onClick={() => setSidebarOpen(v => !v)} className="hover:opacity-60 ml-1">
+        <button onClick={() => setSidebarOpen(v => !v)} className="hover:opacity-60 ml-1 transition-opacity">
           {sidebarOpen ? <PanelRightClose size={16} /> : <PanelRightOpen size={16} />}
         </button>
       </div>
@@ -240,6 +317,8 @@ const PlanApp = () => {
             onCreateDep={(from, to) => createDependency.mutate({ from_task_id: from, to_task_id: to })}
             onDeleteDep={(id) => deleteDependency.mutate(id)}
             onCreateGroup={(name, type) => createGroup.mutate({ name, type })}
+            onUpdateGroup={(id, name) => updateGroup.mutate({ id, name })}
+            onDeleteGroup={(id) => deleteGroup.mutate(id)}
           />
           {sidebarOpen && (
             <TaskSidebar

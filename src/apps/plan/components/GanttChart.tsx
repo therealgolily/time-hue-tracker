@@ -6,12 +6,12 @@ import {
   STATUS_COLORS, daysDiff, weekStart, addWeeks, monthStart, addMonths,
   weekNumber, quarterOf, toISO,
 } from '../utils';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Pencil, Trash2, Check } from 'lucide-react';
 
-const ROW_H = 38;
-const LABEL_W = 180;
-const COL_W_WEEK = 28;
-const COL_W_MONTH = 80;
+const ROW_H = 42;
+const LABEL_W = 200;
+const COL_W_WEEK = 30;
+const COL_W_MONTH = 84;
 
 interface Props {
   tasks: PlanTask[];
@@ -23,6 +23,8 @@ interface Props {
   onCreateDep: (from: string, to: string) => void;
   onDeleteDep: (id: string) => void;
   onCreateGroup: (name: string, type: 'client' | 'phase') => void;
+  onUpdateGroup?: (id: string, name: string) => void;
+  onDeleteGroup?: (id: string) => void;
 }
 
 // Build the column grid
@@ -60,7 +62,7 @@ const buildColumns = (scale: TimeScale, tasks: PlanTask[]) => {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const GanttChart = ({
-  tasks, groups, dependencies, scale, onUpdateTask, onCreateDep, onDeleteDep, onCreateGroup,
+  tasks, groups, dependencies, scale, onUpdateTask, onCreateDep, onDeleteDep, onCreateGroup, onUpdateGroup, onDeleteGroup,
 }: Props) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ taskId: string; type: 'move' | 'resize-left' | 'resize-right'; startX: number; origStart: string; origEnd: string } | null>(null);
@@ -70,6 +72,8 @@ const GanttChart = ({
   const [groupPickerId, setGroupPickerId] = useState<string | null>(null);
   const [newGroupName, setNewGroupName] = useState('');
   const [showNewGroup, setShowNewGroup] = useState(false);
+  const [renamingGroupId, setRenamingGroupId] = useState<string | null>(null);
+  const [renameGroupDraft, setRenameGroupDraft] = useState('');
 
   const hasData = tasks.length > 0;
   const { cols, start, colW } = hasData ? buildColumns(scale, tasks) : { cols: [] as Date[], start: new Date(), colW: COL_W_MONTH };
@@ -203,9 +207,9 @@ const GanttChart = ({
     <div className="flex flex-col flex-1 overflow-hidden" onClick={() => { setGroupPickerId(null); setShowNewGroup(false); }}>
       <div className="flex flex-1 overflow-hidden">
         {/* Left label panel */}
-        <div className="flex-shrink-0 border-r-2 border-foreground bg-background z-10" style={{ width: LABEL_W }}>
+        <div className="flex-shrink-0 border-r border-border bg-background z-10" style={{ width: LABEL_W }}>
           {/* Header spacer */}
-          <div style={{ height: headerH, borderBottom: '2px solid currentColor' }} className="border-foreground" />
+          <div style={{ height: headerH, borderBottom: '1px solid' }} className="border-border" />
           {/* Group + task rows */}
           {sortedTasks.map((task) => {
             const group = groups.find(g => g.id === task.group_id);
@@ -213,67 +217,93 @@ const GanttChart = ({
             return (
               <div
                 key={task.id}
-                style={{ height: ROW_H, borderBottom: '1px solid', display: 'flex', alignItems: 'center', padding: '0 6px 0 10px', fontFamily: "'Caveat', cursive", fontSize: 13, fontWeight: 600, position: 'relative' }}
-                className="border-foreground/20"
+                style={{ height: ROW_H, borderBottom: '1px solid', display: 'flex', alignItems: 'center', padding: '0 6px 0 12px', fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 600, position: 'relative' }}
+                className="border-border/40 hover:bg-muted/30 transition-colors"
               >
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
                 {/* Group pill / assign button */}
                 <button
-                  onClick={() => setGroupPickerId(isPickerOpen ? null : task.id)}
+                  onClick={e => { e.stopPropagation(); setGroupPickerId(isPickerOpen ? null : task.id); setShowNewGroup(false); setRenamingGroupId(null); }}
                   title="Assign group"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 2,
-                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                    padding: '1px 5px', border: '1.5px solid', flexShrink: 0,
-                    fontFamily: "'Caveat', cursive", cursor: 'pointer',
-                    opacity: group ? 0.7 : 0.4,
-                    background: 'transparent',
-                  }}
-                  className="border-foreground/40 hover:opacity-100"
+                  className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded border border-border/50 hover:border-foreground/50 transition-colors flex-shrink-0 opacity-60 hover:opacity-100"
+                  style={{ fontFamily: "'Caveat', cursive" }}
                 >
-                  {group ? group.name.slice(0, 6) : '+ grp'}
+                  {group ? group.name.slice(0, 8) : '+ group'}
                   <ChevronDown size={8} />
                 </button>
                 {/* Group picker dropdown */}
                 {isPickerOpen && (
                   <div
-                    style={{
-                      position: 'absolute', top: ROW_H - 2, right: 0, zIndex: 50,
-                      background: 'var(--background)', border: '2px solid',
-                      minWidth: 150, fontFamily: "'Caveat', cursive", fontSize: 13,
-                      filter: 'url(#sketchy)',
-                    }}
-                    className="border-foreground shadow-lg"
+                    className="absolute z-50 bg-background border border-border rounded-md shadow-lg overflow-hidden"
+                    style={{ top: ROW_H, right: 0, minWidth: 190, fontFamily: "'Caveat', cursive" }}
                     onClick={e => e.stopPropagation()}
                   >
                     <button
                       onClick={() => { onUpdateTask(task.id, { group_id: null }); setGroupPickerId(null); }}
-                      className="w-full text-left px-3 py-1 hover:bg-foreground hover:text-background border-b border-foreground/20"
-                      style={{ fontSize: 12, opacity: 0.6 }}
+                      className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted border-b border-border/50 opacity-60 hover:opacity-100"
                     >
                       — No Group
                     </button>
                     {groups.map(g => (
-                      <button
-                        key={g.id}
-                        onClick={() => { onUpdateTask(task.id, { group_id: g.id }); setGroupPickerId(null); }}
-                        className="w-full text-left px-3 py-1 hover:bg-foreground hover:text-background border-b border-foreground/20"
-                        style={{ fontWeight: task.group_id === g.id ? 700 : 400 }}
-                      >
-                        {g.name}
-                        <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>{g.type}</span>
-                      </button>
+                      <div key={g.id} className="flex items-center group border-b border-border/30 last:border-0 hover:bg-muted">
+                        {renamingGroupId === g.id ? (
+                          <div className="flex items-center gap-1 px-2 py-1 w-full">
+                            <input
+                              autoFocus
+                              value={renameGroupDraft}
+                              onChange={e => setRenameGroupDraft(e.target.value)}
+                              className="flex-1 text-xs bg-transparent outline-none border-b border-foreground"
+                              style={{ fontFamily: "'Caveat', cursive" }}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter' && renameGroupDraft.trim()) {
+                                  onUpdateGroup?.(g.id, renameGroupDraft.trim());
+                                  setRenamingGroupId(null);
+                                }
+                                if (e.key === 'Escape') setRenamingGroupId(null);
+                              }}
+                            />
+                            <button onClick={() => { if (renameGroupDraft.trim()) { onUpdateGroup?.(g.id, renameGroupDraft.trim()); setRenamingGroupId(null); } }}>
+                              <Check size={11} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => { onUpdateTask(task.id, { group_id: g.id }); setGroupPickerId(null); }}
+                              className="flex-1 text-left px-3 py-1.5 text-xs"
+                              style={{ fontWeight: task.group_id === g.id ? 700 : 400 }}
+                            >
+                              {g.name}
+                              <span className="opacity-40 ml-1 text-[10px]">{g.type}</span>
+                            </button>
+                            <button
+                              className="opacity-0 group-hover:opacity-50 hover:!opacity-100 px-1 transition-opacity"
+                              onClick={e => { e.stopPropagation(); setRenamingGroupId(g.id); setRenameGroupDraft(g.name); }}
+                              title="Rename"
+                            >
+                              <Pencil size={10} />
+                            </button>
+                            <button
+                              className="opacity-0 group-hover:opacity-50 hover:!opacity-100 px-1 text-destructive transition-opacity"
+                              onClick={e => { e.stopPropagation(); onDeleteGroup?.(g.id); setGroupPickerId(null); }}
+                              title="Delete group"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     ))}
                     {/* New group inline */}
                     {showNewGroup ? (
-                      <div className="px-2 py-1 flex gap-1">
+                      <div className="px-2 py-1.5 flex gap-1 border-t border-border">
                         <input
                           autoFocus
                           value={newGroupName}
                           onChange={e => setNewGroupName(e.target.value)}
                           placeholder="Group name…"
-                          style={{ flex: 1, fontSize: 12, border: '1px solid', padding: '1px 4px', fontFamily: "'Caveat', cursive", background: 'transparent', outline: 'none' }}
-                          className="border-foreground/50"
+                          className="flex-1 text-xs border border-border rounded px-1 py-0.5 bg-transparent outline-none"
+                          style={{ fontFamily: "'Caveat', cursive" }}
                           onKeyDown={e => {
                             if (e.key === 'Enter' && newGroupName.trim()) {
                               onCreateGroup(newGroupName.trim(), 'client');
@@ -288,8 +318,7 @@ const GanttChart = ({
                     ) : (
                       <button
                         onClick={() => setShowNewGroup(true)}
-                        className="w-full text-left px-3 py-1 hover:bg-foreground hover:text-background"
-                        style={{ fontSize: 12, opacity: 0.6 }}
+                        className="w-full text-left px-3 py-1.5 text-xs border-t border-border opacity-60 hover:opacity-100 hover:bg-muted transition-colors"
                       >
                         + New group…
                       </button>
@@ -305,21 +334,21 @@ const GanttChart = ({
         <div className="flex-1 overflow-x-auto overflow-y-hidden relative" ref={chartRef}>
           <div style={{ width: totalW, position: 'relative' }}>
             {/* Header */}
-            <div style={{ height: headerH, borderBottom: '2px solid', position: 'sticky', top: 0, background: 'var(--background)', zIndex: 5 }} className="border-foreground">
+            <div style={{ height: headerH, borderBottom: '1px solid', position: 'sticky', top: 0, background: 'var(--background)', zIndex: 5 }} className="border-border">
               {/* Quarter row (months view only) */}
               {scale === 'months' && (
-                <div style={{ display: 'flex', height: 24, borderBottom: '1px solid', position: 'absolute', top: 0, left: 0, width: totalW }} className="border-foreground/30">
+                <div style={{ display: 'flex', height: 24, borderBottom: '1px solid', position: 'absolute', top: 0, left: 0, width: totalW }} className="border-border/50">
                   {quarterSpans.map((qs, i) => (
-                    <div key={i} style={{ width: qs.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700, filter: 'url(#sketchy)' }} className="border-foreground/20">
+                    <div key={i} style={{ width: qs.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700 }} className="border-border/40 text-muted-foreground">
                       {qs.label}
                     </div>
                   ))}
                 </div>
               )}
               {/* Month / Week row */}
-              <div style={{ display: 'flex', height: scale === 'months' ? 24 : (scale === 'weeks' ? 36 : 24), position: 'absolute', top: scale === 'months' ? 24 : 0, left: 0, width: totalW }} className="">
+              <div style={{ display: 'flex', height: scale === 'months' ? 24 : (scale === 'weeks' ? 36 : 24), position: 'absolute', top: scale === 'months' ? 24 : 0, left: 0, width: totalW }}>
                 {cols.map((col, i) => (
-                  <div key={i} style={{ width: colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px dashed', fontFamily: "'Caveat', cursive", fontSize: scale === 'weeks' ? 11 : 13, fontWeight: 600, filter: 'url(#sketchy)' }} className="border-foreground/25">
+                  <div key={i} style={{ width: colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: scale === 'weeks' ? 11 : 13, fontWeight: 600 }} className="border-border/30">
                     {scale === 'months' ? MONTHS[col.getMonth()] : `W${weekNumber(col)}`}
                   </div>
                 ))}
@@ -338,7 +367,7 @@ const GanttChart = ({
                 return (
                   <div style={{ display: 'flex', height: 36, position: 'absolute', top: 36, left: 0, width: totalW }}>
                     {yearSpans.map((ys, idx) => (
-                      <div key={idx} style={{ width: ys.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700 }} className="border-foreground/25">
+                      <div key={idx} style={{ width: ys.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700 }} className="border-border/30 text-muted-foreground">
                         {ys.label}
                       </div>
                     ))}
@@ -349,9 +378,9 @@ const GanttChart = ({
 
             {/* Grid body */}
             <div style={{ position: 'relative' }}>
-              {/* Vertical dashed column dividers */}
+              {/* Vertical column dividers */}
               {cols.map((_, i) => (
-                <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: i * colW, width: 1, borderLeft: '1px dashed', opacity: 0.2, pointerEvents: 'none' }} className="border-foreground" />
+                <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: i * colW, width: 1, borderLeft: '1px solid', opacity: 0.12, pointerEvents: 'none' }} className="border-foreground" />
               ))}
 
               {/* Today line */}
