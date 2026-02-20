@@ -14,6 +14,7 @@ import DebtCalculator from "./pages/DebtCalculator";
 import Calendar from "./pages/Calendar";
 import LifeTimeline from "./pages/LifeTimeline";
 import Prep from "./pages/Prep";
+import Plan from "./pages/Plan";
 import NotFound from "./pages/NotFound";
 import { FinanceApp, FinanceAuth } from "@/apps/finance";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/business-finance/auth" element={<FinanceAuth />} />
           <Route path="/business-finance/*" element={<ProtectedRoute><FinanceApp /></ProtectedRoute>} />
           <Route path="/prep" element={<ProtectedRoute><Prep /></ProtectedRoute>} />
+          <Route path="/plan" element={<ProtectedRoute><Plan /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

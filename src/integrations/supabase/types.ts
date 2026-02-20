@@ -504,6 +504,167 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_dependencies: {
+        Row: {
+          created_at: string
+          from_task_id: string
+          id: string
+          to_task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_task_id: string
+          id?: string
+          to_task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_task_id?: string
+          id?: string
+          to_task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_dependencies_from_task_id_fkey"
+            columns: ["from_task_id"]
+            isOneToOne: false
+            referencedRelation: "plan_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_dependencies_to_task_id_fkey"
+            columns: ["to_task_id"]
+            isOneToOne: false
+            referencedRelation: "plan_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          order: number
+          project_id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          order?: number
+          project_id: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          order?: number
+          project_id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_groups_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "plan_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_projects: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      plan_tasks: {
+        Row: {
+          created_at: string
+          end_date: string
+          group_id: string | null
+          id: string
+          is_critical: boolean
+          name: string
+          project_id: string
+          row_order: number
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          group_id?: string | null
+          id?: string
+          is_critical?: boolean
+          name: string
+          project_id: string
+          row_order?: number
+          start_date: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          group_id?: string | null
+          id?: string
+          is_critical?: boolean
+          name?: string
+          project_id?: string
+          row_order?: number
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_tasks_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "plan_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "plan_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prep_files: {
         Row: {
           created_at: string
