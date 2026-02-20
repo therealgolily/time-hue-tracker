@@ -2,7 +2,8 @@ import { useRef, useState, useEffect } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
-import { X, Bold, Italic, Underline as UIcon, Heading1, Heading2, List, ListOrdered } from 'lucide-react';
+import Image from '@tiptap/extension-image';
+import { X, Bold, Italic, Underline as UIcon, Heading1, Heading2, List, ListOrdered, ImagePlus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,10 +19,16 @@ interface Props {
 
 const CuttingBoardModal = ({ sessionId, initialContent, onClose }: Props) => {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+  const [uploading, setUploading] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: [
+      StarterKit,
+      Underline,
+      Image.configure({ inline: false, allowBase64: true }),
+    ],
     content: initialContent || '<p></p>',
     editorProps: { attributes: { class: 'prep-editor focus:outline-none' } },
     onUpdate: ({ editor }) => {
@@ -39,6 +46,25 @@ const CuttingBoardModal = ({ sessionId, initialContent, onClose }: Props) => {
   });
 
   useEffect(() => () => clearTimeout(saveTimer.current), []);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editor) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `notes-images/${sessionId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from('prep-files').upload(path, file, { upsert: true });
+      if (error) throw error;
+      const { data } = supabase.storage.from('prep-files').getPublicUrl(path);
+      editor.chain().focus().setImage({ src: data.publicUrl }).run();
+    } catch (err) {
+      console.error('Image upload failed', err);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const Btn = ({ onClick, active, title, children }: { onClick: () => void; active: boolean; title: string; children: React.ReactNode }) => (
     <button
@@ -76,6 +102,17 @@ const CuttingBoardModal = ({ sessionId, initialContent, onClose }: Props) => {
               <div style={{ width: 1, height: 16, background: 'rgba(212,184,150,0.3)', margin: '0 4px' }} />
               <Btn onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')} title="Bullets"><List size={13} /></Btn>
               <Btn onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')} title="Numbered"><ListOrdered size={13} /></Btn>
+              <div style={{ width: 1, height: 16, background: 'rgba(212,184,150,0.3)', margin: '0 4px' }} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImageUpload}
+              />
+              <Btn onClick={() => fileInputRef.current?.click()} active={false} title="Insert image">
+                {uploading ? <span style={{ fontSize: 10, color: '#C8904A' }}>…</span> : <ImagePlus size={13} />}
+              </Btn>
             </div>
           )}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
