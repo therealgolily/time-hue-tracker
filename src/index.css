@@ -226,3 +226,56 @@
     @apply text-xs font-semibold uppercase tracking-widest;
   }
 }
+
+/* ===== Tiptap / ProseMirror editor styles (Prep app) ===== */
+.prep-editor {
+  outline: none;
+  min-height: 100%;
+  padding: 0;
+  color: #2E1F14;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.prep-editor p { margin: 0.4em 0; }
+.prep-editor p:first-child { margin-top: 0; }
+
+.prep-editor h1 {
+  font-size: 1.4em;
+  font-weight: 800;
+  margin: 0.75em 0 0.25em;
+  color: #2E1F14;
+}
+
+.prep-editor h2 {
+  font-size: 1.15em;
+  font-weight: 700;
+  margin: 0.6em 0 0.2em;
+  color: #3D2B1F;
+}
+
+.prep-editor strong { font-weight: 700; }
+.prep-editor em { font-style: italic; }
+.prep-editor u { text-decoration: underline; }
+
+.prep-editor ul {
+  list-style: disc;
+  padding-left: 1.5em;
+  margin: 0.4em 0;
+}
+
+.prep-editor ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+  margin: 0.4em 0;
+}
+
+.prep-editor li { margin: 0.2em 0; }
+
+.prep-editor p.is-editor-empty:first-child::before {
+  content: 'Start writing your prep notes…';
+  float: left;
+  color: #A89070;
+  pointer-events: none;
+  height: 0;
+}
