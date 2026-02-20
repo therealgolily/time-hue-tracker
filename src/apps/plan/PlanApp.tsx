@@ -310,12 +310,10 @@ const PlanApp = () => {
           <GanttChart
             tasks={tasks}
             groups={groups}
-            dependencies={dependencies}
             scale={scale}
             groupBy={groupBy}
             onUpdateTask={(id, updates) => updateTask.mutate({ id, ...(updates as Partial<PlanTask>) })}
-            onCreateDep={(from, to) => createDependency.mutate({ from_task_id: from, to_task_id: to })}
-            onDeleteDep={(id) => deleteDependency.mutate(id)}
+            onDeleteTask={(id) => deleteTask.mutate(id)}
             onCreateGroup={(name, type) => createGroup.mutate({ name, type })}
             onUpdateGroup={(id, name) => updateGroup.mutate({ id, name })}
             onDeleteGroup={(id) => deleteGroup.mutate(id)}
