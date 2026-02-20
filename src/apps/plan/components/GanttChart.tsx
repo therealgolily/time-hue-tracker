@@ -169,9 +169,11 @@ const GanttChart = ({
   // ── Keyboard: Delete selected, Escape deselect/cancel edit ────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (editingId) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      const inInput = tag === 'INPUT' || tag === 'TEXTAREA';
+      if (editingId || inInput) {
         if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
-        return; // let the input handle Enter
+        return;
       }
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedId) { onDeleteTask(selectedId); setSelectedId(null); }
