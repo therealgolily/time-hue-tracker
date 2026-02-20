@@ -15,6 +15,7 @@ const workApps = [
   { name: 'Time Tracking', route: '/work-time-tracker' },
   { name: 'Finance', route: '/business-finance' },
   { name: 'Calendar', route: '/calendar' },
+  { name: 'Prep', route: '/prep' },
   { name: 'Tasks', route: 'tasks.rosserresults.com', external: true },
 ];
 

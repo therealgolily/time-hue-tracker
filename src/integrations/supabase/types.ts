@@ -504,6 +504,80 @@ export type Database = {
         }
         Relationships: []
       }
+      prep_files: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          id: string
+          session_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          session_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          session_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prep_files_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "prep_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prep_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          meeting_datetime: string | null
+          rich_text_content: string | null
+          talking_points: Json
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meeting_datetime?: string | null
+          rich_text_content?: string | null
+          talking_points?: Json
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meeting_datetime?: string | null
+          rich_text_content?: string | null
+          talking_points?: Json
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       reflections: {
         Row: {
           accomplishment_1: string | null
