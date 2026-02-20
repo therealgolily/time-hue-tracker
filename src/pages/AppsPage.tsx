@@ -16,6 +16,7 @@ const workApps = [
   { name: 'Finance', route: '/business-finance' },
   { name: 'Calendar', route: '/calendar' },
   { name: 'Prep', route: '/prep' },
+  { name: 'Plan', route: '/plan' },
   { name: 'Tasks', route: 'tasks.rosserresults.com', external: true },
 ];
 
