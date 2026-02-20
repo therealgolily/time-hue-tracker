@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft } from 'lucide-react';
+import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft, Layers } from 'lucide-react';
 import { usePlanProjects } from './hooks/usePlanProjects';
 import { usePlanData } from './hooks/usePlanData';
 import { TimeScale, PlanTask } from './types';
@@ -8,6 +8,60 @@ import GanttChart from './components/GanttChart';
 import TaskSidebar from './components/TaskSidebar';
 import TaskForm from './components/TaskForm';
 import SketchyFilter from './components/SketchyFilter';
+
+// Small inline component for adding a group from the toolbar
+const GroupButton = ({ onAdd, sketchBtn }: { onAdd: (name: string, type: 'client' | 'phase') => void; sketchBtn: (active?: boolean) => React.CSSProperties }) => {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [type, setType] = useState<'client' | 'phase'>('client');
+  const submit = () => {
+    if (!name.trim()) return;
+    onAdd(name.trim(), type);
+    setName(''); setOpen(false);
+  };
+  return (
+    <div className="relative">
+      <button onClick={() => setOpen(v => !v)} style={sketchBtn(open)} className="flex items-center gap-1 border-foreground">
+        <Layers size={12} /> Group
+      </button>
+      {open && (
+        <div
+          className="absolute top-full right-0 mt-1 z-50 bg-background border-2 border-foreground p-3 flex flex-col gap-2"
+          style={{ minWidth: 200, filter: 'url(#sketchy)', fontFamily: "'Caveat', cursive" }}
+          onClick={e => e.stopPropagation()}
+        >
+          <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>New Group</span>
+          <input
+            autoFocus
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Group name…"
+            style={{ fontSize: 14, fontFamily: "'Caveat', cursive", border: '1.5px solid currentColor', padding: '4px 8px', background: 'transparent', outline: 'none' }}
+            className="text-foreground"
+            onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setOpen(false); }}
+          />
+          <div className="flex gap-2">
+            {(['client', 'phase'] as const).map(t => (
+              <button
+                key={t}
+                onClick={() => setType(t)}
+                style={{ fontSize: 12, padding: '2px 8px', border: '1.5px solid currentColor', fontFamily: "'Caveat', cursive", background: type === t ? 'var(--foreground)' : 'transparent', color: type === t ? 'var(--background)' : 'inherit', cursor: 'pointer', flex: 1 }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={submit}
+            style={{ fontSize: 14, fontWeight: 700, fontFamily: "'Caveat', cursive", border: '2px solid currentColor', padding: '4px', background: 'var(--foreground)', color: 'var(--background)', cursor: 'pointer' }}
+          >
+            + Add Group
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const PlanApp = () => {
   const { projects, isLoading, createProject, updateProject } = usePlanProjects();
@@ -149,6 +203,11 @@ const PlanApp = () => {
             <Clock size={12} /> Weeks
           </button>
         </div>
+
+        {/* Add group */}
+        {activeProject && (
+          <GroupButton onAdd={(name, type) => createGroup.mutate({ name, type })} sketchBtn={sketchBtn} />
+        )}
 
         {/* Add task */}
         <button onClick={() => setShowTaskForm(true)} style={sketchBtn()} className="flex items-center gap-1 border-foreground">
