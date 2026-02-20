@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { X, Plus, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { TalkingPoint } from '../../hooks/usePrepSessions';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,10 +13,14 @@ const TomatoModal = ({ sessionId, initialPoints, onClose }: Props) => {
   const [points, setPoints] = useState<TalkingPoint[]>(initialPoints);
   const [newText, setNewText] = useState('');
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
+  const queryClient = useQueryClient();
 
   const save = (updated: TalkingPoint[]) => {
     clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => db.from('prep_sessions').update({ talking_points: updated }).eq('id', sessionId), 800);
+    saveTimer.current = setTimeout(async () => {
+      await db.from('prep_sessions').update({ talking_points: updated }).eq('id', sessionId);
+      queryClient.invalidateQueries({ queryKey: ['prep-sessions'] });
+    }, 800);
   };
 
   const add = () => {
