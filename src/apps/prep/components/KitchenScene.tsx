@@ -58,7 +58,7 @@ const KitchenScene = ({ session }: { session: PrepSession }) => {
 
       {/* Onion — left */}
       <Obj label="References" onClick={() => setModal('onion')} style={{ left: '10%', bottom: '22%', transform: 'translateX(-50%)' }}>
-        <OnionSVG className="w-24" />
+        <OnionSVG className="w-24 animate-kitchen-bob hover:[animation-play-state:paused]" />
       </Obj>
 
       {/* Cutting Board — center */}
@@ -68,7 +68,7 @@ const KitchenScene = ({ session }: { session: PrepSession }) => {
 
       {/* Tomato — right of board */}
       <Obj label="Agenda" onClick={() => setModal('tomato')} style={{ right: '10%', bottom: '22%', transform: 'translateX(50%)' }}>
-        <TomatoSVG className="w-24" />
+        <TomatoSVG className="w-24 animate-kitchen-bob-slow hover:[animation-play-state:paused]" />
       </Obj>
 
       {/* Timer — far right, further back */}
