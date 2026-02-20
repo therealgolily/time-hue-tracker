@@ -209,7 +209,7 @@ const GanttChart = ({
         {/* Left label panel */}
         <div className="flex-shrink-0 border-r border-border bg-background z-10" style={{ width: LABEL_W }}>
           {/* Header spacer */}
-          <div style={{ height: headerH, borderBottom: '1px solid' }} className="border-border" />
+          <div style={{ height: headerH, borderBottom: '1px solid hsl(var(--border))' }} />
           {/* Group + task rows */}
           {sortedTasks.map((task) => {
             const group = groups.find(g => g.id === task.group_id);
@@ -217,18 +217,18 @@ const GanttChart = ({
             return (
               <div
                 key={task.id}
-                style={{ height: ROW_H, borderBottom: '1px solid', display: 'flex', alignItems: 'center', padding: '0 6px 0 12px', fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 600, position: 'relative' }}
-                className="border-border/40 hover:bg-muted/30 transition-colors"
+                style={{ height: ROW_H, borderBottom: '1px solid hsl(var(--border))', display: 'flex', alignItems: 'center', padding: '0 8px 0 14px', fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 500, position: 'relative' }}
+                className="hover:bg-muted/20 transition-colors"
               >
-                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>{task.name}</span>
                 {/* Group pill / assign button */}
                 <button
                   onClick={e => { e.stopPropagation(); setGroupPickerId(isPickerOpen ? null : task.id); setShowNewGroup(false); setRenamingGroupId(null); }}
                   title="Assign group"
-                  className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded border border-border/50 hover:border-foreground/50 transition-colors flex-shrink-0 opacity-60 hover:opacity-100"
-                  style={{ fontFamily: "'Caveat', cursive" }}
+                  className="flex items-center gap-0.5 text-xs px-2 py-0.5 rounded-full border transition-colors flex-shrink-0"
+                  style={{ fontFamily: "'Caveat', cursive", borderColor: 'hsl(var(--border))', opacity: group ? 0.7 : 0.4 }}
                 >
-                  {group ? group.name.slice(0, 8) : '+ group'}
+                  {group ? group.name.slice(0, 10) : '+ group'}
                   <ChevronDown size={8} />
                 </button>
                 {/* Group picker dropdown */}
@@ -334,12 +334,12 @@ const GanttChart = ({
         <div className="flex-1 overflow-x-auto overflow-y-hidden relative" ref={chartRef}>
           <div style={{ width: totalW, position: 'relative' }}>
             {/* Header */}
-            <div style={{ height: headerH, borderBottom: '1px solid', position: 'sticky', top: 0, background: 'var(--background)', zIndex: 5 }} className="border-border">
+            <div style={{ height: headerH, borderBottom: '1px solid hsl(var(--border))', position: 'sticky', top: 0, background: 'hsl(var(--background))', zIndex: 5 }}>
               {/* Quarter row (months view only) */}
               {scale === 'months' && (
-                <div style={{ display: 'flex', height: 24, borderBottom: '1px solid', position: 'absolute', top: 0, left: 0, width: totalW }} className="border-border/50">
+                <div style={{ display: 'flex', height: 24, borderBottom: '1px solid hsl(var(--border) / 0.6)', position: 'absolute', top: 0, left: 0, width: totalW }}>
                   {quarterSpans.map((qs, i) => (
-                    <div key={i} style={{ width: qs.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700 }} className="border-border/40 text-muted-foreground">
+                    <div key={i} style={{ width: qs.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.4)', fontFamily: "'Caveat', cursive", fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>
                       {qs.label}
                     </div>
                   ))}
@@ -348,7 +348,7 @@ const GanttChart = ({
               {/* Month / Week row */}
               <div style={{ display: 'flex', height: scale === 'months' ? 24 : (scale === 'weeks' ? 36 : 24), position: 'absolute', top: scale === 'months' ? 24 : 0, left: 0, width: totalW }}>
                 {cols.map((col, i) => (
-                  <div key={i} style={{ width: colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: scale === 'weeks' ? 11 : 13, fontWeight: 600 }} className="border-border/30">
+                  <div key={i} style={{ width: colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.3)', fontFamily: "'Caveat', cursive", fontSize: scale === 'weeks' ? 11 : 13, fontWeight: 600 }}>
                     {scale === 'months' ? MONTHS[col.getMonth()] : `W${weekNumber(col)}`}
                   </div>
                 ))}
@@ -367,7 +367,7 @@ const GanttChart = ({
                 return (
                   <div style={{ display: 'flex', height: 36, position: 'absolute', top: 36, left: 0, width: totalW }}>
                     {yearSpans.map((ys, idx) => (
-                      <div key={idx} style={{ width: ys.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700 }} className="border-border/30 text-muted-foreground">
+                      <div key={idx} style={{ width: ys.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.3)', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>
                         {ys.label}
                       </div>
                     ))}
@@ -449,7 +449,7 @@ const GanttChart = ({
                   <div
                     key={task.id}
                     data-task-id={task.id}
-                    style={{ position: 'absolute', top: y + 5, left: x, width: w, height: ROW_H - 10, background: sc.bar, border: `2px solid ${sc.border}`, borderRadius: 0, cursor: 'grab', display: 'flex', alignItems: 'center', filter: 'url(#sketchy)', zIndex: 2, overflow: 'hidden' }}
+                    style={{ position: 'absolute', top: y + 6, left: x, width: w, height: ROW_H - 12, background: sc.bar, border: `1.5px solid ${sc.border}`, borderRadius: 6, cursor: 'grab', display: 'flex', alignItems: 'center', filter: 'url(#sketchy)', zIndex: 2, overflow: 'hidden' }}
                     onMouseEnter={() => setHoveredTask(task.id)}
                     onMouseLeave={() => setHoveredTask(null)}
                     onMouseDown={e => handleBarMouseDown(e, task, 'move')}
@@ -481,7 +481,7 @@ const GanttChart = ({
 
               {/* Row backgrounds */}
               {sortedTasks.map((_, i) => (
-                <div key={i} style={{ position: 'absolute', top: i * ROW_H, left: 0, right: 0, height: ROW_H, background: i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.025)', borderBottom: '1px solid', pointerEvents: 'none' }} className="border-foreground/10" />
+                <div key={i} style={{ position: 'absolute', top: i * ROW_H, left: 0, right: 0, height: ROW_H, background: i % 2 === 0 ? 'transparent' : 'hsl(var(--muted) / 0.3)', borderBottom: '1px solid hsl(var(--border) / 0.35)', pointerEvents: 'none' }} />
               ))}
             </div>
           </div>
