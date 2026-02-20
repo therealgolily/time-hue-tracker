@@ -180,6 +180,7 @@ const PlanApp = () => {
             onUpdateTask={(id, updates) => updateTask.mutate({ id, ...(updates as Partial<PlanTask>) })}
             onCreateDep={(from, to) => createDependency.mutate({ from_task_id: from, to_task_id: to })}
             onDeleteDep={(id) => deleteDependency.mutate(id)}
+            onCreateGroup={(name, type) => createGroup.mutate({ name, type })}
           />
           {sidebarOpen && (
             <TaskSidebar

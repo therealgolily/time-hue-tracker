@@ -6,6 +6,7 @@ import {
   STATUS_COLORS, daysDiff, weekStart, addWeeks, monthStart, addMonths,
   weekNumber, quarterOf, toISO,
 } from '../utils';
+import { ChevronDown } from 'lucide-react';
 
 const ROW_H = 38;
 const LABEL_W = 180;
@@ -21,6 +22,7 @@ interface Props {
   onUpdateTask: (id: string, updates: Partial<PlanTask>) => void;
   onCreateDep: (from: string, to: string) => void;
   onDeleteDep: (id: string) => void;
+  onCreateGroup: (name: string, type: 'client' | 'phase') => void;
 }
 
 // Build the column grid
@@ -58,13 +60,16 @@ const buildColumns = (scale: TimeScale, tasks: PlanTask[]) => {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const GanttChart = ({
-  tasks, groups, dependencies, scale, onUpdateTask, onCreateDep, onDeleteDep,
+  tasks, groups, dependencies, scale, onUpdateTask, onCreateDep, onDeleteDep, onCreateGroup,
 }: Props) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState<{ taskId: string; type: 'move' | 'resize-left' | 'resize-right'; startX: number; origStart: string; origEnd: string } | null>(null);
   const [depDrag, setDepDrag] = useState<{ fromId: string; x: number; y: number } | null>(null);
   const [hoveredDep, setHoveredDep] = useState<string | null>(null);
   const [hoveredTask, setHoveredTask] = useState<string | null>(null);
+  const [groupPickerId, setGroupPickerId] = useState<string | null>(null);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [showNewGroup, setShowNewGroup] = useState(false);
 
   const hasData = tasks.length > 0;
   const { cols, start, colW } = hasData ? buildColumns(scale, tasks) : { cols: [] as Date[], start: new Date(), colW: COL_W_MONTH };
@@ -195,7 +200,7 @@ const GanttChart = ({
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden" onClick={() => { setGroupPickerId(null); setShowNewGroup(false); }}>
       <div className="flex flex-1 overflow-hidden">
         {/* Left label panel */}
         <div className="flex-shrink-0 border-r-2 border-foreground bg-background z-10" style={{ width: LABEL_W }}>
@@ -204,16 +209,93 @@ const GanttChart = ({
           {/* Group + task rows */}
           {sortedTasks.map((task) => {
             const group = groups.find(g => g.id === task.group_id);
+            const isPickerOpen = groupPickerId === task.id;
             return (
               <div
                 key={task.id}
-                style={{ height: ROW_H, borderBottom: '1px solid', display: 'flex', alignItems: 'center', padding: '0 10px', fontFamily: "'Caveat', cursive", fontSize: 13, fontWeight: 600 }}
+                style={{ height: ROW_H, borderBottom: '1px solid', display: 'flex', alignItems: 'center', padding: '0 6px 0 10px', fontFamily: "'Caveat', cursive", fontSize: 13, fontWeight: 600, position: 'relative' }}
                 className="border-foreground/20"
               >
-                {group && (
-                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.45, marginRight: 6 }}>{group.name.slice(0, 3)}</span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
+                {/* Group pill / assign button */}
+                <button
+                  onClick={() => setGroupPickerId(isPickerOpen ? null : task.id)}
+                  title="Assign group"
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 2,
+                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                    padding: '1px 5px', border: '1.5px solid', flexShrink: 0,
+                    fontFamily: "'Caveat', cursive", cursor: 'pointer',
+                    opacity: group ? 0.7 : 0.4,
+                    background: 'transparent',
+                  }}
+                  className="border-foreground/40 hover:opacity-100"
+                >
+                  {group ? group.name.slice(0, 6) : '+ grp'}
+                  <ChevronDown size={8} />
+                </button>
+                {/* Group picker dropdown */}
+                {isPickerOpen && (
+                  <div
+                    style={{
+                      position: 'absolute', top: ROW_H - 2, right: 0, zIndex: 50,
+                      background: 'var(--background)', border: '2px solid',
+                      minWidth: 150, fontFamily: "'Caveat', cursive", fontSize: 13,
+                      filter: 'url(#sketchy)',
+                    }}
+                    className="border-foreground shadow-lg"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={() => { onUpdateTask(task.id, { group_id: null }); setGroupPickerId(null); }}
+                      className="w-full text-left px-3 py-1 hover:bg-foreground hover:text-background border-b border-foreground/20"
+                      style={{ fontSize: 12, opacity: 0.6 }}
+                    >
+                      — No Group
+                    </button>
+                    {groups.map(g => (
+                      <button
+                        key={g.id}
+                        onClick={() => { onUpdateTask(task.id, { group_id: g.id }); setGroupPickerId(null); }}
+                        className="w-full text-left px-3 py-1 hover:bg-foreground hover:text-background border-b border-foreground/20"
+                        style={{ fontWeight: task.group_id === g.id ? 700 : 400 }}
+                      >
+                        {g.name}
+                        <span style={{ fontSize: 10, opacity: 0.5, marginLeft: 4 }}>{g.type}</span>
+                      </button>
+                    ))}
+                    {/* New group inline */}
+                    {showNewGroup ? (
+                      <div className="px-2 py-1 flex gap-1">
+                        <input
+                          autoFocus
+                          value={newGroupName}
+                          onChange={e => setNewGroupName(e.target.value)}
+                          placeholder="Group name…"
+                          style={{ flex: 1, fontSize: 12, border: '1px solid', padding: '1px 4px', fontFamily: "'Caveat', cursive", background: 'transparent', outline: 'none' }}
+                          className="border-foreground/50"
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && newGroupName.trim()) {
+                              onCreateGroup(newGroupName.trim(), 'client');
+                              setNewGroupName('');
+                              setShowNewGroup(false);
+                              setGroupPickerId(null);
+                            }
+                            if (e.key === 'Escape') { setShowNewGroup(false); setNewGroupName(''); }
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowNewGroup(true)}
+                        className="w-full text-left px-3 py-1 hover:bg-foreground hover:text-background"
+                        style={{ fontSize: 12, opacity: 0.6 }}
+                      >
+                        + New group…
+                      </button>
+                    )}
+                  </div>
                 )}
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.name}</span>
               </div>
             );
           })}
