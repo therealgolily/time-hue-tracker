@@ -73,7 +73,7 @@ const KitchenScene = ({ session }: { session: PrepSession }) => {
 
       {/* Timer — far right, further back */}
       <Obj label={timerLabel} onClick={() => setModal('timer')} style={{ right: '4%', bottom: '40%' }}>
-        <KitchenTimerSVG className="w-20" isPast={countdown?.isPast} />
+        <KitchenTimerSVG className="w-20 animate-kitchen-tick hover:[animation-play-state:paused]" isPast={countdown?.isPast} />
       </Obj>
 
       {/* Modals */}
