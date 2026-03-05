@@ -9,6 +9,8 @@ import TaskSidebar from './components/TaskSidebar';
 import TaskForm from './components/TaskForm';
 import SketchyFilter from './components/SketchyFilter';
 
+const SWISS_FONT = "'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif";
+
 // Groups management panel (dropdown from toolbar)
 const GroupsPanel = ({
   groups,
@@ -42,13 +44,13 @@ const GroupsPanel = ({
       </button>
       {open && (
         <div
-          className="absolute top-full right-0 mt-1 z-50 bg-background border border-border rounded-md shadow-lg p-0 overflow-hidden"
-          style={{ minWidth: 240, fontFamily: "'Caveat', cursive" }}
+          className="absolute top-full right-0 mt-1 z-50 bg-background border-2 border-foreground shadow-lg p-0 overflow-hidden"
+          style={{ minWidth: 240, fontFamily: SWISS_FONT }}
           onClick={e => e.stopPropagation()}
         >
           {/* Existing groups */}
           {groups.length > 0 && (
-            <div className="border-b border-border">
+            <div className="border-b-2 border-foreground">
               {groups.map(g => (
                 <div key={g.id} className="flex items-center gap-2 px-3 py-2 hover:bg-muted group">
                   {renamingId === g.id ? (
@@ -57,8 +59,8 @@ const GroupsPanel = ({
                         autoFocus
                         value={renameDraft}
                         onChange={e => setRenameDraft(e.target.value)}
-                        className="flex-1 text-sm bg-transparent outline-none border-b border-foreground"
-                        style={{ fontFamily: "'Caveat', cursive" }}
+                        className="flex-1 text-sm bg-transparent outline-none border-b-2 border-foreground"
+                        style={{ fontFamily: SWISS_FONT }}
                         onKeyDown={e => {
                           if (e.key === 'Enter' && renameDraft.trim()) { onRename(g.id, renameDraft.trim()); setRenamingId(null); }
                           if (e.key === 'Escape') setRenamingId(null);
@@ -70,8 +72,8 @@ const GroupsPanel = ({
                     </>
                   ) : (
                     <>
-                      <span className="flex-1 text-sm font-semibold">{g.name}</span>
-                      <span className="text-xs opacity-40 uppercase tracking-wide">{g.type}</span>
+                      <span className="flex-1 text-sm font-semibold" style={{ letterSpacing: '0.01em' }}>{g.name}</span>
+                      <span className="text-xs opacity-40 uppercase tracking-widest">{g.type}</span>
                       <button
                         onClick={() => { setRenamingId(g.id); setRenameDraft(g.name); }}
                         className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity"
@@ -94,13 +96,13 @@ const GroupsPanel = ({
           )}
           {/* Add new group */}
           <div className="p-3 flex flex-col gap-2">
-            <p className="text-xs font-bold uppercase tracking-widest opacity-50">New Group</p>
+            <p className="text-xs font-bold uppercase" style={{ letterSpacing: '0.12em', opacity: 0.5 }}>New Group</p>
             <input
               value={newName}
               onChange={e => setNewName(e.target.value)}
               placeholder="Group name…"
-              className="text-sm border border-border rounded px-2 py-1 bg-transparent outline-none focus:ring-1 focus:ring-foreground"
-              style={{ fontFamily: "'Caveat', cursive" }}
+              className="text-sm border-2 border-foreground px-2 py-1 bg-transparent outline-none focus:ring-1 focus:ring-foreground"
+              style={{ fontFamily: SWISS_FONT }}
               onKeyDown={e => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') setOpen(false); }}
             />
             <div className="flex gap-1.5">
@@ -108,12 +110,14 @@ const GroupsPanel = ({
                 <button
                   key={t}
                   onClick={() => setNewType(t)}
-                  className="flex-1 text-xs py-1 rounded border transition-colors capitalize"
+                  className="flex-1 text-xs py-1 border-2 transition-colors capitalize"
                   style={{
-                    fontFamily: "'Caveat', cursive",
+                    fontFamily: SWISS_FONT,
                     background: newType === t ? 'var(--foreground)' : 'transparent',
                     color: newType === t ? 'var(--background)' : 'inherit',
                     borderColor: 'currentColor',
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
                   }}
                 >
                   {t}
@@ -122,8 +126,8 @@ const GroupsPanel = ({
             </div>
             <button
               onClick={submit}
-              className="text-sm font-bold py-1.5 rounded border-2 transition-opacity hover:opacity-80"
-              style={{ fontFamily: "'Caveat', cursive", background: 'var(--foreground)', color: 'var(--background)', borderColor: 'var(--foreground)' }}
+              className="text-sm font-bold py-1.5 border-2 transition-opacity hover:opacity-80"
+              style={{ fontFamily: SWISS_FONT, background: 'var(--foreground)', color: 'var(--background)', borderColor: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 11 }}
             >
               + Add Group
             </button>
@@ -181,37 +185,39 @@ const PlanApp = () => {
   };
 
   const sketchBtn = (active?: boolean): React.CSSProperties => ({
-    fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 700,
-    padding: '4px 12px', border: '1.5px solid',
+    fontFamily: SWISS_FONT, fontSize: 11, fontWeight: 700,
+    padding: '4px 12px', border: '2px solid',
     borderColor: 'hsl(var(--foreground) / 0.4)',
-    borderRadius: 4,
+    borderRadius: 0,
     background: active ? 'var(--foreground)' : 'transparent',
     color: active ? 'var(--background)' : 'inherit',
     cursor: 'pointer',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
   });
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <span style={{ fontFamily: "'Caveat', cursive", fontSize: 20, opacity: 0.5 }}>Loading plan…</span>
+        <span style={{ fontFamily: SWISS_FONT, fontSize: 14, opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Loading plan…</span>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden" style={{ fontFamily: SWISS_FONT }}>
       <SketchyFilter />
 
       {/* Header */}
-      <div className="border-b border-border flex items-center gap-2.5 px-4 flex-shrink-0" style={{ height: 52 }}>
+      <div className="border-b-2 border-foreground flex items-center gap-2.5 px-4 flex-shrink-0" style={{ height: 52 }}>
         <Link to="/apps/work" className="hover:opacity-60 mr-1"><ArrowLeft size={16} /></Link>
 
         {/* Project selector */}
         <div className="relative">
           <button
             onClick={() => setShowProjectMenu(v => !v)}
-            className="flex items-center gap-1.5 hover:bg-muted px-2 py-1 rounded transition-colors"
-            style={{ fontFamily: "'Caveat', cursive", fontSize: 16, fontWeight: 700 }}
+            className="flex items-center gap-1.5 hover:bg-muted px-2 py-1 transition-colors"
+            style={{ fontFamily: SWISS_FONT, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}
           >
             {editingTitle ? (
               <input
@@ -220,7 +226,7 @@ const PlanApp = () => {
                 onChange={e => setTitleDraft(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={e => e.key === 'Enter' && handleTitleSave()}
-                style={{ fontFamily: "'Caveat', cursive", fontSize: 16, border: 'none', outline: 'none', background: 'transparent', minWidth: 120 }}
+                style={{ fontFamily: SWISS_FONT, fontSize: 13, border: 'none', outline: 'none', background: 'transparent', minWidth: 120, textTransform: 'uppercase', letterSpacing: '0.06em' }}
                 onClick={e => e.stopPropagation()}
               />
             ) : (
@@ -231,21 +237,21 @@ const PlanApp = () => {
             <ChevronDown size={13} className="opacity-50" />
           </button>
           {showProjectMenu && (
-            <div className="absolute top-full left-0 mt-1 z-50 bg-background border border-border rounded-md shadow-lg min-w-48 overflow-hidden" style={{ fontFamily: "'Caveat', cursive" }}>
+            <div className="absolute top-full left-0 mt-1 z-50 bg-background border-2 border-foreground shadow-lg min-w-48 overflow-hidden" style={{ fontFamily: SWISS_FONT }}>
               {projects.map(p => (
                 <button
                   key={p.id}
                   onClick={() => { setActiveProjectId(p.id); setShowProjectMenu(false); }}
                   className="w-full text-left px-3 py-2 hover:bg-muted transition-colors border-b border-border/50 last:border-0"
-                  style={{ fontSize: 14 }}
+                  style={{ fontSize: 12, letterSpacing: '0.02em' }}
                 >
                   {p.title}
                 </button>
               ))}
               <button
                 onClick={handleNewProject}
-                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 border-t border-border"
-                style={{ fontSize: 14 }}
+                className="w-full text-left px-3 py-2 hover:bg-muted transition-colors flex items-center gap-2 border-t-2 border-foreground"
+                style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}
               >
                 <Plus size={12} /> New Project
               </button>
@@ -266,11 +272,11 @@ const PlanApp = () => {
         <div className="flex-1" />
 
         {/* Scale toggle */}
-        <div className="flex items-center border border-border rounded overflow-hidden">
-          <button style={sketchBtn(scale === 'months')} onClick={() => setScale('months')} className="flex items-center gap-1 rounded-none border-0 border-r border-border">
+        <div className="flex items-center border-2 border-foreground overflow-hidden">
+          <button style={sketchBtn(scale === 'months')} onClick={() => setScale('months')} className="flex items-center gap-1 border-0 border-r-2 border-foreground">
             <LayoutGrid size={11} /> Months
           </button>
-          <button style={sketchBtn(scale === 'weeks')} onClick={() => setScale('weeks')} className="flex items-center gap-1 rounded-none border-0">
+          <button style={sketchBtn(scale === 'weeks')} onClick={() => setScale('weeks')} className="flex items-center gap-1 border-0">
             <Clock size={11} /> Weeks
           </button>
         </div>
@@ -300,8 +306,8 @@ const PlanApp = () => {
       {/* Main layout */}
       {!activeProject ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-4 opacity-50">
-          <span style={{ fontFamily: "'Caveat', cursive", fontSize: 22 }}>No project selected</span>
-          <button onClick={handleNewProject} style={{ ...sketchBtn(), fontSize: 16 }} className="border-foreground">
+          <span style={{ fontFamily: SWISS_FONT, fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.1em' }}>No project selected</span>
+          <button onClick={handleNewProject} style={{ ...sketchBtn(), fontSize: 13 }} className="border-foreground">
             + New Project
           </button>
         </div>
