@@ -43,3 +43,12 @@ export interface PlanDependency {
   user_id: string;
   created_at: string;
 }
+
+export interface PlanDeadline {
+  id: string;
+  project_id: string;
+  user_id: string;
+  label: string;
+  deadline_date: string;
+  created_at: string;
+}

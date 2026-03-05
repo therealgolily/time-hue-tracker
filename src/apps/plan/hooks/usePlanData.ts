@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { PlanGroup, PlanTask, PlanDependency, GroupType, TaskStatus } from '../types';
+import { PlanGroup, PlanTask, PlanDependency, PlanDeadline, GroupType, TaskStatus } from '../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -14,6 +14,7 @@ export const usePlanData = (projectId: string | null) => {
     queryClient.invalidateQueries({ queryKey: ['plan-groups', projectId] });
     queryClient.invalidateQueries({ queryKey: ['plan-tasks', projectId] });
     queryClient.invalidateQueries({ queryKey: ['plan-deps', projectId] });
+    queryClient.invalidateQueries({ queryKey: ['plan-deadlines', projectId] });
   };
 
   // Groups
@@ -94,7 +95,6 @@ export const usePlanData = (projectId: string | null) => {
   const { data: dependencies = [] } = useQuery({
     queryKey: ['plan-deps', projectId],
     queryFn: async () => {
-      // fetch all deps where either task is in this project
       const taskIds = tasks.map(t => t.id);
       if (taskIds.length === 0) return [];
       const { data, error } = await db.from('plan_dependencies').select('*').in('from_task_id', taskIds);
@@ -120,5 +120,47 @@ export const usePlanData = (projectId: string | null) => {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['plan-deps', projectId] }),
   });
 
-  return { groups, tasks, dependencies, createGroup, updateGroup, deleteGroup, createTask, updateTask, deleteTask, createDependency, deleteDependency };
+  // Deadlines
+  const { data: deadlines = [] } = useQuery({
+    queryKey: ['plan-deadlines', projectId],
+    queryFn: async () => {
+      const { data, error } = await db.from('plan_deadlines').select('*').eq('project_id', projectId).order('deadline_date', { ascending: true });
+      if (error) throw error;
+      return (data || []) as PlanDeadline[];
+    },
+    enabled: !!user && !!projectId,
+  });
+
+  const createDeadline = useMutation({
+    mutationFn: async ({ label, deadline_date }: { label: string; deadline_date: string }) => {
+      const { data, error } = await db.from('plan_deadlines').insert({ project_id: projectId, user_id: user!.id, label, deadline_date }).select().single();
+      if (error) throw error;
+      return data as PlanDeadline;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['plan-deadlines', projectId] }),
+  });
+
+  const updateDeadline = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; label?: string; deadline_date?: string }) => {
+      const { error } = await db.from('plan_deadlines').update(updates).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['plan-deadlines', projectId] }),
+  });
+
+  const deleteDeadline = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await db.from('plan_deadlines').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['plan-deadlines', projectId] }),
+  });
+
+  return {
+    groups, tasks, dependencies, deadlines,
+    createGroup, updateGroup, deleteGroup,
+    createTask, updateTask, deleteTask,
+    createDependency, deleteDependency,
+    createDeadline, updateDeadline, deleteDeadline,
+  };
 };
