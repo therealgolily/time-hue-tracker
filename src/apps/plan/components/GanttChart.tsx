@@ -6,6 +6,7 @@ import {
 } from '../utils';
 import { ChevronDown, Pencil, Trash2, Check } from 'lucide-react';
 
+const SWISS_FONT = "'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 const ROW_H = 42;
 const LABEL_W = 200;
 const COL_W_WEEK = 30;
@@ -202,7 +203,7 @@ const GanttChart = ({
 
   if (!hasData) {
     return (
-      <div className="flex-1 flex items-center justify-center opacity-40" style={{ fontFamily: "'Caveat', cursive", fontSize: 20 }}>
+      <div className="flex-1 flex items-center justify-center opacity-40" style={{ fontFamily: SWISS_FONT, fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
         No tasks yet — add one from the toolbar
       </div>
     );
@@ -217,8 +218,8 @@ const GanttChart = ({
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left label panel ─────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 border-r border-border bg-background z-10" style={{ width: LABEL_W }}>
-          <div style={{ height: headerH, borderBottom: '1px solid hsl(var(--border))' }} />
+        <div className="flex-shrink-0 border-r-2 border-foreground bg-background z-10" style={{ width: LABEL_W }}>
+          <div style={{ height: headerH, borderBottom: '2px solid hsl(var(--foreground))' }} />
           {sortedTasks.map((task) => {
             const group = groups.find(g => g.id === task.group_id);
             const isPickerOpen = groupPickerId === task.id;
@@ -233,11 +234,12 @@ const GanttChart = ({
                   borderBottom: '1px solid hsl(var(--border))',
                   display: 'flex', alignItems: 'center',
                   padding: '0 8px 0 14px',
-                  fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 500,
+                  fontFamily: SWISS_FONT, fontSize: 12, fontWeight: 500,
                   position: 'relative',
+                  letterSpacing: '0.01em',
                   background: isSelected ? 'hsl(var(--muted) / 0.5)' : undefined,
-                  outline: isSelected ? '1px solid hsl(var(--foreground) / 0.2)' : undefined,
-                  outlineOffset: -1,
+                  outline: isSelected ? '2px solid hsl(var(--foreground) / 0.2)' : undefined,
+                  outlineOffset: -2,
                 }}
                 className="transition-colors"
                 onClick={e => { e.stopPropagation(); setSelectedId(task.id); setGroupPickerId(null); }}
@@ -256,10 +258,10 @@ const GanttChart = ({
                     }}
                     onClick={e => e.stopPropagation()}
                     style={{
-                      flex: 1, fontFamily: "'Caveat', cursive", fontSize: 14, fontWeight: 500,
+                      flex: 1, fontFamily: SWISS_FONT, fontSize: 12, fontWeight: 500,
                       background: 'transparent', border: 'none', outline: 'none',
-                      borderBottom: '1.5px solid hsl(var(--foreground) / 0.5)',
-                      padding: '0 2px', marginRight: 6,
+                      borderBottom: '2px solid hsl(var(--foreground) / 0.5)',
+                      padding: '0 2px', marginRight: 6, letterSpacing: '0.01em',
                     }}
                   />
                 ) : (
@@ -271,8 +273,8 @@ const GanttChart = ({
                   <button
                     onClick={e => { e.stopPropagation(); setGroupPickerId(isPickerOpen ? null : task.id); setShowNewGroup(false); setRenamingGroupId(null); }}
                     title="Assign group"
-                    className="flex items-center gap-0.5 text-xs px-2 py-0.5 rounded-full border transition-colors flex-shrink-0"
-                    style={{ fontFamily: "'Caveat', cursive", borderColor: 'hsl(var(--border))', opacity: group ? 0.7 : 0.4 }}
+                    className="flex items-center gap-0.5 text-xs px-2 py-0.5 border transition-colors flex-shrink-0"
+                    style={{ fontFamily: SWISS_FONT, fontSize: 10, borderColor: 'hsl(var(--border))', opacity: group ? 0.7 : 0.4, letterSpacing: '0.04em', textTransform: 'uppercase' }}
                   >
                     {group ? group.name.slice(0, 10) : '+ group'}
                     <ChevronDown size={8} />
@@ -282,18 +284,18 @@ const GanttChart = ({
                 {/* Group picker dropdown */}
                 {isPickerOpen && (
                   <div
-                    className="absolute z-50 bg-background border border-border rounded-lg shadow-xl overflow-hidden"
-                    style={{ top: ROW_H, right: 0, minWidth: 190, fontFamily: "'Caveat', cursive" }}
+                    className="absolute z-50 bg-background border-2 border-foreground shadow-xl overflow-hidden"
+                    style={{ top: ROW_H, right: 0, minWidth: 190, fontFamily: SWISS_FONT }}
                     onClick={e => e.stopPropagation()}
                   >
-                    <button onClick={() => { onUpdateTask(task.id, { group_id: null }); setGroupPickerId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted border-b border-border/50 opacity-60 hover:opacity-100">— No Group</button>
+                    <button onClick={() => { onUpdateTask(task.id, { group_id: null }); setGroupPickerId(null); }} className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted border-b border-border/50 opacity-60 hover:opacity-100" style={{ letterSpacing: '0.02em' }}>— No Group</button>
                     {groups.map(g => (
                       <div key={g.id} className="flex items-center group border-b border-border/30 last:border-0 hover:bg-muted">
                         {renamingGroupId === g.id ? (
                           <div className="flex items-center gap-1 px-2 py-1 w-full">
                             <input autoFocus value={renameGroupDraft} onChange={e => setRenameGroupDraft(e.target.value)}
-                              className="flex-1 text-xs bg-transparent outline-none border-b border-foreground"
-                              style={{ fontFamily: "'Caveat', cursive" }}
+                              className="flex-1 text-xs bg-transparent outline-none border-b-2 border-foreground"
+                              style={{ fontFamily: SWISS_FONT }}
                               onKeyDown={e => {
                                 if (e.key === 'Enter' && renameGroupDraft.trim()) { onUpdateGroup?.(g.id, renameGroupDraft.trim()); setRenamingGroupId(null); }
                                 if (e.key === 'Escape') setRenamingGroupId(null);
@@ -304,7 +306,7 @@ const GanttChart = ({
                         ) : (
                           <>
                             <button onClick={() => { onUpdateTask(task.id, { group_id: g.id }); setGroupPickerId(null); }} className="flex-1 text-left px-3 py-1.5 text-xs" style={{ fontWeight: task.group_id === g.id ? 700 : 400 }}>
-                              {g.name}<span className="opacity-40 ml-1 text-[10px]">{g.type}</span>
+                              {g.name}<span className="opacity-40 ml-1 text-[10px] uppercase tracking-wider">{g.type}</span>
                             </button>
                             <button className="opacity-0 group-hover:opacity-50 hover:!opacity-100 px-1 transition-opacity" onClick={e => { e.stopPropagation(); setRenamingGroupId(g.id); setRenameGroupDraft(g.name); }}><Pencil size={10} /></button>
                             <button className="opacity-0 group-hover:opacity-50 hover:!opacity-100 px-1 text-destructive transition-opacity" onClick={e => { e.stopPropagation(); onDeleteGroup?.(g.id); setGroupPickerId(null); }}><Trash2 size={10} /></button>
@@ -313,10 +315,10 @@ const GanttChart = ({
                       </div>
                     ))}
                     {showNewGroup ? (
-                      <div className="px-2 py-1.5 flex gap-1 border-t border-border">
+                      <div className="px-2 py-1.5 flex gap-1 border-t-2 border-foreground">
                         <input autoFocus value={newGroupName} onChange={e => setNewGroupName(e.target.value)} placeholder="Group name…"
-                          className="flex-1 text-xs border border-border rounded px-1 py-0.5 bg-transparent outline-none"
-                          style={{ fontFamily: "'Caveat', cursive" }}
+                          className="flex-1 text-xs border-2 border-foreground px-1 py-0.5 bg-transparent outline-none"
+                          style={{ fontFamily: SWISS_FONT }}
                           onKeyDown={e => {
                             if (e.key === 'Enter' && newGroupName.trim()) { onCreateGroup(newGroupName.trim(), 'client'); setNewGroupName(''); setShowNewGroup(false); setGroupPickerId(null); }
                             if (e.key === 'Escape') { setShowNewGroup(false); setNewGroupName(''); }
@@ -324,7 +326,7 @@ const GanttChart = ({
                         />
                       </div>
                     ) : (
-                      <button onClick={() => setShowNewGroup(true)} className="w-full text-left px-3 py-1.5 text-xs border-t border-border opacity-60 hover:opacity-100 hover:bg-muted transition-colors">+ New group…</button>
+                      <button onClick={() => setShowNewGroup(true)} className="w-full text-left px-3 py-1.5 text-xs border-t-2 border-foreground opacity-60 hover:opacity-100 hover:bg-muted transition-colors uppercase tracking-wider">+ New group…</button>
                     )}
                   </div>
                 )}
@@ -338,11 +340,11 @@ const GanttChart = ({
           <div style={{ width: totalW, position: 'relative' }}>
 
             {/* Header */}
-            <div style={{ height: headerH, borderBottom: '1px solid hsl(var(--border))', position: 'sticky', top: 0, background: 'hsl(var(--background))', zIndex: 5 }}>
+            <div style={{ height: headerH, borderBottom: '2px solid hsl(var(--foreground))', position: 'sticky', top: 0, background: 'hsl(var(--background))', zIndex: 5 }}>
               {scale === 'months' && (
                 <div style={{ display: 'flex', height: 24, borderBottom: '1px solid hsl(var(--border) / 0.6)', position: 'absolute', top: 0, left: 0, width: totalW }}>
                   {quarterSpans.map((qs, i) => (
-                    <div key={i} style={{ width: qs.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.4)', fontFamily: "'Caveat', cursive", fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>
+                    <div key={i} style={{ width: qs.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.4)', fontFamily: SWISS_FONT, fontSize: 10, fontWeight: 700, color: 'hsl(var(--muted-foreground))', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
                       {qs.label}
                     </div>
                   ))}
@@ -350,7 +352,7 @@ const GanttChart = ({
               )}
               <div style={{ display: 'flex', height: scale === 'months' ? 24 : 36, position: 'absolute', top: scale === 'months' ? 24 : 0, left: 0, width: totalW }}>
                 {cols.map((col, i) => (
-                  <div key={i} style={{ width: colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.3)', fontFamily: "'Caveat', cursive", fontSize: scale === 'weeks' ? 11 : 13, fontWeight: 600 }}>
+                  <div key={i} style={{ width: colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.3)', fontFamily: SWISS_FONT, fontSize: scale === 'weeks' ? 10 : 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {scale === 'months' ? MONTHS[col.getMonth()] : `W${weekNumber(col)}`}
                   </div>
                 ))}
@@ -366,7 +368,7 @@ const GanttChart = ({
                 return (
                   <div style={{ display: 'flex', height: 36, position: 'absolute', top: 36, left: 0, width: totalW }}>
                     {yearSpans.map((ys, idx) => (
-                      <div key={idx} style={{ width: ys.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.3)', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700, color: 'hsl(var(--muted-foreground))' }}>
+                      <div key={idx} style={{ width: ys.span * colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.3)', fontFamily: SWISS_FONT, fontSize: 11, fontWeight: 700, color: 'hsl(var(--muted-foreground))', letterSpacing: '0.06em' }}>
                         {ys.label}
                       </div>
                     ))}
@@ -383,8 +385,8 @@ const GanttChart = ({
               ))}
 
               {/* Today line */}
-              <div style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 2, background: '#C1121F', opacity: 0.7, zIndex: 4, pointerEvents: 'none' }}>
-                <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: '#C1121F', color: '#fff', fontSize: 10, fontFamily: "'Caveat', cursive", fontWeight: 700, padding: '1px 6px', borderRadius: 10, whiteSpace: 'nowrap' }}>Today</div>
+              <div style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 2, background: 'hsl(0 100% 50%)', opacity: 0.8, zIndex: 4, pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'hsl(0 100% 50%)', color: '#fff', fontSize: 9, fontFamily: SWISS_FONT, fontWeight: 700, padding: '1px 6px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Today</div>
               </div>
 
               {/* Task bars */}
@@ -408,15 +410,13 @@ const GanttChart = ({
                       position: 'absolute',
                       top: y + 6, left: x, width: w, height: ROW_H - 12,
                       background: sc.bar,
-                      border: `${isSelected ? 2.5 : 1.5}px solid ${isSelected ? '#fff' : sc.border}`,
-                      outline: isSelected ? `2px solid ${sc.border}` : 'none',
-                      borderRadius: 6,
+                      border: `${isSelected ? 2.5 : 2}px solid ${isSelected ? 'hsl(var(--foreground))' : sc.border}`,
+                      borderRadius: 0,
                       cursor: isDragging ? 'grabbing' : (isEditing ? 'text' : 'grab'),
                       display: 'flex', alignItems: 'center',
-                      filter: 'url(#sketchy)',
                       zIndex: isDragging ? 10 : (isSelected ? 4 : 2),
                       overflow: 'visible',
-                      boxShadow: isDragging ? '0 6px 24px rgba(0,0,0,0.28)' : isSelected ? '0 2px 10px rgba(0,0,0,0.18)' : 'none',
+                      boxShadow: isDragging ? '0 4px 16px rgba(0,0,0,0.25)' : isSelected ? '0 2px 8px rgba(0,0,0,0.15)' : 'none',
                       transition: isDragging ? 'none' : 'box-shadow 0.15s',
                     }}
                     onClick={e => { e.stopPropagation(); setSelectedId(task.id); }}
@@ -426,10 +426,10 @@ const GanttChart = ({
                     {/* Resize LEFT */}
                     <div
                       title="Drag to resize"
-                      style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 10, cursor: 'ew-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: `1px solid ${sc.border}`, background: 'rgba(0,0,0,0.12)', borderRadius: '6px 0 0 6px' }}
+                      style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 10, cursor: 'ew-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: `1px solid ${sc.border}`, background: 'rgba(0,0,0,0.1)' }}
                       onMouseDown={e => { e.stopPropagation(); handleBarMouseDown(e, task, 'resize-left'); }}
                     >
-                      <span style={{ width: 2, height: 12, background: sc.text, opacity: 0.5, borderRadius: 1 }} />
+                      <span style={{ width: 2, height: 12, background: sc.text, opacity: 0.5 }} />
                     </div>
 
                     {/* Inline edit on bar OR label */}
@@ -447,13 +447,14 @@ const GanttChart = ({
                         onClick={e => e.stopPropagation()}
                         onMouseDown={e => e.stopPropagation()}
                         style={{
-                          flex: 1, textAlign: 'center', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700,
+                          flex: 1, textAlign: 'center', fontFamily: SWISS_FONT, fontSize: 10, fontWeight: 700,
                           color: sc.text, background: 'transparent', border: 'none', outline: 'none',
                           paddingLeft: 14, paddingRight: 14, cursor: 'text',
+                          textTransform: 'uppercase', letterSpacing: '0.06em',
                         }}
                       />
                     ) : (
-                      <span style={{ flex: 1, textAlign: 'center', fontFamily: "'Caveat', cursive", fontSize: 12, fontWeight: 700, color: sc.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: 14, paddingRight: 14, pointerEvents: 'none', userSelect: 'none' }}>
+                      <span style={{ flex: 1, textAlign: 'center', fontFamily: SWISS_FONT, fontSize: 10, fontWeight: 700, color: sc.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: 14, paddingRight: 14, pointerEvents: 'none', userSelect: 'none', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         {task.is_critical && '★ '}{task.name}
                       </span>
                     )}
@@ -461,10 +462,10 @@ const GanttChart = ({
                     {/* Resize RIGHT */}
                     <div
                       title="Drag to resize"
-                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 10, cursor: 'ew-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderLeft: `1px solid ${sc.border}`, background: 'rgba(0,0,0,0.12)', borderRadius: '0 6px 6px 0' }}
+                      style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 10, cursor: 'ew-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', borderLeft: `1px solid ${sc.border}`, background: 'rgba(0,0,0,0.1)' }}
                       onMouseDown={e => { e.stopPropagation(); handleBarMouseDown(e, task, 'resize-right'); }}
                     >
-                      <span style={{ width: 2, height: 12, background: sc.text, opacity: 0.5, borderRadius: 1 }} />
+                      <span style={{ width: 2, height: 12, background: sc.text, opacity: 0.5 }} />
                     </div>
                   </div>
                 );
@@ -485,7 +486,7 @@ const GanttChart = ({
 
               {/* Selection hint */}
               {selectedId && !dragging && !editingId && (
-                <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'hsl(var(--foreground))', color: 'hsl(var(--background))', fontFamily: "'Caveat', cursive", fontSize: 13, padding: '4px 14px', borderRadius: 20, opacity: 0.7, pointerEvents: 'none', zIndex: 99, whiteSpace: 'nowrap' }}>
+                <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'hsl(var(--foreground))', color: 'hsl(var(--background))', fontFamily: SWISS_FONT, fontSize: 10, padding: '4px 14px', opacity: 0.7, pointerEvents: 'none', zIndex: 99, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
                   Press Delete to remove · Double-click to rename
                 </div>
               )}
