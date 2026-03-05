@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft, Layers, Pencil, Trash2, Check } from 'lucide-react';
+import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft, Layers, Pencil, Trash2, Check, Flag } from 'lucide-react';
 import { usePlanProjects } from './hooks/usePlanProjects';
 import { usePlanData } from './hooks/usePlanData';
 import { TimeScale, PlanTask, PlanGroup } from './types';
@@ -145,6 +145,9 @@ const PlanApp = () => {
   const [groupBy] = useState<'client' | 'phase'>('phase');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showDeadlineForm, setShowDeadlineForm] = useState(false);
+  const [deadlineLabel, setDeadlineLabel] = useState('');
+  const [deadlineDate, setDeadlineDate] = useState('');
   const [showProjectMenu, setShowProjectMenu] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState('');
@@ -152,10 +155,11 @@ const PlanApp = () => {
   const activeProject = projects.find(p => p.id === activeProjectId) ?? null;
 
   const {
-    groups, tasks, dependencies,
+    groups, tasks, dependencies, deadlines,
     createGroup, updateGroup, deleteGroup,
     createTask, updateTask, deleteTask,
     createDependency, deleteDependency,
+    createDeadline, updateDeadline, deleteDeadline,
   } = usePlanData(activeProjectId);
 
   useEffect(() => {
@@ -292,6 +296,48 @@ const PlanApp = () => {
           />
         )}
 
+        {/* Add deadline */}
+        <div className="relative">
+          <button onClick={() => setShowDeadlineForm(v => !v)} style={sketchBtn(showDeadlineForm)} className="flex items-center gap-1.5 !border-foreground/60">
+            <Flag size={12} /> Deadline
+          </button>
+          {showDeadlineForm && (
+            <div
+              className="absolute top-full right-0 mt-1 z-50 bg-background border-2 border-foreground shadow-lg p-3 flex flex-col gap-2"
+              style={{ minWidth: 220, fontFamily: SWISS_FONT }}
+              onClick={e => e.stopPropagation()}
+            >
+              <p className="text-xs font-bold uppercase" style={{ letterSpacing: '0.12em', opacity: 0.5 }}>New Deadline</p>
+              <input
+                value={deadlineLabel}
+                onChange={e => setDeadlineLabel(e.target.value)}
+                placeholder="Label…"
+                className="text-sm border-2 border-foreground px-2 py-1 bg-transparent outline-none"
+                style={{ fontFamily: SWISS_FONT }}
+              />
+              <input
+                type="date"
+                value={deadlineDate}
+                onChange={e => setDeadlineDate(e.target.value)}
+                className="text-sm border-2 border-foreground px-2 py-1 bg-transparent outline-none"
+                style={{ fontFamily: SWISS_FONT }}
+              />
+              <button
+                onClick={() => {
+                  if (deadlineLabel.trim() && deadlineDate) {
+                    createDeadline.mutate({ label: deadlineLabel.trim(), deadline_date: deadlineDate });
+                    setDeadlineLabel(''); setDeadlineDate(''); setShowDeadlineForm(false);
+                  }
+                }}
+                className="text-sm font-bold py-1.5 border-2 transition-opacity hover:opacity-80"
+                style={{ fontFamily: SWISS_FONT, background: 'var(--foreground)', color: 'var(--background)', borderColor: 'var(--foreground)', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 11 }}
+              >
+                Add Deadline
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Add task */}
         <button onClick={() => setShowTaskForm(true)} style={sketchBtn()} className="flex items-center gap-1.5 !border-foreground/60">
           <Plus size={12} /> Task
@@ -316,6 +362,7 @@ const PlanApp = () => {
           <GanttChart
             tasks={tasks}
             groups={groups}
+            deadlines={deadlines}
             scale={scale}
             groupBy={groupBy}
             onUpdateTask={(id, updates) => updateTask.mutate({ id, ...(updates as Partial<PlanTask>) })}
@@ -323,6 +370,7 @@ const PlanApp = () => {
             onCreateGroup={(name, type) => createGroup.mutate({ name, type })}
             onUpdateGroup={(id, name) => updateGroup.mutate({ id, name })}
             onDeleteGroup={(id) => deleteGroup.mutate(id)}
+            onDeleteDeadline={(id) => deleteDeadline.mutate(id)}
           />
           {sidebarOpen && (
             <TaskSidebar

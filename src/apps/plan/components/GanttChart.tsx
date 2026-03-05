@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import { PlanTask, PlanGroup, TimeScale, TaskStatus } from '../types';
+import { PlanTask, PlanGroup, PlanDeadline, TimeScale, TaskStatus } from '../types';
 import {
   STATUS_COLORS, daysDiff, weekStart, addWeeks, monthStart, addMonths,
   weekNumber, quarterOf, toISO,
@@ -15,6 +15,7 @@ const COL_W_MONTH = 84;
 interface Props {
   tasks: PlanTask[];
   groups: PlanGroup[];
+  deadlines: PlanDeadline[];
   scale: TimeScale;
   groupBy: 'client' | 'phase';
   onUpdateTask: (id: string, updates: Partial<PlanTask>) => void;
@@ -22,6 +23,7 @@ interface Props {
   onCreateGroup: (name: string, type: 'client' | 'phase') => void;
   onUpdateGroup?: (id: string, name: string) => void;
   onDeleteGroup?: (id: string) => void;
+  onDeleteDeadline?: (id: string) => void;
 }
 
 // ── Column grid ───────────────────────────────────────────────────────────────
@@ -53,8 +55,8 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const GanttChart = ({
-  tasks, groups, scale, onUpdateTask, onDeleteTask,
-  onCreateGroup, onUpdateGroup, onDeleteGroup,
+  tasks, groups, deadlines, scale, onUpdateTask, onDeleteTask,
+  onCreateGroup, onUpdateGroup, onDeleteGroup, onDeleteDeadline,
 }: Props) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -389,7 +391,35 @@ const GanttChart = ({
                 <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'hsl(0 100% 50%)', color: '#fff', fontSize: 9, fontFamily: SWISS_FONT, fontWeight: 700, padding: '1px 6px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Today</div>
               </div>
 
-              {/* Task bars */}
+              {/* Deadline lines */}
+              {deadlines.map(dl => {
+                const dlX = dateToX(new Date(dl.deadline_date));
+                return (
+                  <div key={dl.id} style={{ position: 'absolute', top: 0, bottom: 0, left: dlX, width: 0, zIndex: 3, pointerEvents: 'none' }}>
+                    <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 2, background: 'hsl(var(--foreground))', opacity: 0.5, borderLeft: '1px dashed hsl(var(--foreground) / 0.7)' }} />
+                    <div
+                      style={{
+                        position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)',
+                        background: 'hsl(var(--foreground))', color: 'hsl(var(--background))',
+                        fontSize: 8, fontFamily: SWISS_FONT, fontWeight: 700, padding: '1px 6px',
+                        whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.08em',
+                        pointerEvents: 'auto', cursor: 'pointer',
+                      }}
+                      title={`${dl.label} — ${dl.deadline_date}\nClick to delete`}
+                      onClick={e => { e.stopPropagation(); onDeleteDeadline?.(dl.id); }}
+                    >
+                      {dl.label}
+                    </div>
+                    {/* Diamond marker at bottom */}
+                    <div style={{
+                      position: 'absolute', bottom: -6, left: '50%', transform: 'translateX(-50%) rotate(45deg)',
+                      width: 8, height: 8, background: 'hsl(var(--foreground))', opacity: 0.6, pointerEvents: 'none',
+                    }} />
+                  </div>
+                );
+              })}
+
+
               {sortedTasks.map((task, rowIdx) => {
                 const sc = STATUS_COLORS[task.status as TaskStatus];
                 const startDate = preview?.taskId === task.id ? preview.start_date : task.start_date;

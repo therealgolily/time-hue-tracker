@@ -504,6 +504,41 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_deadlines: {
+        Row: {
+          created_at: string
+          deadline_date: string
+          id: string
+          label: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline_date: string
+          id?: string
+          label: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline_date?: string
+          id?: string
+          label?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_deadlines_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "plan_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       plan_dependencies: {
         Row: {
           created_at: string
