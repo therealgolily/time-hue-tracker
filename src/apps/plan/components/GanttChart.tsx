@@ -433,7 +433,10 @@ const GanttChart = ({
 
 
               {sortedTasks.map((task, rowIdx) => {
-                const sc = STATUS_COLORS[task.status as TaskStatus];
+                const baseSc = STATUS_COLORS[task.status as TaskStatus];
+                const sc = task.color
+                  ? { bar: task.color, text: baseSc.text, border: task.color }
+                  : baseSc;
                 const startDate = preview?.taskId === task.id ? preview.start_date : task.start_date;
                 const endDate = preview?.taskId === task.id ? preview.end_date : task.end_date;
                 const x = dateToX(new Date(startDate));

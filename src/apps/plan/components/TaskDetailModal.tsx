@@ -20,6 +20,7 @@ const TaskDetailModal = ({ task, groups, onSave, onDelete, onClose }: Props) => 
   const [endDate, setEndDate] = useState(task.end_date);
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [isCritical, setIsCritical] = useState(task.is_critical);
+  const [color, setColor] = useState<string | null>(task.color ?? null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -36,6 +37,12 @@ const TaskDetailModal = ({ task, groups, onSave, onDelete, onClose }: Props) => 
 
   const days = Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1);
   const sc = STATUS_COLORS[status];
+  const swatches = [
+    '#2D6A4F', '#E76F51', '#E9C46A', '#C1121F',
+    '#1D3557', '#457B9D', '#6A4C93', '#8338EC',
+    '#FB5607', '#FF006E', '#3A86FF', '#06A77D',
+    '#222222', '#6B7280',
+  ];
 
   const handleSave = () => {
     if (!name.trim() || !startDate || !endDate) return;
@@ -46,6 +53,7 @@ const TaskDetailModal = ({ task, groups, onSave, onDelete, onClose }: Props) => 
       end_date: endDate,
       status,
       is_critical: isCritical,
+      color: color,
     });
     onClose();
   };
@@ -103,6 +111,46 @@ const TaskDetailModal = ({ task, groups, onSave, onDelete, onClose }: Props) => 
             <input type="checkbox" checked={isCritical} onChange={e => setIsCritical(e.target.checked)} className="w-4 h-4 accent-foreground" />
             Mark as Critical Path
           </label>
+
+          <div>
+            <span style={labelStyle}>Color</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setColor(null)}
+                title="Use status color"
+                style={{
+                  width: 28, height: 28, border: `2px solid hsl(var(--foreground) ${color === null ? '' : '/ 0.3'})`,
+                  background: 'transparent', position: 'relative', cursor: 'pointer',
+                }}
+              >
+                <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, letterSpacing: '0.06em' }}>AUTO</span>
+              </button>
+              {swatches.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setColor(c)}
+                  title={c}
+                  style={{
+                    width: 28, height: 28, background: c, cursor: 'pointer',
+                    border: `2px solid ${color === c ? 'hsl(var(--foreground))' : 'hsl(var(--foreground) / 0.2)'}`,
+                    outline: color === c ? '2px solid hsl(var(--foreground))' : 'none',
+                    outlineOffset: color === c ? 2 : 0,
+                  }}
+                />
+              ))}
+              <label className="flex items-center gap-1.5 cursor-pointer ml-1" style={{ fontSize: 10, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <input
+                  type="color"
+                  value={color ?? sc.bar}
+                  onChange={e => setColor(e.target.value)}
+                  style={{ width: 28, height: 28, padding: 0, border: '2px solid hsl(var(--foreground) / 0.3)', background: 'transparent', cursor: 'pointer' }}
+                />
+                Custom
+              </label>
+            </div>
+          </div>
         </div>
 
         <div className="flex items-center gap-2 pt-2 border-t-2 border-foreground/10">
