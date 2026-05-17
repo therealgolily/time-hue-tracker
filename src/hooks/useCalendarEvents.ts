@@ -76,7 +76,12 @@ export const useCalendarEvents = () => {
   }, [user]);
 
   const updateEvent = useCallback(async (id: string, updates: Partial<Omit<CalendarEvent, 'id' | 'createdAt'>>) => {
-    const dbUpdates: Record<string, unknown> = {};
+    const dbUpdates: {
+      title?: string;
+      start_date?: string;
+      end_date?: string;
+      category?: CalendarEvent['category'];
+    } = {};
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.startDate !== undefined) dbUpdates.start_date = updates.startDate;
     if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate;
