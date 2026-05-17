@@ -1,17 +1,19 @@
 import { TaskStatus } from './types';
 
 export const STATUS_COLORS: Record<TaskStatus, { bar: string; text: string; border: string }> = {
-  done:     { bar: '#2D6A4F', text: '#fff',     border: '#1B4332' },
-  pending:  { bar: '#E76F51', text: '#fff',     border: '#C1440E' },
-  delayed:  { bar: '#E9C46A', text: '#3D2B00',  border: '#B78A00' },
-  critical: { bar: '#C1121F', text: '#fff',     border: '#780000' },
+  not_started: { bar: '#4A4A4A', text: '#fff',     border: '#2D2D2D' },
+  planned:     { bar: '#3B6FA0', text: '#fff',     border: '#1E3A5F' },
+  in_progress: { bar: '#D4842A', text: '#fff',     border: '#9B4423' },
+  almost_done: { bar: '#5A8A5C', text: '#fff',     border: '#2D5A3D' },
+  complete:    { bar: '#2D6A4F', text: '#fff',     border: '#1B4332' },
 };
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
-  done: 'Done',
-  pending: 'Pending',
-  delayed: 'Delayed',
-  critical: 'Critical',
+  not_started: 'Not Started',
+  planned: 'Planned',
+  in_progress: 'In Progress',
+  almost_done: 'Almost Done',
+  complete: 'Complete',
 };
 
 /** Returns ISO date string (YYYY-MM-DD) for a date */
