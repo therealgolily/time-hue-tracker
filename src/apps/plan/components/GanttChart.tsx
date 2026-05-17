@@ -249,7 +249,7 @@ const GanttChart = ({
                 }}
                 className="transition-colors"
                 onClick={e => { e.stopPropagation(); setSelectedId(task.id); setGroupPickerId(null); }}
-                onDoubleClick={e => startEdit(task, e)}
+                onDoubleClick={e => { e.stopPropagation(); if (onEditTask) onEditTask(task); else startEdit(task, e); }}
               >
                 {isEditing ? (
                   <input
@@ -462,7 +462,7 @@ const GanttChart = ({
                       transition: isDragging ? 'none' : 'box-shadow 0.15s',
                     }}
                     onClick={e => { e.stopPropagation(); setSelectedId(task.id); }}
-                    onDoubleClick={e => startEdit(task, e)}
+                    onDoubleClick={e => { e.stopPropagation(); if (onEditTask) onEditTask(task); else startEdit(task, e); }}
                     onMouseDown={e => { if (!isEditing) handleBarMouseDown(e, task, 'move'); }}
                   >
                     {/* Floating date tooltip during drag */}
