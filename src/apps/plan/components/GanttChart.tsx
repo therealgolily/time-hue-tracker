@@ -94,7 +94,7 @@ const GanttChart = ({
     localStorage.setItem('plan_label_width', String(labelW));
   }, [labelW]);
 
-  // ── Selection & editing ────────────────────────────────────────────────────
+  // ── Selection ────────────────────────────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   // ── Group picker ───────────────────────────────────────────────────────────
@@ -209,8 +209,6 @@ const GanttChart = ({
   }, [selectedId, onDeleteTask]);
 
   const showMonthDays = scale === 'months' && colW >= 140;
-
-  const showMonthDays = scale === 'months' && colW >= 140;
   const headerH = scale === 'weeks' ? 72 : (showMonthDays ? 68 : 48);
 
   if (!hasData) {
@@ -247,7 +245,6 @@ const GanttChart = ({
             const group = groups.find(g => g.id === task.group_id);
             const isPickerOpen = groupPickerId === task.id;
             const isSelected = selectedId === task.id;
-            const isEditing = editingId === task.id;
 
             return (
               <div
@@ -266,43 +263,18 @@ const GanttChart = ({
                 }}
                 className="transition-colors"
                 onClick={e => { e.stopPropagation(); setSelectedId(task.id); setGroupPickerId(null); }}
-                onDoubleClick={e => { e.stopPropagation(); if (onEditTask) onEditTask(task); else startEdit(task, e); }}
+                onDoubleClick={e => { e.stopPropagation(); onEditTask?.(task); }}
               >
-                {isEditing ? (
-                  <input
-                    autoFocus
-                    value={editDraft}
-                    onChange={e => setEditDraft(e.target.value)}
-                    onBlur={() => commitEdit(task.id)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') commitEdit(task.id);
-                      if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
-                      e.stopPropagation();
-                    }}
-                    onClick={e => e.stopPropagation()}
-                    style={{
-                      flex: 1, fontFamily: SWISS_FONT, fontSize: 12, fontWeight: 500,
-                      background: 'transparent', border: 'none', outline: 'none',
-                      borderBottom: '2px solid hsl(var(--foreground) / 0.5)',
-                      padding: '0 2px', marginRight: 6, letterSpacing: '0.01em',
-                    }}
-                  />
-                ) : (
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.01em' }}>{task.name}</span>
-                )}
-
                 {/* Group pill */}
-                {!isEditing && (
-                  <button
-                    onClick={e => { e.stopPropagation(); setGroupPickerId(isPickerOpen ? null : task.id); setShowNewGroup(false); setRenamingGroupId(null); }}
-                    title="Assign group"
-                    className="flex items-center gap-0.5 text-xs px-2 py-0.5 border transition-colors flex-shrink-0"
-                    style={{ fontFamily: SWISS_FONT, fontSize: 10, borderColor: 'hsl(var(--border))', opacity: group ? 0.7 : 0.4, letterSpacing: '0.04em', textTransform: 'uppercase' }}
-                  >
-                    {group ? group.name.slice(0, 10) : '+ group'}
-                    <ChevronDown size={8} />
-                  </button>
-                )}
+                <button
+                  onClick={e => { e.stopPropagation(); setGroupPickerId(isPickerOpen ? null : task.id); setShowNewGroup(false); setRenamingGroupId(null); }}
+                  title="Assign group"
+                  className="flex items-center gap-0.5 text-xs px-2 py-0.5 border transition-colors flex-shrink-0"
+                  style={{ fontFamily: SWISS_FONT, fontSize: 10, borderColor: 'hsl(var(--border))', opacity: group ? 0.7 : 0.4, letterSpacing: '0.04em', textTransform: 'uppercase' }}
+                >
+                  {group ? group.name.slice(0, 10) : '+ group'}
+                  <ChevronDown size={8} />
+                </button>
 
                 {/* Group picker dropdown */}
                 {isPickerOpen && (
@@ -482,7 +454,6 @@ const GanttChart = ({
                 const y = rowIdx * ROW_H;
                 const isDragging = dragging?.taskId === task.id;
                 const isSelected = selectedId === task.id;
-                const isEditing = editingId === task.id;
 
                 return (
                   <div
@@ -494,7 +465,7 @@ const GanttChart = ({
                       background: sc.bar,
                       border: `${isSelected ? 2.5 : 2}px solid ${isSelected ? 'hsl(var(--foreground))' : sc.border}`,
                       borderRadius: 0,
-                      cursor: isDragging ? 'grabbing' : (isEditing ? 'text' : 'grab'),
+                      cursor: isDragging ? 'grabbing' : 'grab',
                       display: 'flex', alignItems: 'center',
                       zIndex: isDragging ? 10 : (isSelected ? 4 : 2),
                       overflow: 'visible',
@@ -502,8 +473,8 @@ const GanttChart = ({
                       transition: isDragging ? 'none' : 'box-shadow 0.15s',
                     }}
                     onClick={e => { e.stopPropagation(); setSelectedId(task.id); }}
-                    onDoubleClick={e => { e.stopPropagation(); if (onEditTask) onEditTask(task); else startEdit(task, e); }}
-                    onMouseDown={e => { if (!isEditing) handleBarMouseDown(e, task, 'move'); }}
+                    onDoubleClick={e => { e.stopPropagation(); onEditTask?.(task); }}
+                    onMouseDown={e => handleBarMouseDown(e, task, 'move')}
                   >
                     {/* Floating date tooltip during drag */}
                     {isDragging && preview && preview.taskId === task.id && (
@@ -540,32 +511,10 @@ const GanttChart = ({
                       <span style={{ width: 2, height: 12, background: sc.text, opacity: 0.5 }} />
                     </div>
 
-                    {/* Inline edit on bar OR label */}
-                    {isEditing ? (
-                      <input
-                        autoFocus
-                        value={editDraft}
-                        onChange={e => setEditDraft(e.target.value)}
-                        onBlur={() => commitEdit(task.id)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') commitEdit(task.id);
-                          if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
-                          e.stopPropagation();
-                        }}
-                        onClick={e => e.stopPropagation()}
-                        onMouseDown={e => e.stopPropagation()}
-                        style={{
-                          flex: 1, textAlign: 'center', fontFamily: SWISS_FONT, fontSize: 10, fontWeight: 700,
-                          color: sc.text, background: 'transparent', border: 'none', outline: 'none',
-                          paddingLeft: 14, paddingRight: 14, cursor: 'text',
-                          textTransform: 'uppercase', letterSpacing: '0.06em',
-                        }}
-                      />
-                    ) : (
-                      <span style={{ flex: 1, textAlign: 'center', fontFamily: SWISS_FONT, fontSize: 10, fontWeight: 700, color: sc.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: 14, paddingRight: 14, pointerEvents: 'none', userSelect: 'none', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        {task.is_critical && '★ '}{task.name}
-                      </span>
-                    )}
+                    {/* Task name on bar */}
+                    <span style={{ flex: 1, textAlign: 'center', fontFamily: SWISS_FONT, fontSize: 10, fontWeight: 700, color: sc.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', paddingLeft: 14, paddingRight: 14, pointerEvents: 'none', userSelect: 'none', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                      {task.is_critical && '★ '}{task.name}
+                    </span>
 
                     {/* Resize RIGHT */}
                     <div
@@ -593,7 +542,7 @@ const GanttChart = ({
               ))}
 
               {/* Selection hint */}
-              {selectedId && !dragging && !editingId && (
+              {selectedId && !dragging && (
                 <div style={{ position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)', background: 'hsl(var(--foreground))', color: 'hsl(var(--background))', fontFamily: SWISS_FONT, fontSize: 10, padding: '4px 14px', opacity: 0.7, pointerEvents: 'none', zIndex: 99, whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
                   Press Delete to remove · Double-click to rename
                 </div>
