@@ -172,6 +172,10 @@ const PlanApp = () => {
     if (!activeProjectId && projects.length > 0) setActiveProjectId(projects[0].id);
   }, [projects, activeProjectId]);
 
+  useEffect(() => {
+    localStorage.setItem('plan_sidebar_width', String(sidebarWidth));
+  }, [sidebarWidth]);
+
   const handleNewProject = async () => {
     const result = await createProject.mutateAsync('Untitled Project');
     setActiveProjectId(result.id);
