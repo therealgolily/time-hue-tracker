@@ -193,15 +193,12 @@ const GanttChart = ({
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [dragging, computeDates, onUpdateTask]);
 
-  // ── Keyboard: Delete selected, Escape deselect/cancel edit ────────────────
+  // ── Keyboard: Delete selected, Escape deselect ─────────────────────────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName;
       const inInput = tag === 'INPUT' || tag === 'TEXTAREA';
-      if (editingId || inInput) {
-        if (e.key === 'Escape') { setEditingId(null); setEditDraft(''); }
-        return;
-      }
+      if (inInput) return;
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedId) { onDeleteTask(selectedId); setSelectedId(null); }
       }
@@ -209,7 +206,7 @@ const GanttChart = ({
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedId, editingId, onDeleteTask]);
+  }, [selectedId, onDeleteTask]);
 
   // ── Inline edit helpers ────────────────────────────────────────────────────
   const startEdit = (task: PlanTask, e: React.MouseEvent) => {
