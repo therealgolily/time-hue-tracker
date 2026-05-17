@@ -1,4 +1,4 @@
-export type TaskStatus = 'pending' | 'done' | 'delayed' | 'critical';
+export type TaskStatus = 'not_started' | 'planned' | 'in_progress' | 'almost_done' | 'complete';
 export type GroupType = 'client' | 'phase';
 export type TimeScale = 'weeks' | 'months';
 export type GroupBy = 'client' | 'phase';
