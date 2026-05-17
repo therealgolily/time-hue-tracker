@@ -457,7 +457,13 @@ export const useCloudClientTracker = (userId: string | null) => {
       const dateKey = getDateKey(date);
 
       try {
-        const updateData: Record<string, unknown> = {};
+        const updateData: {
+          start_time?: string;
+          end_time?: string;
+          description?: string;
+          tracker_client?: string;
+          custom_client?: string | null;
+        } = {};
         if (updates.startTime) updateData.start_time = updates.startTime.toISOString();
         if (updates.endTime) updateData.end_time = updates.endTime.toISOString();
         if (updates.description !== undefined) updateData.description = updates.description;

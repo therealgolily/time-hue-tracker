@@ -78,7 +78,7 @@ export const useCountdowns = () => {
   }, [user]);
 
   const updateCountdown = useCallback(async (id: string, updates: Partial<Omit<Countdown, 'id' | 'createdAt'>>) => {
-    const dbUpdates: Record<string, unknown> = {};
+    const dbUpdates: { title?: string; target_date?: string } = {};
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.targetDate !== undefined) dbUpdates.target_date = updates.targetDate;
 

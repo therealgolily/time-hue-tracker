@@ -69,7 +69,7 @@ export const useLifeEvents = () => {
   }, [user]);
 
   const updateEvent = useCallback(async (id: string, updates: Partial<Omit<LifeEvent, 'id' | 'createdAt'>>) => {
-    const dbUpdates: Record<string, unknown> = {};
+    const dbUpdates: { title?: string; event_date?: string } = {};
     if (updates.title !== undefined) dbUpdates.title = updates.title;
     if (updates.eventDate !== undefined) dbUpdates.event_date = updates.eventDate;
 
