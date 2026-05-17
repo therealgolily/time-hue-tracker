@@ -448,16 +448,22 @@ const GanttChart = ({
               ))}
 
               {/* Today line — hand-drawn sketchy blue */}
-              <svg className="plan-today-blink" style={{ position: 'absolute', top: 0, left: todayX - 12, width: 24, height: '100%', zIndex: 6, pointerEvents: 'none', overflow: 'visible' }} preserveAspectRatio="none">
+              <svg
+                className="plan-today-blink"
+                viewBox="0 0 40 1000"
+                preserveAspectRatio="none"
+                style={{ position: 'absolute', top: 0, left: todayX - 20, width: 40, height: '100%', zIndex: 6, pointerEvents: 'none', overflow: 'visible' }}
+              >
                 <path
-                  d="M 12 0 C 8 80, 16 200, 11 320 S 14 560, 12 720 S 9 960, 13 1200 S 11 1600, 12 2000"
+                  d="M 20 0 C 12 80, 28 160, 18 240 C 8 320, 30 400, 20 480 C 10 560, 28 640, 18 720 C 8 800, 30 880, 20 1000"
                   stroke="hsl(220 100% 55%)"
-                  strokeWidth={2.5}
+                  strokeWidth={3}
                   strokeLinecap="round"
                   fill="none"
+                  vectorEffect="non-scaling-stroke"
                 />
               </svg>
-              <style>{`@keyframes planTodayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } } .plan-today-blink { animation: planTodayBlink 1.6s ease-in-out infinite; }`}</style>
+              <style>{`@keyframes planTodayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } } .plan-today-blink { animation: planTodayBlink 1.8s ease-in-out infinite; }`}</style>
 
               {/* Deadline lines */}
               {deadlines.map(dl => {
