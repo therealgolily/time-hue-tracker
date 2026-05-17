@@ -20,6 +20,7 @@ const TaskDetailModal = ({ task, groups, onSave, onDelete, onClose }: Props) => 
   const [endDate, setEndDate] = useState(task.end_date);
   const [status, setStatus] = useState<TaskStatus>(task.status);
   const [isCritical, setIsCritical] = useState(task.is_critical);
+  const [color, setColor] = useState<string | null>(task.color ?? null);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -36,6 +37,12 @@ const TaskDetailModal = ({ task, groups, onSave, onDelete, onClose }: Props) => 
 
   const days = Math.max(1, Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / 86400000) + 1);
   const sc = STATUS_COLORS[status];
+  const swatches = [
+    '#2D6A4F', '#E76F51', '#E9C46A', '#C1121F',
+    '#1D3557', '#457B9D', '#6A4C93', '#8338EC',
+    '#FB5607', '#FF006E', '#3A86FF', '#06A77D',
+    '#222222', '#6B7280',
+  ];
 
   const handleSave = () => {
     if (!name.trim() || !startDate || !endDate) return;
@@ -46,6 +53,7 @@ const TaskDetailModal = ({ task, groups, onSave, onDelete, onClose }: Props) => 
       end_date: endDate,
       status,
       is_critical: isCritical,
+      color: color,
     });
     onClose();
   };
