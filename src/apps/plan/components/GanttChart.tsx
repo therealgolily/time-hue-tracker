@@ -96,8 +96,6 @@ const GanttChart = ({
 
   // ── Selection & editing ────────────────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState('');
 
   // ── Group picker ───────────────────────────────────────────────────────────
   const [groupPickerId, setGroupPickerId] = useState<string | null>(null);
