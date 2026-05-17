@@ -208,19 +208,7 @@ const GanttChart = ({
     return () => window.removeEventListener('keydown', onKey);
   }, [selectedId, onDeleteTask]);
 
-  // ── Inline edit helpers ────────────────────────────────────────────────────
-  const startEdit = (task: PlanTask, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(task.id);
-    setEditDraft(task.name);
-    setSelectedId(task.id);
-  };
-
-  const commitEdit = (taskId: string) => {
-    if (editDraft.trim()) onUpdateTask(taskId, { name: editDraft.trim() });
-    setEditingId(null);
-    setEditDraft('');
-  };
+  const showMonthDays = scale === 'months' && colW >= 140;
 
   const showMonthDays = scale === 'months' && colW >= 140;
   const headerH = scale === 'weeks' ? 72 : (showMonthDays ? 68 : 48);
