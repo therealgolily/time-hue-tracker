@@ -453,6 +453,32 @@ const GanttChart = ({
                     onDoubleClick={e => startEdit(task, e)}
                     onMouseDown={e => { if (!isEditing) handleBarMouseDown(e, task, 'move'); }}
                   >
+                    {/* Floating date tooltip during drag */}
+                    {isDragging && preview && preview.taskId === task.id && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 'calc(100% + 6px)',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          background: 'hsl(var(--foreground))',
+                          color: 'hsl(var(--background))',
+                          fontFamily: SWISS_FONT,
+                          fontSize: 9,
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          whiteSpace: 'nowrap',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.08em',
+                          pointerEvents: 'none',
+                          zIndex: 20,
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        }}
+                      >
+                        {preview.start_date} — {preview.end_date}
+                      </div>
+                    )}
+
                     {/* Resize LEFT */}
                     <div
                       title="Drag to resize"
