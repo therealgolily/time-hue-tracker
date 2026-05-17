@@ -146,6 +146,7 @@ const PlanApp = () => {
   const [zoom, setZoom] = useState(1);
   const [groupBy] = useState<'client' | 'phase'>('phase');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarWidth, setSidebarWidth] = useState(280);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<PlanTask | null>(null);
   const [showDeadlineForm, setShowDeadlineForm] = useState(false);
@@ -398,6 +399,8 @@ const PlanApp = () => {
               onDeleteTask={(id) => deleteTask.mutate(id)}
               onNewTask={() => setShowTaskForm(true)}
               onClose={() => setSidebarOpen(false)}
+              width={sidebarWidth}
+              onWidthChange={setSidebarWidth}
             />
           )}
         </div>
