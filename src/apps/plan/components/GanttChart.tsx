@@ -25,6 +25,7 @@ interface Props {
   onUpdateGroup?: (id: string, name: string) => void;
   onDeleteGroup?: (id: string) => void;
   onDeleteDeadline?: (id: string) => void;
+  onEditTask?: (task: PlanTask) => void;
 }
 
 // ── Column grid ───────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 // ── Component ─────────────────────────────────────────────────────────────────
 const GanttChart = ({
   tasks, groups, deadlines, scale, zoom = 1, onUpdateTask, onDeleteTask,
-  onCreateGroup, onUpdateGroup, onDeleteGroup, onDeleteDeadline,
+  onCreateGroup, onUpdateGroup, onDeleteGroup, onDeleteDeadline, onEditTask,
 }: Props) => {
   const chartRef = useRef<HTMLDivElement>(null);
 
@@ -358,7 +359,14 @@ const GanttChart = ({
               <div style={{ display: 'flex', height: scale === 'months' ? 24 : 36, position: 'absolute', top: scale === 'months' ? 24 : 0, left: 0, width: totalW }}>
                 {cols.map((col, i) => (
                   <div key={i} style={{ width: colW, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: '1px solid hsl(var(--border) / 0.3)', fontFamily: SWISS_FONT, fontSize: scale === 'weeks' ? 10 : 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    {scale === 'months' ? MONTHS[col.getMonth()] : `W${weekNumber(col)}`}
+                {scale === 'months'
+                  ? MONTHS[col.getMonth()]
+                  : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700 }}>{MONTHS[col.getMonth()]} {col.getDate()}</span>
+                      <span style={{ fontSize: 8, opacity: 0.5, fontWeight: 500, letterSpacing: '0.05em' }}>W{weekNumber(col)}</span>
+                    </div>
+                  )}
                   </div>
                 ))}
               </div>
