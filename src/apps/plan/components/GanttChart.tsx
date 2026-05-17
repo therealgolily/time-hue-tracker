@@ -72,7 +72,9 @@ const GanttChart = ({
   };
   const [dragging, setDragging] = useState<DragInfo | null>(null);
   const [preview, setPreview] = useState<{ taskId: string; start_date: string; end_date: string } | null>(null);
-  const [labelW, setLabelW] = useState<number>(LABEL_W_DEFAULT);
+  const [labelW, setLabelW] = useState<number>(() => {
+    try { const w = localStorage.getItem('plan_label_width'); return w ? Math.max(120, Math.min(500, parseInt(w, 10))) : LABEL_W_DEFAULT; } catch { return LABEL_W_DEFAULT; }
+  });
   const [resizingLabel, setResizingLabel] = useState(false);
 
   useEffect(() => {
