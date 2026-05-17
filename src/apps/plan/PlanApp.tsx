@@ -7,6 +7,7 @@ import { TimeScale, PlanTask, PlanGroup } from './types';
 import GanttChart from './components/GanttChart';
 import TaskSidebar from './components/TaskSidebar';
 import TaskForm from './components/TaskForm';
+import TaskDetailModal from './components/TaskDetailModal';
 import SketchyFilter from './components/SketchyFilter';
 
 const SWISS_FONT = "'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif";
@@ -146,6 +147,7 @@ const PlanApp = () => {
   const [groupBy] = useState<'client' | 'phase'>('phase');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [editingTask, setEditingTask] = useState<PlanTask | null>(null);
   const [showDeadlineForm, setShowDeadlineForm] = useState(false);
   const [deadlineLabel, setDeadlineLabel] = useState('');
   const [deadlineDate, setDeadlineDate] = useState('');
@@ -386,6 +388,7 @@ const PlanApp = () => {
             onUpdateGroup={(id, name) => updateGroup.mutate({ id, name })}
             onDeleteGroup={(id) => deleteGroup.mutate(id)}
             onDeleteDeadline={(id) => deleteDeadline.mutate(id)}
+            onEditTask={(t) => setEditingTask(t)}
           />
           {sidebarOpen && (
             <TaskSidebar
@@ -405,6 +408,16 @@ const PlanApp = () => {
           groups={groups}
           onAdd={handleCreateTask}
           onClose={() => setShowTaskForm(false)}
+        />
+      )}
+
+      {editingTask && (
+        <TaskDetailModal
+          task={editingTask}
+          groups={groups}
+          onSave={(updates) => updateTask.mutate({ id: editingTask.id, ...updates })}
+          onDelete={() => deleteTask.mutate(editingTask.id)}
+          onClose={() => setEditingTask(null)}
         />
       )}
     </div>
