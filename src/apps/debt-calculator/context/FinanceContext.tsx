@@ -60,7 +60,7 @@ export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children })
   const { user } = useAuth();
   const [data, setData] = useState<FinanceData>(getInitialData());
   const [loading, setLoading] = useState(true);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isInitialLoadRef = useRef(true);
 
   // Load data from database on mount
