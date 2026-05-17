@@ -226,7 +226,8 @@ const GanttChart = ({
     setEditDraft('');
   };
 
-  const headerH = scale === 'weeks' ? 72 : 48;
+  const showMonthDays = scale === 'months' && colW >= 140;
+  const headerH = scale === 'weeks' ? 72 : (showMonthDays ? 68 : 48);
 
   if (!hasData) {
     return (
@@ -402,6 +403,23 @@ const GanttChart = ({
                   </div>
                 ))}
               </div>
+              {showMonthDays && (
+                <div style={{ display: 'flex', height: 20, position: 'absolute', top: 48, left: 0, width: totalW, borderTop: '1px solid hsl(var(--border) / 0.4)' }}>
+                  {cols.map((col, i) => {
+                    const daysInMonth = new Date(col.getFullYear(), col.getMonth() + 1, 0).getDate();
+                    const step = colW >= 360 ? 2 : colW >= 240 ? 5 : 7;
+                    const ticks: number[] = [];
+                    for (let d = 1; d <= daysInMonth; d += step) ticks.push(d);
+                    return (
+                      <div key={i} style={{ width: colW, flexShrink: 0, position: 'relative', borderRight: '1px solid hsl(var(--border) / 0.3)' }}>
+                        {ticks.map(d => (
+                          <span key={d} style={{ position: 'absolute', left: ((d - 0.5) / daysInMonth) * colW, transform: 'translateX(-50%)', top: 3, fontFamily: SWISS_FONT, fontSize: 9, fontWeight: 500, color: 'hsl(var(--muted-foreground))', letterSpacing: '0.04em' }}>{d}</span>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               {scale === 'weeks' && (() => {
                 const yearSpans: { label: string; span: number }[] = [];
                 let i = 0;
