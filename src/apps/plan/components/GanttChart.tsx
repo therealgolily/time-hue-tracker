@@ -139,7 +139,6 @@ const GanttChart = ({
 
   const totalW = cols.length * colW;
   const todayX = dateToX(today);
-  const bodyH = sortedTasks.length * ROW_H;
 
   const sortedTasks = [...tasks].sort((a, b) => {
     const ga = groups.findIndex(g => g.id === a.group_id);
@@ -147,6 +146,7 @@ const GanttChart = ({
     if (ga !== gb) return ga - gb;
     return a.row_order - b.row_order;
   });
+  const bodyH = sortedTasks.length * ROW_H;
 
   // ── Compute snapped dates from drag delta ──────────────────────────────────
   const computeDates = useCallback((
