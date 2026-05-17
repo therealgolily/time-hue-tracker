@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft, Layers, Pencil, Trash2, Check, Flag } from 'lucide-react';
+import { ChevronDown, Plus, PanelRightOpen, PanelRightClose, LayoutGrid, Clock, ArrowLeft, Layers, Pencil, Trash2, Check, Flag, ZoomIn, ZoomOut } from 'lucide-react';
 import { usePlanProjects } from './hooks/usePlanProjects';
 import { usePlanData } from './hooks/usePlanData';
 import { TimeScale, PlanTask, PlanGroup } from './types';
@@ -142,6 +142,7 @@ const PlanApp = () => {
   const { projects, isLoading, createProject, updateProject } = usePlanProjects();
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [scale, setScale] = useState<TimeScale>('months');
+  const [zoom, setZoom] = useState(1);
   const [groupBy] = useState<'client' | 'phase'>('phase');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showTaskForm, setShowTaskForm] = useState(false);
@@ -285,6 +286,19 @@ const PlanApp = () => {
           </button>
         </div>
 
+        {/* Zoom controls */}
+        <div className="flex items-center border-2 border-foreground overflow-hidden">
+          <button style={sketchBtn()} onClick={() => setZoom(z => Math.max(0.4, +(z - 0.2).toFixed(2)))} className="border-0 border-r-2 border-foreground" title="Zoom out">
+            <ZoomOut size={11} />
+          </button>
+          <button style={sketchBtn()} onClick={() => setZoom(1)} className="border-0 border-r-2 border-foreground" title="Reset zoom">
+            {Math.round(zoom * 100)}%
+          </button>
+          <button style={sketchBtn()} onClick={() => setZoom(z => Math.min(4, +(z + 0.2).toFixed(2)))} className="border-0" title="Zoom in">
+            <ZoomIn size={11} />
+          </button>
+        </div>
+
         {/* Groups management */}
         {activeProject && (
           <GroupsPanel
@@ -364,6 +378,7 @@ const PlanApp = () => {
             groups={groups}
             deadlines={deadlines}
             scale={scale}
+            zoom={zoom}
             groupBy={groupBy}
             onUpdateTask={(id, updates) => updateTask.mutate({ id, ...(updates as Partial<PlanTask>) })}
             onDeleteTask={(id) => deleteTask.mutate(id)}
