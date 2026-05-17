@@ -17,6 +17,7 @@ interface Props {
   groups: PlanGroup[];
   deadlines: PlanDeadline[];
   scale: TimeScale;
+  zoom?: number;
   groupBy: 'client' | 'phase';
   onUpdateTask: (id: string, updates: Partial<PlanTask>) => void;
   onDeleteTask: (id: string) => void;
@@ -55,7 +56,7 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const GanttChart = ({
-  tasks, groups, deadlines, scale, onUpdateTask, onDeleteTask,
+  tasks, groups, deadlines, scale, zoom = 1, onUpdateTask, onDeleteTask,
   onCreateGroup, onUpdateGroup, onDeleteGroup, onDeleteDeadline,
 }: Props) => {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -84,9 +85,11 @@ const GanttChart = ({
   const [renameGroupDraft, setRenameGroupDraft] = useState('');
 
   const hasData = tasks.length > 0;
-  const { cols, start, colW } = hasData
+  const base = hasData
     ? buildColumns(scale, tasks)
     : { cols: [] as Date[], start: new Date(), colW: COL_W_MONTH };
+  const { cols, start } = base;
+  const colW = base.colW * zoom;
   const today = new Date();
 
   const dateToX = useCallback((date: Date): number => {
@@ -387,9 +390,10 @@ const GanttChart = ({
               ))}
 
               {/* Today line */}
-              <div style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 2, background: 'hsl(0 100% 50%)', opacity: 0.8, zIndex: 4, pointerEvents: 'none' }}>
+              <div className="plan-today-blink" style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 2, background: 'hsl(0 100% 50%)', zIndex: 4, pointerEvents: 'none' }}>
                 <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'hsl(0 100% 50%)', color: '#fff', fontSize: 9, fontFamily: SWISS_FONT, fontWeight: 700, padding: '1px 6px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Today</div>
               </div>
+              <style>{`@keyframes planTodayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } } .plan-today-blink { animation: planTodayBlink 1.2s ease-in-out infinite; }`}</style>
 
               {/* Deadline lines */}
               {deadlines.map(dl => {
