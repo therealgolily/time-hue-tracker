@@ -642,6 +642,7 @@ export type Database = {
       }
       plan_tasks: {
         Row: {
+          color: string | null
           created_at: string
           end_date: string
           group_id: string | null
@@ -656,6 +657,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          color?: string | null
           created_at?: string
           end_date: string
           group_id?: string | null
@@ -670,6 +672,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          color?: string | null
           created_at?: string
           end_date?: string
           group_id?: string | null
