@@ -146,6 +146,7 @@ const GanttChart = ({
     if (ga !== gb) return ga - gb;
     return a.row_order - b.row_order;
   });
+  const bodyH = sortedTasks.length * ROW_H;
 
   // ── Compute snapped dates from drag delta ──────────────────────────────────
   const computeDates = useCallback((
@@ -441,29 +442,20 @@ const GanttChart = ({
             </div>
 
             {/* Grid body */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', height: bodyH, minHeight: bodyH }}>
               {/* Column dividers */}
               {cols.map((_, i) => (
                 <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: i * colW, width: 1, background: 'hsl(var(--foreground) / 0.06)', pointerEvents: 'none' }} />
               ))}
 
-              {/* Today line — hand-drawn sketchy blue */}
-              <svg
+              {/* Today line */}
+              <div
                 className="plan-today-blink"
-                viewBox="0 0 40 1000"
-                preserveAspectRatio="none"
-                style={{ position: 'absolute', top: 0, left: todayX - 20, width: 40, height: '100%', zIndex: 6, pointerEvents: 'none', overflow: 'visible' }}
+                style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 0, zIndex: 20, pointerEvents: 'none' }}
               >
-                <path
-                  d="M 20 0 C 12 80, 28 160, 18 240 C 8 320, 30 400, 20 480 C 10 560, 28 640, 18 720 C 8 800, 30 880, 20 1000"
-                  stroke="hsl(220 100% 55%)"
-                  strokeWidth={3}
-                  strokeLinecap="round"
-                  fill="none"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-              <style>{`@keyframes planTodayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } } .plan-today-blink { animation: planTodayBlink 1.8s ease-in-out infinite; }`}</style>
+                <div style={{ position: 'absolute', top: 0, bottom: 0, left: -1, width: 2, background: 'hsl(var(--primary))', boxShadow: '0 0 0 1px hsl(var(--background)), 0 0 10px hsl(var(--primary) / 0.45)' }} />
+              </div>
+              <style>{`@keyframes planTodayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.62; } } .plan-today-blink { animation: planTodayBlink 1.4s ease-in-out infinite; }`}</style>
 
               {/* Deadline lines */}
               {deadlines.map(dl => {
