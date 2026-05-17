@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, ChevronDown, Plus } from 'lucide-react';
 import { PlanTask, PlanGroup, TaskStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../utils';
@@ -12,18 +12,45 @@ interface Props {
   onDeleteTask: (id: string) => void;
   onNewTask: () => void;
   onClose: () => void;
+  width?: number;
+  onWidthChange?: (w: number) => void;
 }
 
-const TaskSidebar = ({ tasks, groups, onUpdateTask, onDeleteTask, onNewTask, onClose }: Props) => {
+const TaskSidebar = ({ tasks, groups, onUpdateTask, onDeleteTask, onNewTask, onClose, width = 280, onWidthChange }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (!dragging || !onWidthChange) return;
+    const onMove = (e: MouseEvent) => {
+      const next = Math.max(220, Math.min(700, window.innerWidth - e.clientX));
+      onWidthChange(next);
+    };
+    const onUp = () => setDragging(false);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [dragging, onWidthChange]);
 
   const groupName = (id: string | null) => groups.find(g => g.id === id)?.name ?? '—';
 
   return (
     <div
-      className="flex flex-col h-full border-l-2 border-foreground bg-background"
-      style={{ width: 280, fontFamily: SWISS_FONT }}
+      className="flex flex-col h-full border-l-2 border-foreground bg-background relative"
+      style={{ width, fontFamily: SWISS_FONT, userSelect: dragging ? 'none' : 'auto' }}
     >
+      {onWidthChange && (
+        <div
+          onMouseDown={() => setDragging(true)}
+          title="Drag to resize"
+          style={{
+            position: 'absolute', left: -3, top: 0, bottom: 0, width: 6, cursor: 'ew-resize', zIndex: 30,
+            background: dragging ? 'hsl(var(--foreground) / 0.25)' : 'transparent',
+          }}
+          onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'hsl(var(--foreground) / 0.15)'; }}
+          onMouseLeave={e => { if (!dragging) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+        />
+      )}
       <div className="flex items-center justify-between px-4 py-3 border-b-2 border-foreground flex-shrink-0">
         <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Tasks ({tasks.length})</span>
         <div className="flex gap-2">
