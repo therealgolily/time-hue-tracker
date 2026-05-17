@@ -226,7 +226,8 @@ const GanttChart = ({
     setEditDraft('');
   };
 
-  const headerH = scale === 'weeks' ? 72 : 48;
+  const showMonthDays = scale === 'months' && colW >= 140;
+  const headerH = scale === 'weeks' ? 72 : (showMonthDays ? 68 : 48);
 
   if (!hasData) {
     return (
