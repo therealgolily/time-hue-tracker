@@ -146,7 +146,9 @@ const PlanApp = () => {
   const [zoom, setZoom] = useState(1);
   const [groupBy] = useState<'client' | 'phase'>('phase');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarWidth, setSidebarWidth] = useState(280);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try { const w = localStorage.getItem('plan_sidebar_width'); return w ? Math.max(220, Math.min(700, parseInt(w, 10))) : 280; } catch { return 280; }
+  });
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [editingTask, setEditingTask] = useState<PlanTask | null>(null);
   const [showDeadlineForm, setShowDeadlineForm] = useState(false);
