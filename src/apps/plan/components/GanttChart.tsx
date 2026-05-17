@@ -430,10 +430,12 @@ const GanttChart = ({
               ))}
 
               {/* Today line */}
-              <div className="plan-today-blink" style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 2, background: 'hsl(0 100% 50%)', zIndex: 4, pointerEvents: 'none' }}>
-                <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', background: 'hsl(0 100% 50%)', color: '#fff', fontSize: 9, fontFamily: SWISS_FONT, fontWeight: 700, padding: '1px 6px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Today</div>
+              <div className="plan-today-blink" style={{ position: 'absolute', top: 0, bottom: 0, left: todayX, width: 2, background: 'hsl(0 100% 50%)', zIndex: 6, pointerEvents: 'none', boxShadow: '0 0 8px hsl(0 100% 50% / 0.6)' }}>
+                <div style={{ position: 'absolute', top: 4, left: 4, background: 'hsl(0 100% 50%)', color: '#fff', fontSize: 9, fontFamily: SWISS_FONT, fontWeight: 700, padding: '2px 6px', whiteSpace: 'nowrap', textTransform: 'uppercase', letterSpacing: '0.1em', boxShadow: '0 1px 4px rgba(0,0,0,0.25)' }}>
+                  Today · {MONTHS[today.getMonth()]} {today.getDate()}
+                </div>
               </div>
-              <style>{`@keyframes planTodayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } } .plan-today-blink { animation: planTodayBlink 1.2s ease-in-out infinite; }`}</style>
+              <style>{`@keyframes planTodayBlink { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } } .plan-today-blink { animation: planTodayBlink 1.4s ease-in-out infinite; }`}</style>
 
               {/* Deadline lines */}
               {deadlines.map(dl => {
