@@ -90,6 +90,10 @@ const GanttChart = ({
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
   }, [resizingLabel]);
 
+  useEffect(() => {
+    localStorage.setItem('plan_label_width', String(labelW));
+  }, [labelW]);
+
   // ── Selection & editing ────────────────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
