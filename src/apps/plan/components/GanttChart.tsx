@@ -8,7 +8,7 @@ import { ChevronDown, Pencil, Trash2, Check } from 'lucide-react';
 
 const SWISS_FONT = "'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif";
 const ROW_H = 42;
-const LABEL_W = 200;
+const LABEL_W_DEFAULT = 200;
 const COL_W_WEEK = 30;
 const COL_W_MONTH = 84;
 
@@ -72,6 +72,21 @@ const GanttChart = ({
   };
   const [dragging, setDragging] = useState<DragInfo | null>(null);
   const [preview, setPreview] = useState<{ taskId: string; start_date: string; end_date: string } | null>(null);
+  const [labelW, setLabelW] = useState<number>(LABEL_W_DEFAULT);
+  const [resizingLabel, setResizingLabel] = useState(false);
+
+  useEffect(() => {
+    if (!resizingLabel) return;
+    const onMove = (e: MouseEvent) => {
+      const rect = chartRef.current?.parentElement?.getBoundingClientRect();
+      const left = rect?.left ?? 0;
+      setLabelW(Math.max(120, Math.min(500, e.clientX - left)));
+    };
+    const onUp = () => setResizingLabel(false);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [resizingLabel]);
 
   // ── Selection & editing ────────────────────────────────────────────────────
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -218,13 +233,24 @@ const GanttChart = ({
   return (
     <div
       className="flex flex-col flex-1 overflow-hidden"
-      style={{ cursor: dragging ? (dragging.type === 'move' ? 'grabbing' : 'ew-resize') : 'default', userSelect: dragging ? 'none' : 'auto' }}
+      style={{ cursor: dragging ? (dragging.type === 'move' ? 'grabbing' : 'ew-resize') : (resizingLabel ? 'ew-resize' : 'default'), userSelect: (dragging || resizingLabel) ? 'none' : 'auto' }}
       onClick={() => { setGroupPickerId(null); setShowNewGroup(false); setSelectedId(null); }}
     >
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
 
         {/* ── Left label panel ─────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 border-r-2 border-foreground bg-background z-10" style={{ width: LABEL_W }}>
+        <div className="flex-shrink-0 border-r-2 border-foreground bg-background z-10 relative" style={{ width: labelW }}>
+          {/* Resize handle */}
+          <div
+            onMouseDown={e => { e.preventDefault(); setResizingLabel(true); }}
+            title="Drag to resize"
+            style={{
+              position: 'absolute', right: -3, top: 0, bottom: 0, width: 6, cursor: 'ew-resize', zIndex: 30,
+              background: resizingLabel ? 'hsl(var(--foreground) / 0.25)' : 'transparent',
+            }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.background = 'hsl(var(--foreground) / 0.15)'; }}
+            onMouseLeave={e => { if (!resizingLabel) (e.currentTarget as HTMLDivElement).style.background = 'transparent'; }}
+          />
           <div style={{ height: headerH, borderBottom: '2px solid hsl(var(--foreground))' }} />
           {sortedTasks.map((task) => {
             const group = groups.find(g => g.id === task.group_id);
