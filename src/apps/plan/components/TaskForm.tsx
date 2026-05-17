@@ -17,7 +17,7 @@ const TaskForm = ({ groups, onAdd, onClose }: Props) => {
   const [endDate, setEndDate] = useState(() => {
     const d = new Date(); d.setDate(d.getDate() + 14); return d.toISOString().split('T')[0];
   });
-  const [status, setStatus] = useState<TaskStatus>('pending');
+  const [status, setStatus] = useState<TaskStatus>('planned');
   const [isCritical, setIsCritical] = useState(false);
 
   const inputStyle: React.CSSProperties = {
@@ -74,10 +74,11 @@ const TaskForm = ({ groups, onAdd, onClose }: Props) => {
           <div>
             <span style={labelStyle}>Status</span>
             <select style={inputStyle} value={status} onChange={e => setStatus(e.target.value as TaskStatus)} className="text-foreground">
-              <option value="pending">Pending</option>
-              <option value="done">Done</option>
-              <option value="delayed">Delayed</option>
-              <option value="critical">Critical</option>
+              <option value="not_started">Not Started</option>
+              <option value="planned">Planned</option>
+              <option value="in_progress">In Progress</option>
+              <option value="almost_done">Almost Done</option>
+              <option value="complete">Complete</option>
             </select>
           </div>
           <label className="flex items-center gap-2.5 cursor-pointer" style={{ fontFamily: SWISS_FONT, fontSize: 12, opacity: 0.7, letterSpacing: '0.02em' }}>

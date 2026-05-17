@@ -79,7 +79,7 @@ const TaskSidebar = ({ tasks, groups, onUpdateTask, onDeleteTask, onNewTask, onC
                 <div className="px-3 pb-3 flex flex-col gap-2">
                   <div style={{ fontSize: 11, opacity: 0.6, letterSpacing: '0.02em' }}>
                     {groupName(task.group_id)} · {task.start_date} → {task.end_date}
-                    {task.is_critical && <span style={{ marginLeft: 6, color: STATUS_COLORS.critical.bar, fontWeight: 700 }}>★ Critical</span>}
+                    {task.is_critical && <span style={{ marginLeft: 6, color: '#C1121F', fontWeight: 700 }}>★ Critical</span>}
                   </div>
                   <select
                     value={task.status}
