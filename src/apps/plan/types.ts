@@ -32,6 +32,7 @@ export interface PlanTask {
   status: TaskStatus;
   is_critical: boolean;
   row_order: number;
+  color?: string | null;
   created_at: string;
   updated_at: string;
 }
